@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.26)
 project(PassKeeper)
 
+if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+    message(FATAL_ERROR "FUCK YOU, WINDOWS USER!")
+endif ()
+
 find_package(Boost 1.82.0 COMPONENTS program_options REQUIRED)
 if (NOT Boost_FOUND)
     message(FATAL_ERROR "Cannot find Boost")
