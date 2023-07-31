@@ -11,40 +11,42 @@ namespace Database
     class Connector
     {
     public:
-        Connector(const string &);
+        Connector(const std::string &);
 
-        bool connect(const string &file_path);
+        bool connect(const std::string &);
 
-        bool select_record(stringstream &, const string &);
+        bool select_record(std::stringstream &, const std::string &, bool);
 
         bool create_record(
-                const string &,
-                const string &,
-                const string &,
-                const string &,
-                const string &,
-                const string &,
-                const string &
+                const std::string &,
+                const std::string &,
+                const std::string &,
+                const std::string &,
+                const std::string &,
+                const std::string &,
+                const std::string &
         );
 
         bool update_record(
-                const string &,
-                const string &,
-                const string &,
-                const string &,
-                const string &,
-                const string &,
-                const string &,
-                const string &
+                const std::string &,
+                const std::string &,
+                const std::string &,
+                const std::string &,
+                const std::string &,
+                const std::string &,
+                const std::string &,
+                const std::string &
         );
 
-        bool delete_record(const string &);
+        bool delete_record(const std::string &);
+
+        bool count_record(int &);
 
         ~Connector();
 
     private:
         sqlite3 *p_db;
-        string table_name;
+        std::string table_name;
     };
 }
 #endif
