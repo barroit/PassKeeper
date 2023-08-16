@@ -11,13 +11,14 @@ namespace Database
     class Connector
     {
     public:
-        Connector(const std::string &);
+        Connector(std::string );
 
         bool connect(const std::string &);
 
         bool select_record(std::stringstream &, const std::string &, bool);
 
-        bool create_record(
+        bool insert_record(
+                int &,
                 const std::string &,
                 const std::string &,
                 const std::string &,
@@ -28,7 +29,8 @@ namespace Database
         );
 
         bool update_record(
-                const std::string &,
+                int &,
+                int,
                 const std::string &,
                 const std::string &,
                 const std::string &,
@@ -38,7 +40,7 @@ namespace Database
                 const std::string &
         );
 
-        bool delete_record(const std::string &);
+        bool delete_record(int &, int);
 
         bool count_record(int &);
 
@@ -46,6 +48,7 @@ namespace Database
 
     private:
         sqlite3 *p_db;
+        sqlite3_stmt *p_stmt;
         std::string table_name;
     };
 }

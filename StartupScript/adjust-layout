@@ -1,8 +1,0 @@
-#!/bin/bash
-wmctrl -r "discord" -e 0,0,0,1440,1020
-sleep .1
-wmctrl -r "chrome" -e 0,-25,1040,1486,1545
-sleep .1
-wmctrl -r "superfortress" -e 0,4000,1920,1140,900
-sleep .1
-wmctrl -r "music" -e 0,4000,620,1124,1130

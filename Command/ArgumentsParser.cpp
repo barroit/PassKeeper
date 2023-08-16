@@ -1,12 +1,10 @@
 #include <fstream>
-#include <cctype>
 #include <string>
 #include <iostream>
 #include "ArgumentsParser.h"
+#include "../Util/Validation.h"
 
 #define EXIT_ON_ERROR(r) if (!r) return Command::Enums::ActionType::NONE;
-#define ACTION_SEMANTIC(action) po::bool_switch()->notifier([&c_action](bool check) { ::valid_or_throw(check, c_action, action); })
-#define FIELD_SEMANTIC(field) po::value<string>()->notifier([](string value) { ::valid_or_throw(value, field); })
 
 // ensure those functions can only be used in this cpp file
 namespace
@@ -14,13 +12,17 @@ namespace
     void valid_or_throw(bool, int &, Command::Enums::ActionType);
 
     void valid_or_throw(const std::string &, Command::Enums::SZValueKey);
+
+    boost::program_options::typed_value<bool> *get_semantic(Command::Enums::ActionType, int &);
+
+    boost::program_options::typed_value<std::string> *get_semantic(Command::Enums::SZValueKey);
+
+    boost::program_options::typed_value<std::string> *get_semantic(int &);
 }
 
 Command::Enums::ActionType Command::Parser::parse(int argc, char *argv[])
 {
     using namespace Command::Enums;
-
-    int c_action = 0;
 
     // region for command line
     po::options_description generic;
@@ -30,41 +32,43 @@ Command::Enums::ActionType Command::Parser::parse(int argc, char *argv[])
 
     po::options_description db_configs;
     db_configs.add_options()
-            ("db_file,db", po::value<string>()->default_value("Secret.db")->notifier(
-                    [](string file_path) {
+            ("db_file,db", po::value<string>()->default_value("./secret.db")->notifier(
+                    [](const string &file_path) {
                         ifstream s_file(file_path);
                         bool b_exist = s_file.is_open();
                         s_file.close();
                         if (!b_exist)
                         {
-                            cerr << "Please provide a .db file for operation, or make sure a default Secret.db exists in the same folder of PassKeeper." << endl;
+                            cerr << "Please provide a .db file for operation, or make sure a default secret.db exists in the same folder of PassKeeper." << endl;
                             throw po::validation_error(po::validation_error::invalid_option_value, "db_file");
                         }
                     }
             ), "The db file for operation.")
             ("table_name,table", po::value<string>()->default_value("Password"), "The table name in the database.");
 
+    int c_action = 0;
     po::options_description actions;
     actions.add_options()
-            ("create_record,C", ACTION_SEMANTIC(ActionType::CREATE), "Create a record.")
-            ("read,R", ACTION_SEMANTIC(ActionType::READ), "Read a record.")
-            ("update_record,U", ACTION_SEMANTIC(ActionType::UPDATE), "Update a record.")
-            ("delete,D", ACTION_SEMANTIC(ActionType::DELETE), "Delete a record.")
-            ("count", ACTION_SEMANTIC(ActionType::COUNT), "Count all records.");
+            ("create_record,C", ::get_semantic(ActionType::CREATE, c_action), "Create a record.")
+            ("read,R", ::get_semantic(ActionType::READ, c_action), "Read a record.")
+            ("update_record,U", ::get_semantic(ActionType::UPDATE, c_action), "Update a record.")
+            ("delete,D", ::get_semantic(ActionType::DELETE, c_action), "Delete a record.")
+            ("count", ::get_semantic(ActionType::COUNT, c_action), "Count all records.");
 
+    int c_field = 0;
     po::options_description fields;
     fields.add_options()
-            ("site_name", FIELD_SEMANTIC(SZValueKey::SITE_NAME), "The site name should be in upper camel case and cannot be null.")
-            ("site_url", FIELD_SEMANTIC(SZValueKey::SITE_URL), "The URL for site name disambiguation.")
-            ("username", po::value<string>()->default_value("NULL"), "Your username. If you have a particular case, like storing a CDK, do not pass this.")
-            ("password", po::value<string>()->default_value("NULL"), "Your password. If you have a particular case, like storing a bank card, do not pass this.")
-            ("auth_text", FIELD_SEMANTIC(SZValueKey::AUTH_TEXT), "The authentication text for two-step verification.")
-            ("recovery_code", FIELD_SEMANTIC(SZValueKey::RECOVERY_CODE), "The recovery code for account restoration.")
-            ("comment", FIELD_SEMANTIC(SZValueKey::COMMENT), "Some extra information.");
+            ("site_name", ::get_semantic(SZValueKey::SITE_NAME), "The site name should be in upper camel case and cannot be null.")
+            ("site_url", ::get_semantic(SZValueKey::SITE_URL), "The URL for site name disambiguation.")
+            ("username", ::get_semantic(c_field), "Your username. If you have a particular case, like storing a CDK, do not pass this.")
+            ("password", ::get_semantic(c_field), "Your password. If you have a particular case, like storing a bank card, do not pass this.")
+            ("auth_text", ::get_semantic(SZValueKey::AUTH_TEXT), "The authentication text for two-step verification.")
+            ("recovery_code", ::get_semantic(SZValueKey::RECOVERY_CODE), "The recovery code for account restoration.")
+            ("comment", ::get_semantic(SZValueKey::COMMENT), "Some extra information.");
 
     po::options_description id_field;
     id_field.add_options()
-            ("id", FIELD_SEMANTIC(SZValueKey::ID), "The record id to locate for deletion.");
+            ("id", ::get_semantic(SZValueKey::ID), "The record id to locate for deletion.");
 
     po::options_description read_action_specific;
     read_action_specific.add_options()
@@ -161,7 +165,7 @@ Command::Enums::ActionType Command::Parser::parse(int argc, char *argv[])
         return ActionType::NONE;
     }
 
-    if (!c_action)
+    if (c_action == 0)
     {
         cerr << "Please provide at least one action for operation." << endl;
         return ActionType::NONE;
@@ -179,10 +183,16 @@ Command::Enums::ActionType Command::Parser::parse(int argc, char *argv[])
 
     if (variables_map.at(Command::Enums::to_string(ActionType::CREATE)).as<bool>())
     {
+        if (c_field == 0)
+        {
+            cerr << "Please provide at least one username or password." << endl;
+            return ActionType::NONE;
+        }
+
         EXIT_ON_ERROR(add_value(true, SZValueKey::SITE_NAME))
         EXIT_ON_ERROR(add_value(false, SZValueKey::SITE_URL))
-        EXIT_ON_ERROR(add_value(true, SZValueKey::USERNAME))
-        EXIT_ON_ERROR(add_value(true, SZValueKey::PASSWORD))
+        EXIT_ON_ERROR(add_value(false, SZValueKey::USERNAME))
+        EXIT_ON_ERROR(add_value(false, SZValueKey::PASSWORD))
         EXIT_ON_ERROR(add_value(false, SZValueKey::AUTH_TEXT))
         EXIT_ON_ERROR(add_value(false, SZValueKey::RECOVERY_CODE))
         EXIT_ON_ERROR(add_value(false, SZValueKey::COMMENT))
@@ -218,13 +228,14 @@ Command::Enums::ActionType Command::Parser::parse(int argc, char *argv[])
 
 bool Command::Parser::add_value(bool required, Command::Enums::SZValueKey key)
 {
-    string c_key = Command::Enums::to_string(key);
-    if (required && !variables_map.count(c_key))
+    string column_key = Command::Enums::to_string(key);
+    bool has_value = variables_map.count(column_key);
+    if (required && !has_value)
     {
-        cerr << c_key << ": at least one value required" << endl;
+        cerr << column_key << ": at least one value required" << endl;
         return false;
     }
-    szkv_pair.insert({ key, required ? variables_map.at(c_key).as<string>() : "" });
+    szkv_pair.insert({ key, has_value ? variables_map.at(column_key).as<string>() : "" });
     return true;
 }
 
@@ -255,7 +266,6 @@ namespace
 {
     void valid_or_throw(bool check, int &c_action, Command::Enums::ActionType action)
     {
-
         if (check && ++c_action - 1)
         {
             std::cerr << "Only one action is allowed." << std::endl;
@@ -265,12 +275,27 @@ namespace
 
     void valid_or_throw(const std::string &value, Command::Enums::SZValueKey key)
     {
-        // check if string is blank
-        if (all_of(value.begin(), value.end(), [](unsigned char c) { return isspace(c); }))
+        if (Validation::is_blank(value))
         {
             std::cerr << "The value you have provided is empty or blank." << std::endl;
             throw boost::program_options::validation_error(boost::program_options::validation_error::invalid_option_value, to_string(key));
         }
+    }
+
+    boost::program_options::typed_value<bool> *get_semantic(Command::Enums::ActionType action, int &c_action)
+    {
+        // since the function returned value is created on heap, we can do this safely.
+        return boost::program_options::bool_switch()->notifier([&c_action, &action](bool check) { ::valid_or_throw(check, c_action, action); });
+    }
+
+    boost::program_options::typed_value<std::string> *get_semantic(Command::Enums::SZValueKey field)
+    {
+        return boost::program_options::value<std::string>()->notifier([&field](const std::string &value) { ::valid_or_throw(value, field); });
+    }
+
+    boost::program_options::typed_value<std::string> *get_semantic(int &c_field)
+    {
+        return boost::program_options::value<std::string>()->notifier([&c_field](const std::string &value) { !Validation::is_blank(value) && c_field++; });
     }
 }
 // endregion
