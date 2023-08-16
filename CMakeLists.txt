@@ -26,7 +26,11 @@ add_executable(
         Command/ArgumentsParser.h
         Persistence/Database.cpp
         Persistence/Database.h
+        Util/Validation.cpp
+        Util/Validation.h
 )
 
 target_link_libraries(PassKeeper LINK_PUBLIC ${Boost_LIBRARIES})
 target_link_libraries(PassKeeper LINK_PUBLIC ${SQLite3_LIBRARIES})
+
+set_target_properties(PassKeeper PROPERTIES OUTPUT_NAME pk)
