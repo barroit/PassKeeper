@@ -1,0 +1,1 @@
+cmake -B build/window -DCMAKE_TOOLCHAIN_FILE=cmake/window-toolchain.cmake . > /dev/null && cd ./build/window && make

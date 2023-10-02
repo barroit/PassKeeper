@@ -1,36 +1,33 @@
-cmake_minimum_required(VERSION 3.26)
-project(PassKeeper)
+cmake_minimum_required(VERSION 3.22)
 
-if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-    message(FATAL_ERROR "FUCK YOU, WINDOWS USER!")
-endif ()
+project(passkeeper)
 
-find_package(Boost 1.82.0 COMPONENTS program_options REQUIRED)
-if (NOT Boost_FOUND)
-    message(FATAL_ERROR "Cannot find Boost")
-endif ()
+set(CMAKE_CXX_STANDARD 20)
 
-find_package(SQLite3)
-if (NOT SQLite3_FOUND)
-    message(FATAL_ERROR "Cannot find SQLite3")
-endif ()
+# Include Dependencies
+add_subdirectory(external/CLI11)
+add_subdirectory(external/sqlite3)
 
-INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
+# Add the include directory to the include path
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
-set(CMAKE_CXX_STANDARD 23)
-
+# Define executable
 add_executable(
-        PassKeeper
-        PassKeeper.cpp
-        Command/ArgumentsParser.cpp
-        Command/ArgumentsParser.h
-        Persistence/Database.cpp
-        Persistence/Database.h
-        Util/Validation.cpp
-        Util/Validation.h
+		pk
+		src/main.cpp
+		include/command.hpp
+		include/orm.hpp
+		include/pkerr.hpp
+		src/command/create.cpp
+		src/command/read.cpp
+		src/command/update.cpp
+		src/command/delete.cpp
+		src/orm.cpp
 )
 
-target_link_libraries(PassKeeper LINK_PUBLIC ${Boost_LIBRARIES})
-target_link_libraries(PassKeeper LINK_PUBLIC ${SQLite3_LIBRARIES})
+# Link Dependencies
+target_link_libraries(pk PRIVATE sqlite3)
+target_link_libraries(pk PRIVATE CLI11)
 
-set_target_properties(PassKeeper PROPERTIES OUTPUT_NAME pk)
+# Enable precompiled headers
+target_precompile_headers(pk PRIVATE include/pch.hpp)

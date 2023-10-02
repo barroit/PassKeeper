@@ -1,0 +1,1 @@
+cmake -B build/penguin -DCMAKE_TOOLCHAIN_FILE=cmake/penguin-toolchain.cmake -G Ninja . > /dev/null && cd ./build/penguin && ninja
