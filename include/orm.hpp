@@ -21,7 +21,7 @@ struct FUpdate : FCreate
 class ORMBridge
 {
 public:
-	explicit ORMBridge(const char *db_url);
+	ORMBridge();
 
 	std::string select_record(const std::string &name, bool verbose);
 
@@ -38,6 +38,8 @@ public:
 	int update_record(int id, const std::map<std::string, std::string> &args);
 
 	int delete_record(int id);
+
+	static std::string get_secret_location();
 
 	~ORMBridge();
 

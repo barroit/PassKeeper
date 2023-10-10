@@ -11,3 +11,5 @@
 #include <map>
 #include <climits>
 #include <stdexcept>
+#include <cstdlib>
+#include <algorithm>

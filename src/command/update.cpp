@@ -30,7 +30,7 @@ void setup_update_subcommand(CLI::App &pk)
 				ADD_FIELD(recovery_code)
 				ADD_FIELD(comment)
 
-				ORMBridge orm{ ".secret.db" };
+				ORMBridge orm;
 				int r = orm.update_record(field->id, args);
 				std::cout << "Query OK, " << r << " row affected" << std::endl;
 			}

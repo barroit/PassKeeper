@@ -15,7 +15,7 @@ void setup_delete_subcommand(CLI::App &pk)
 	D->callback(
 			[field]()
 			{
-				ORMBridge orm{ ".secret.db" };
+				ORMBridge orm;
 				int r = orm.delete_record(field->id);
 				std::cout << "Query OK, " << r << " row affected" << std::endl;
 			}
