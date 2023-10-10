@@ -26,15 +26,17 @@
 #define OUT_ROW(key, value)																								\
 	std::left << std::setw(20) << key << value << std::endl
 
-ORMBridge::ORMBridge(const char *db_url)
+ORMBridge::ORMBridge()
 		: db{ nullptr }, stmt{ nullptr }
 {
+	auto db_url = ORMBridge::get_secret_location();
+
 	if (!std::filesystem::exists(db_url))
 	{
 		throw ORMException{ std::string{ "db file not exists: " }.append(db_url) };
 	}
 
-	rc = sqlite3_open(db_url, &db);
+	rc = sqlite3_open(db_url.c_str(), &db);
 	if (rc != SQLITE_OK)
 	{
 		sqlite3_close(db);
@@ -154,4 +156,41 @@ int ORMBridge::delete_record(int id)
 	EXECUTE_STATEMENT("failed to delete record")
 
 	return sqlite3_changes(db);
+}
+
+std::string ORMBridge::get_secret_location()
+{
+	std::string onedrive_path;
+	std::string onedrive_key{ "onedrive" };
+
+	for (char **next_env = environ; *next_env != nullptr; ++next_env)
+	{
+		std::string env{ *next_env };
+
+		std::string::size_type pos = env.find('=');
+		if (pos == std::string::npos)
+		{
+			continue;
+		}
+
+		std::string key = env.substr(0, pos);
+		std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+
+		if (key == onedrive_key)
+		{
+			onedrive_path = env.substr(pos + 1);
+		}
+	}
+
+	std::string local_db{ ".secret.db" };
+
+	if (onedrive_path.empty()) return local_db;
+
+	if (std::filesystem::exists(onedrive_path) && std::filesystem::is_directory(onedrive_path))
+	{
+		std::string remote_db = onedrive_path + "/Secret/.secret.db";
+		if (std::filesystem::exists(remote_db)) return remote_db;
+	}
+
+	return local_db;
 }

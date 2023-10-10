@@ -17,7 +17,7 @@ void setup_read_subcommand(CLI::App &pk)
 	R->callback(
 			[field]()
 			{
-				ORMBridge orm{ ".secret.db" };
+				ORMBridge orm;
 				std::cout << orm.select_record(field->name, field->verbose);
 			}
 	);

@@ -22,7 +22,7 @@ void setup_create_subcommand(CLI::App &pk)
 					throw ValidateException{ std::string{ "either username or password must be set" }};
 				}
 
-				ORMBridge orm{ ".secret.db" };
+				ORMBridge orm;
 				int r = orm.insert_record(field->site_name, field->site_url, field->username, field->password, field->auth_text, field->recovery_code, field->comment);
 				std::cout << "Query OK, " << r << " row affected" << std::endl;
 			}
