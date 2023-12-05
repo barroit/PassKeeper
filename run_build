@@ -1,0 +1,74 @@
+#!/usr/bin/bash
+
+workspace="$(pwd)"
+build_dir="$workspace/build"
+
+option="${1:-penguin}"
+
+case "$option" in
+	"penguin")
+		echo "found linux target"
+		build_dir+="/penguin"
+		build_flag="-DCMAKE_C_COMPILER=gcc"
+		;;
+	"window")
+		echo "found windows target"
+		build_dir+="/window"
+		build_flag="-DCMAKE_SYSTEM_NAME=Windows\
+			-DCMAKE_SYSTEM_VERSION=10.0.22631\
+			-DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc"
+		;;
+	"clean")
+		rm -rf build/
+		echo "cleaned up build/"
+		exit 0
+		;;
+	"init")
+		init=1
+		echo "set init to 1"
+		;;
+	*)
+		echo "bad option: $option"
+		;;
+esac
+
+mkdir -p $build_dir
+
+deps_dir="$workspace/build/_deps"
+deps_tmp_dir="$deps_dir/tmp"
+
+sqlite_dir="$deps_dir/sqlite3"
+
+if [ ! -d $sqlite_dir ]; then
+	echo "not found dependency: sqlite3"
+	sqlite_version="sqlite-amalgamation-3440200"
+
+	mkdir -p $deps_tmp_dir
+	cd $deps_tmp_dir
+
+	if [ ! -f "$sqlite_version.zip" ]; then
+		echo "not found zip file of sqlite3, download it"
+		wget "https://www.sqlite.org/2023/$sqlite_version.zip"
+	fi
+
+	unzip "$sqlite_version.zip"
+	mkdir -p $sqlite_dir
+
+	echo "moving files in $sqlite_version to $sqlite_dir"
+	mv $sqlite_version/* $sqlite_dir
+	rmdir $sqlite_version
+fi
+
+if [ $init ]; then
+	exit 0
+fi
+
+build_flag+=" -Dsqlite3_SOURCE_DIR=$sqlite_dir"
+
+cd $workspace
+
+cmake -B $build_dir $build_flag
+
+cd $build_dir
+
+make
