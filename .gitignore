@@ -1,10 +1,1 @@
-build
-
-.secret.db
-
-external/sqlite3/shell.c
-external/sqlite3/sqlite3.c
-external/sqlite3/sqlite3ext.h
-external/sqlite3/sqlite3.h
-
-external/CLI11/CLI11.hpp
+build/

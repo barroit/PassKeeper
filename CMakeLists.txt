@@ -1,33 +1,21 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.14)
 
-project(passkeeper)
-
-set(CMAKE_CXX_STANDARD 20)
-
-# Include Dependencies
-add_subdirectory(external/CLI11)
-add_subdirectory(external/sqlite3)
-
-# Add the include directory to the include path
-include_directories(${CMAKE_SOURCE_DIR}/include)
-
-# Define executable
-add_executable(
-		pk
-		src/main.cpp
-		include/command.hpp
-		include/orm.hpp
-		include/pkerr.hpp
-		src/command/create.cpp
-		src/command/read.cpp
-		src/command/update.cpp
-		src/command/delete.cpp
-		src/orm.cpp
+project(
+	PassKeeper
+	VERSION		0.1.0
+	LANGUAGES	C
 )
 
-# Link Dependencies
-target_link_libraries(pk PRIVATE sqlite3)
-target_link_libraries(pk PRIVATE CLI11)
+include_directories(${sqlite3_SOURCE_DIR})
 
-# Enable precompiled headers
-target_precompile_headers(pk PRIVATE include/pch.hpp)
+file(GLOB PK_SOURCES "src/*.c")
+
+add_executable(
+	pk
+	${PK_SOURCES}
+	${sqlite3_SOURCE_DIR}/sqlite3.c
+)
+
+target_include_directories(pk PRIVATE ${sqlite3_SOURCE_DIR})
+
+set_target_properties(pk PROPERTIES C_STANDARD 17)
