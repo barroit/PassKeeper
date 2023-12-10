@@ -3,12 +3,11 @@
 
 int main(int argc, char **argv)
 {
-	struct argument argument = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, -1, 0, 0 };
+	parse_command(argc, argv);
 
-	parse_command(argc, argv, &argument);
-
+	#undef DEBUG
 	#ifdef DEBUG
-	print_arguments(&argument);
+	print_arguments();
 	#endif
 
 	return 0;

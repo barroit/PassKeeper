@@ -6,11 +6,17 @@
 ./run_build init
 ```
 
-### build for linux
+### build with debug features
 
 ```bash
 ./run_build
 # or
+./run_build debug
+```
+
+### build for linux
+
+```bash
 ./run_build penguin
 ```
 
@@ -20,7 +26,7 @@
 ./run_build window
 ```
 
-### cleanup build
+### cleanup output
 
 ```bash
 ./run_build clean
