@@ -1,0 +1,3 @@
+#define PassKeeper_VERSION_MAJOR @PassKeeper_VERSION_MAJOR@
+#define PassKeeper_VERSION_MINOR @PassKeeper_VERSION_MINOR@
+#define PassKeeper_VERSION_PATCH @PassKeeper_VERSION_PATCH@

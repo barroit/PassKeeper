@@ -3,13 +3,18 @@
 workspace="$(pwd)"
 build_dir="$workspace/build"
 
-option="${1:-penguin}"
+option="${1:-debug}"
 
 case "$option" in
+	"debug")
+		echo "add debug symbol"
+		build_flag="-DCMAKE_BUILD_TYPE=Debug "
+		debug=1
+		;&
 	"penguin")
 		echo "found linux target"
 		build_dir+="/penguin"
-		build_flag="-DCMAKE_C_COMPILER=gcc"
+		build_flag+="-DCMAKE_C_COMPILER=gcc"
 		;;
 	"window")
 		echo "found windows target"
@@ -66,9 +71,13 @@ fi
 build_flag+=" -Dsqlite3_SOURCE_DIR=$sqlite_dir"
 
 cd $workspace
+echo "config output to $build_dir with flag $build_flag"
 
 cmake -B $build_dir $build_flag
 
 cd $build_dir
-
 make
+
+if [ $debug ]; then
+	cp pk $workspace
+fi
