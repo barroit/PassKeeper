@@ -24,8 +24,8 @@ case "$option" in
 			-DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc"
 		;;
 	"clean")
-		rm -rf build/
-		echo "cleaned up build/"
+		rm -rf build/ pk
+		echo "cleaned up build/, pk"
 		exit 0
 		;;
 	"init")

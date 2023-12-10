@@ -26,14 +26,24 @@ struct argument
 
 	int is_verbose;
 	int is_help;
+
+	int subcommand;
 };
 
-void parse_command(int argc, char **argv, struct argument *argument);
+extern struct argument argument;
 
-void parse_options(int c, struct argument *argument);
+void parse_command(int argc, char **argv);
 
-void print_arguments(struct argument *argument);
+void resolve_option(int c);
+
+int get_subcommand(char **argv);
+
+void resolve_pos_arg(char *value, int position);
+
+int validate_argument(void);
 
 int is_number(char *text);
+
+void print_arguments(void);
 
 #endif
