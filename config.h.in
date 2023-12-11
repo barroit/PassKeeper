@@ -1,3 +1,6 @@
-#define PassKeeper_VERSION_MAJOR @PassKeeper_VERSION_MAJOR@
-#define PassKeeper_VERSION_MINOR @PassKeeper_VERSION_MINOR@
-#define PassKeeper_VERSION_PATCH @PassKeeper_VERSION_PATCH@
+#define VERSION_MAJOR @PassKeeper_VERSION_MAJOR@
+#define VERSION_MINOR @PassKeeper_VERSION_MINOR@
+#define VERSION_PATCH @PassKeeper_VERSION_PATCH@
+#define PROJECT_NAME "@PROJECT_NAME@"
+#define AUTHOR "@AUTHOR@"
+#define DEFAULT_DB_FILE "@DEFAULT_DB_FILE@"

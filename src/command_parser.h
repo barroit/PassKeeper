@@ -10,7 +10,7 @@
 #define OPTION_ALIAS_RECOVERY_CODE	12166
 #define OPTION_ALIAS_COMMENT		12167
 
-struct argument
+struct field
 {
 	char *site_name;
 	char *site_url;
@@ -20,30 +20,31 @@ struct argument
 	char *recovery_code;
 	char *comment;
 
-	char *input_file;
+	char *db_file;
 
 	int id;
 
 	int is_verbose;
 	int is_help;
+	int is_version;
 
 	int subcommand;
 };
 
-extern struct argument argument;
+extern struct field field;
 
 void parse_command(int argc, char **argv);
 
 void resolve_option(int c);
 
-int get_subcommand(char **argv);
+int get_command(char **argv);
 
-void resolve_pos_arg(char *value, int position);
+void resolve_argument(char *value, int position);
 
-int validate_argument(void);
+void validate_field(void);
 
 int is_number(char *text);
 
-void print_arguments(void);
+void print_field(void);
 
 #endif

@@ -6,9 +6,13 @@ project(
 	LANGUAGES	C
 )
 
+set(PROJECT_NAME PassKeeper)
+set(AUTHOR barroit)
+set(DEFAULT_DB_FILE $CREDENTIALS)
+
 configure_file(config.h.in config.h)
 
-set(CMAKE_C_FLAGS_DEBUG "-Wall -g -DDEBUG")
+set(CMAKE_C_FLAGS_DEBUG "-Wall -Wextra -g -DDEBUG")
 
 include_directories(${sqlite3_SOURCE_DIR})
 

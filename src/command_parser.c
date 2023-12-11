@@ -1,148 +1,81 @@
 #include "command_parser.h"
 #include "prompt.h"
+#include "config.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <getopt.h>
 #include <ctype.h>
+#include <unistd.h>
 #include <string.h>
 
-struct argument argument = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, -1, 0, 0, 0 };
+struct field field = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, -1, 0, 0, 0, 0 };
 
-static struct option long_options[] = {
-	{ "verbose",		no_argument, &argument.is_verbose, 1 },
-	{ "help",		no_argument, &argument.is_help, 1 },
-	{ "file",		required_argument, NULL, 'f' },
-	{ "id",			required_argument, NULL, OPTION_ALIAS_ID },
-	{ "site_name",		required_argument, NULL, OPTION_ALIAS_SITE_NAME },
-	{ "site_url",		required_argument, NULL, OPTION_ALIAS_SITE_URL },
-	{ "username",		required_argument, NULL, OPTION_ALIAS_USERNAME },
-	{ "password",		required_argument, NULL, OPTION_ALIAS_PASSWORD },
-	{ "auth_text",		required_argument, NULL, OPTION_ALIAS_AUTH_TEXT },
-	{ "recovery_code",	required_argument, NULL, OPTION_ALIAS_RECOVERY_CODE },
-	{ "comment",		required_argument, NULL, OPTION_ALIAS_COMMENT },
-	{ NULL, 0, NULL, 0 }
-};
-
-static char *subcommands[] = { "create", "read", "update", "delete", 0 };
+static char *command_list[] = { "create", "read", "update", "delete", NULL };
 
 void parse_command(int argc, char **argv)
 {
-	char *short_options = "vhf:";
+	struct option long_options[] = {
+		{ "verbose",		no_argument, &field.is_verbose, 1 },
+		{ "help",		no_argument, &field.is_help, 1 },
+		{ "version",		no_argument, &field.is_version, 1 },
+		{ "db_file",		required_argument, NULL, 'f' },
+		{ "id",			required_argument, NULL, OPTION_ALIAS_ID },
+		{ "site_name",		required_argument, NULL, OPTION_ALIAS_SITE_NAME },
+		{ "site_url",		required_argument, NULL, OPTION_ALIAS_SITE_URL },
+		{ "username",		required_argument, NULL, OPTION_ALIAS_USERNAME },
+		{ "password",		required_argument, NULL, OPTION_ALIAS_PASSWORD },
+		{ "auth_text",		required_argument, NULL, OPTION_ALIAS_AUTH_TEXT },
+		{ "recovery_code",	required_argument, NULL, OPTION_ALIAS_RECOVERY_CODE },
+		{ "comment",		required_argument, NULL, OPTION_ALIAS_COMMENT },
+		{ NULL, 0, NULL, 0 }
+	};
+
+	char *short_options = "vf:";
 
 	int c;
-
-	while (1)
-	{
-		int option_index = 0;
-		c = getopt_long(argc, argv, short_options, long_options, &option_index);
-
-		if (c == -1) // no more args
-			break;
-
+	int option_index = 0;
+	while ((c = getopt_long(argc, argv, short_options, long_options, &option_index)) != -1)
 		resolve_option(c);
+
+	if (field.is_version)
+		version();
+
+	/* no argument found */
+	if (optind >= argc)
+		usage(USAGE_ALL);
+
+	int subcommand = get_command(argv);
+
+	/* request help */
+	if (field.is_help && subcommand == -1)
+		usage(USAGE_ALL);
+
+	if (subcommand == -1)
+	{
+		err_field = argv[optind];
+		error(ERROR_UNKNOW_COMMAND);
 	}
 
-	if (optind >= argc) // no subcommand passed
-		exit(1);
+	/* request help for command */
+	if (field.is_help && subcommand + 1)
+	{
+		err_field = argv[optind];
+		usage(USAGE_SUBCOMMAND);
+	}
 
-	int subcommand = get_subcommand(argv);
-
-	if (subcommand == -1) // subcommand not found
-		exit(1);
-
-	argument.subcommand = subcommand;
+	field.subcommand = subcommand;
 
 	int position_start = optind++;
 
 	while (optind < argc)
 	{
-		int position = optind - position_start;
-		resolve_pos_arg(argv[optind], position);
+		int position = optind - position_start; // count arguments
+		resolve_argument(argv[optind], position);
 		optind++;
 	}
 
-	validate_argument();
-}
-
-int validate_argument(void)
-{
-	char *missing_field = NULL;
-
-	switch (argument.subcommand)
-	{
-		case 0: // create
-			if (argument.username == NULL && argument.password == NULL)
-				append_string(&missing_field, "username/password");
-			/* fallthrough to check to check site_name */
-		case 1: // read
-			if (argument.site_name == NULL)
-				append_string(&missing_field, missing_field ? ", site_name" : "site_name");
-			break;
-		case 2: // update
-		case 3: // delete
-			if (argument.id == -1)
-				append_string(&missing_field, "id");
-			break;
-		default:
-			abort();
-	}
-
-	if (missing_field)
-		printf("\"%s\" requires the following options: %s\n", subcommands[argument.subcommand], missing_field);
-
-	free(missing_field);
-
-	return 0;
-}
-
-void resolve_pos_arg(char *value, int position)
-{
-	/*
-	for now is fine,
-	we know that the amount of positional arguments
-	is up to 2 (containing subcommand)
-	*/
-	if (position != 1)
-		exit(1);
-
-	switch (argument.subcommand)
-	{
-		case 1: // read
-			if (argument.site_name != NULL)
-				exit(1);
-			argument.site_name = value;
-			break;
-		case 2: // update
-		case 3: // delete
-			if (argument.id != -1)
-				exit(1);
-			if (!is_number(value))
-				exit(1);
-			argument.id = atoi(value);
-			break;
-		default: // create
-			exit(1);
-	}
-}
-
-int get_subcommand(char **argv)
-{
-	char *argument = argv[optind];
-	int i = 0;
-	char *subcommand;
-	while ((subcommand = subcommands[i]))
-	{
-		int argument_lenth = strlen(argument);
-
-		int is_shortcut = argument_lenth == 1 && argument[0] == subcommand[0] - 32;
-		int is_fullname = strcmp(argument, subcommand) == 0;
-
-		if (is_shortcut || is_fullname) return i;
-
-		i++;
-	}
-
-	return -1;
+	if (field.db_file == NULL)
+		field.db_file = DEFAULT_DB_FILE;
 }
 
 void resolve_option(int c)
@@ -150,47 +83,172 @@ void resolve_option(int c)
 	switch (c)
 	{
 		case OPTION_ALIAS_SITE_NAME:
-			argument.site_name = optarg;
+			field.site_name = optarg;
 			break;
 		case 0:
+			/* resovle flag, do nothing */
 			break;
 		case OPTION_ALIAS_SITE_URL:
-			argument.site_url = optarg;
+			field.site_url = optarg;
 			break;
 		case OPTION_ALIAS_USERNAME:
-			argument.username = optarg;
+			field.username = optarg;
 			break;
 		case OPTION_ALIAS_PASSWORD:
-			argument.password = optarg;
+			field.password = optarg;
 			break;
 		case OPTION_ALIAS_AUTH_TEXT:
-			argument.auth_text = optarg;
+			field.auth_text = optarg;
 			break;
 		case OPTION_ALIAS_RECOVERY_CODE:
-			argument.recovery_code = optarg;
+			field.recovery_code = optarg;
 			break;
 		case OPTION_ALIAS_COMMENT:
-			argument.comment = optarg;
+			field.comment = optarg;
 			break;
 		case OPTION_ALIAS_ID:
-			if (!is_number(optarg)) exit(1); // TODO prompts
-			argument.id = atoi(optarg);
+			if (!is_number(optarg))
+			{
+				err_field = optarg;
+				strapd(&err_msg, "int");
+				error(ERROR_TYPE_MISMATCH);
+			}
+			field.id = atoi(optarg);
 			break;
 		case 'v':
-			argument.is_verbose = 1;
-			break;
-		case 'h':
-			argument.is_help = 1;
+			field.is_verbose = 1;
 			break;
 		case 'f':
-			argument.input_file = optarg;
+			field.db_file = optarg;
 			break;
 		case '?':
           		/* getopt_long already printed an error message. */
 			exit(1);
 			break;
 		default:
-			exit(1);
+			abort();
+	}
+}
+
+int get_command(char **argv)
+{
+	int i = 0;
+	char *command;
+	while ((command = command_list[i]))
+	{
+		int argument_length = strlen(argv[optind]);
+
+		int is_shortcut = argument_length == 1 && argv[optind][0] == toupper(command[0]);
+		int is_fullname = strcmp(argv[optind], command) == 0;
+
+		if (is_shortcut || is_fullname)
+			return i;
+
+		i++;
+	}
+
+	return -1;
+}
+
+void resolve_argument(char *value, int position)
+{
+	/* for now is fine, we know that the amount of argument is up to 2 (containing command) */
+	if (position != 1)
+	{
+		err_field = value;
+		error(ERROR_UNKNOW_ARGUMENT);
+	}
+
+	switch (field.subcommand)
+	{
+		case 0: // create
+			err_field = value;
+			error(ERROR_UNKNOW_ARGUMENT);
+			break;
+		case 1: // read
+			/* disallow argument and option from appearing at the same time to avoid confusion */
+			if (field.site_name != NULL)
+			{
+				err_field = value;
+				strapd(&err_msg, "site_name");
+				error(ERROR_FIELD_CONFLICT);
+			}
+			field.site_name = value;
+			break;
+		case 2: // update
+		case 3: // delete
+			if (field.id != -1)
+			{
+				err_field = value;
+				strapd(&err_msg, "id");
+				error(ERROR_FIELD_CONFLICT);
+			}
+			if (!is_number(value))
+			{
+				err_field = value;
+				strapd(&err_msg, "int");
+				error(ERROR_TYPE_MISMATCH);
+			}
+			field.id = atoi(value);
+			break;
+		default:
+			abort();
+	}
+}
+
+void validate_field(void)
+{
+	/* no db file specified, use environment variable name */
+	if (field.db_file[0] == '$')
+	{
+		char *db_file;
+		if ((db_file = getenv(field.db_file + 1)) == NULL)
+		{
+			err_field = field.db_file;
+			error(ERROR_UNDEFINED_ENV);
+		}
+		field.db_file = db_file;
+	}
+
+	if (access(field.db_file, F_OK | R_OK | W_OK) != 0)
+	{
+		err_field = field.db_file;
+		error(ERROR_FILE_INACCESSIBLE);
+	}
+
+	switch (field.subcommand)
+	{
+		case 0: // create
+			if (field.site_name == NULL)
+			{
+				strapd(&err_msg, "site_name");
+			}
+			if (field.username == NULL && field.password == NULL)
+			{
+				if (err_msg)
+					strapd(&err_msg, ", ");
+				strapd(&err_msg, "username or password");
+			}
+			if (err_msg)
+				error(ERROR_MISSING_FIELD);
+			break;
+		case 1: // read
+			if (field.site_name == NULL)
+			{
+				err_field = "site_name";
+				error(ERROR_MISSING_FIELD);
+			}
+			break;
+		case 2: // update
+		case 3: // delete
+			if (field.id == -1)
+			{
+				err_field = "id";
+				error(ERROR_MISSING_FIELD);
+			}
+			break;
+		default:
+			abort();
 	}
 }
 
@@ -202,24 +260,38 @@ int is_number(char *text)
 	return 1;
 }
 
-void print_arguments(void)
+void print_field(void)
 {
-	puts("---------------- ALL FIELDS IN ARGUMENT WILL BE PRINTED ----------------");
+	char *message = NULL;
 
-	printf("input_file: %s\n", argument.input_file ? argument.input_file : "");
+	strapdf(&message,
+		"---------------- START PRINT ----------------\n"
+		"db_file: %s\n"
+		"is_help: %s\n"
+		"is_verbose: %s\n"
+		"subcommand: %s\n"
+		"id: %d\n"
+		"site_name: %s\n"
+		"site_url: %s\n"
+		"username: %s\n"
+		"password: %s\n"
+		"auth_text: %s\n"
+		"recovery_code: %s\n"
+		"comment: %s\n"
+		"---------------- END PRINT ----------------",
+		SAFE_STRING(field.db_file),
+		TO_BOOL(field.is_help),
+		TO_BOOL(field.is_verbose),
+		command_list[field.subcommand],
+		field.id,
+		SAFE_STRING(field.site_name),
+		SAFE_STRING(field.site_url),
+		SAFE_STRING(field.username),
+		SAFE_STRING(field.password),
+		SAFE_STRING(field.auth_text),
+		SAFE_STRING(field.recovery_code),
+		SAFE_STRING(field.comment));
 
-	printf("is_help: %d\n", argument.is_help);
-	printf("is_verbose: %d\n", argument.is_verbose);
-	printf("subcommand: %d\n", argument.subcommand);
-
-	printf("id: %d\n", argument.id);
-	printf("site_name: %s\n", argument.site_name ? argument.site_name : "");
-	printf("site_url: %s\n", argument.site_url ? argument.site_url : "");
-	printf("username: %s\n", argument.username ? argument.username : "");
-	printf("password: %s\n", argument.password ? argument.password : "");
-	printf("auth_text: %s\n", argument.auth_text ? argument.auth_text : "");
-	printf("recovery_code: %s\n", argument.recovery_code ? argument.recovery_code : "");
-	printf("comment: %s\n", argument.comment ? argument.comment : "");
-
-	puts("---------------- END PRINT ----------------");
+	puts(message);
+	free(message);
 }
