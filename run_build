@@ -24,7 +24,7 @@ case "$option" in
 			-DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc"
 		;;
 	"clean")
-		rm -rf build/ pk
+		rm -rf build/penguin build/window pk
 		echo "cleaned up build/, pk"
 		exit 0
 		;;

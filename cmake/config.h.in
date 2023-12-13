@@ -1,6 +1,11 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
 #define VERSION_MAJOR @PassKeeper_VERSION_MAJOR@
 #define VERSION_MINOR @PassKeeper_VERSION_MINOR@
 #define VERSION_PATCH @PassKeeper_VERSION_PATCH@
 #define PROJECT_NAME "@PROJECT_NAME@"
 #define AUTHOR "@AUTHOR@"
 #define DEFAULT_DB_FILE "@DEFAULT_DB_FILE@"
+
+#endif /* CONFIG_H */
