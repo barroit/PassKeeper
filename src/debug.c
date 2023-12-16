@@ -1,7 +1,4 @@
 #include "debug.h"
-
-#ifdef DEBUG
-
 #include "parse_command.h"
 #include "utility.h"
 #include <stdlib.h>
@@ -38,5 +35,3 @@ void print_appopt(const struct app_option *appopt)
                PRINTABLE_STRING(appopt->recovery_code),
                PRINTABLE_STRING(appopt->comment));
 }
-
-#endif /* DEBUG */
