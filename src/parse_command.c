@@ -185,6 +185,7 @@ int validate_field(char **missing_field, const struct app_option *appopt)
 	{
 		case 'c':
 		case 'C':
+			;
 			bool missing_site_name = is_empty_string(appopt->site_name);
 			bool missing_username = strcmp(appopt->username, "NULL") == 0 || appopt->username[0] == '\0';
 			bool missing_password = strcmp(appopt->password, "NULL") == 0 || appopt->password[0] == '\0';

@@ -1,83 +1,35 @@
 #!/usr/bin/bash
 
-workspace="$(pwd)"
-build_dir="$workspace/build"
+project_dir=$(cd $(dirname $0) &> /dev/null && pwd)
 
-option="${1:-debug}"
+build_types=(debug test coverage penguin window)
+build_type=${1:-debug}
+build_dir=$project_dir/build
 
-case "$option" in
-	"debug")
-		echo "add debug symbol"
-		build_flag="-DCMAKE_BUILD_TYPE=Debug "
-		debug=1
-		;&
-	"penguin")
-		echo "found linux target"
-		build_dir+="/penguin"
-		build_flag+="-DCMAKE_C_COMPILER=gcc"
-		;;
-	"window")
-		echo "found windows target"
-		build_dir+="/window"
-		build_flag="-DCMAKE_SYSTEM_NAME=Windows\
-			-DCMAKE_SYSTEM_VERSION=10.0.22631\
-			-DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc"
-		;;
-	"clean")
-		rm -rf build/penguin build/window pk
-		echo "cleaned up build/, pk"
-		exit 0
-		;;
-	"init")
-		init=1
-		echo "set init to 1"
-		;;
-	*)
-		echo "bad option: $option"
-		;;
-esac
-
-mkdir -p $build_dir
-
-deps_dir="$workspace/build/_deps"
-deps_tmp_dir="$deps_dir/tmp"
-
-sqlite_dir="$deps_dir/sqlite3"
-
-if [ ! -d $sqlite_dir ]; then
-	echo "not found dependency: sqlite3"
-	sqlite_version="sqlite-amalgamation-3440200"
-
-	mkdir -p $deps_tmp_dir
-	cd $deps_tmp_dir
-
-	if [ ! -f "$sqlite_version.zip" ]; then
-		echo "not found zip file of sqlite3, download it"
-		wget "https://www.sqlite.org/2023/$sqlite_version.zip"
-	fi
-
-	unzip "$sqlite_version.zip"
-	mkdir -p $sqlite_dir
-
-	echo "moving files in $sqlite_version to $sqlite_dir"
-	mv $sqlite_version/* $sqlite_dir
-	rmdir $sqlite_version
-fi
-
-if [ $init ]; then
+if [[ $build_type == clean ]]; then
+	rm -rf $(printf "$build_dir/%s " "${build_types[@]}")
 	exit 0
 fi
 
-build_flag+=" -Dsqlite3_SOURCE_DIR=$sqlite_dir"
+if printf '%s\0' "${build_types[@]}" | grep -Fxqz -- $build_type; then
+	build_dir+=/$build_type
+else
+	echo "not a valid build type: $build_type"
+	exit 1
+fi
 
-cd $workspace
-echo "config output to $build_dir with flag $build_flag"
+echo "found build type: $build_type"
 
-cmake -B $build_dir $build_flag
+target=pk
 
-cd $build_dir
-make
+if [[ $build_type == test || $build_type == coverage ]]; then
+	target=pk_test
+fi
 
-if [ $debug ]; then
-	cp pk $workspace
+cmake -B $build_dir -DCMAKE_BUILD_TYPE=${build_type^}
+
+cmake --build $build_dir --target $target
+
+if [[ $build_type == test ]]; then
+	$build_dir/$target
 fi
