@@ -1,8 +1,8 @@
-#include "parse_command.h"
+#include "cmdparser.h"
 #include "debug.h"
 #include "cli.h"
-#include "config.h"
 #include "utility.h"
+#include "datastore.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <getopt.h>
@@ -13,24 +13,9 @@ int main(int argc, char **argv)
 	char *message = NULL;
 
 	char *appname = argv[0];
+	struct app_option appopt = get_appopt();
 
-	struct app_option appopt = {
-		getenv(DEFAULT_DB_FILE + 1),
-		NULL,
-		NULL,
-		NULL,
-		"NULL",
-		"NULL",
-		NULL,
-		NULL,
-		NULL,
-		-1,
-		0,
-		0,
-		0
-	};
-
-	result = parse_cmd_opts(argc, argv, &appopt);
+	result = parse_cmdopts(argc, argv, &appopt);
 
 	switch (result)
 	{
@@ -58,7 +43,7 @@ int main(int argc, char **argv)
 		exit(EXIT_PROMPT);
 	}
 
-	result = parse_cmd_args(argc, argv, &appopt);
+	result = parse_cmdargs(argc, argv, &appopt);
 
 	switch (result)
 	{
@@ -93,7 +78,7 @@ int main(int argc, char **argv)
 		case 0:
 			break;
 		case ERR_FILE_INACCESS:
-			report_error("db file '%s' does not meet the requirements (-rw...)", appname, PRINTABLE_STRING(appopt.db_file));
+			report_error("db file '%s' does not meet the requirements (-rw...)", appname, PRINTABLE_STRING(appopt.db_filename));
 			exit(EXIT_PROMPT);
 		case ERR_MISSING_FIELD:
 			report_error("missing field '%s'", appname, message);
@@ -104,5 +89,5 @@ int main(int argc, char **argv)
 
 	DEBUG_ONLY(print_appopt(&appopt));
 
-	return 0;
+	return EXIT_SUCCESS;
 }

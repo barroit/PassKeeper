@@ -44,3 +44,5 @@ lcov --remove $coverage_final '/usr/*' \
 --output-file $coverage_final
 
 genhtml $coverage_final --output-directory $report_dir/page
+
+open $report_dir/page/index.html >/dev/null &

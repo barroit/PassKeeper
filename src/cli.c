@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
-void show_version()
+void show_version(void)
 {
 	printf("%s version %d.%d.%d\n"
 		"Written by %s.\n",
@@ -19,7 +19,7 @@ void show_all_usages(const char *appname)
 
 	get_space(&margin, strlen(appname) + 8);
 
-	printf("usage: %s [--version] [--help] [--db_file=<path>]\n"
+	printf("usage: %s [--version] [--help] [--db_filename=<path>]\n"
 		"%s<command> [<args>]\n"
 		"\n"
 		"There are four main commands used to interact with\n"
@@ -63,7 +63,7 @@ void show_command_usage(const char *appname, const char *command)
 	printf(format, appname, command);
 }
 
-const char *get_create_usage_format()
+const char *get_create_usage_format(void)
 {
 	return	"usage: %s %s <options>\n"
 		"\n"
@@ -80,7 +80,7 @@ const char *get_create_usage_format()
 		"                              related to this record\n";
 }
 
-const char *get_read_usage_format()
+const char *get_read_usage_format(void)
 {
 	return	"usage: %s %s [<options>] [sitename]\n"
 		"\n"
@@ -90,7 +90,7 @@ const char *get_read_usage_format()
 		"                              positional argument\n";
 }
 
-const char *get_update_usage_format()
+const char *get_update_usage_format(void)
 {
 	return	"usage: %s %s [id] [<options>]\n"
 		"\n"
@@ -105,7 +105,7 @@ const char *get_update_usage_format()
 		"    --comment <comment>       comment\n";
 }
 
-const char *get_delete_usage_format()
+const char *get_delete_usage_format(void)
 {
 	return	"usage: %s %s [id] [<options>]\n"
 		"\n"

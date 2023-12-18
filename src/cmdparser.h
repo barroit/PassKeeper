@@ -1,9 +1,9 @@
-#ifndef PARSE_COMMAND_H
-#define PARSE_COMMAND_H
+#ifndef CMDPARSER_H
+#define CMDPARSER_H
 
 struct app_option
 {
-	const char *db_file;
+	const char *db_filename;
 
 	const char *command;
 
@@ -20,11 +20,16 @@ struct app_option
 	int is_help;
 	int is_version;
 	int is_verbose;
+	int is_db_init;
 };
 
-int parse_cmd_opts(int argc, char *argv[], struct app_option *appopt);
+struct app_option get_appopt(void);
 
-int parse_cmd_args(int argc, char *argv[], struct app_option *appopt);
+int parse_cmdopts(int argc, char *argv[], struct app_option *appopt);
+
+int parse_cmdargs(int argc, char *argv[], struct app_option *appopt);
+
+void process_parse_cmdargs_result(int result);
 
 int handle_command_parse(const char *argument, struct app_option *appopt);
 
@@ -32,14 +37,4 @@ int handle_argument_parse(const char *argument, struct app_option *appopt);
 
 int validate_field(char **missing_field, const struct app_option *appopt);
 
-// int preprocess_db_file(struct app_option *appopt);
-
-// int validate_db_file(const char *db_file);
-
-// int validate_command(const char *command);
-
-// int validate_id(const char *id);
-
-// int validate_site_name(const char *site_name);
-
-#endif /* PARSE_COMMAND_H */
+#endif /* CMDPARSER_H */

@@ -1,5 +1,6 @@
 #include "test_utility.h"
 #include "utility.h"
+#include "helper.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -16,13 +17,9 @@ START_TEST(test_is_rw_file)
 	ck_assert_int_eq(is_rw_file(NULL), 0);
 	ck_assert_int_eq(is_rw_file("asd"), 0);
 
-	FILE *fptr;
-	fptr = fopen("test.example", "w");
-	fclose(fptr);
-
-	ck_assert_int_eq(is_rw_file("test.example"), 1);
-
-	remove("test.example");
+	MOCK_FILE("test.example", {
+		ck_assert_int_eq(is_rw_file("test.example"), 1);
+	});
 }
 END_TEST
 

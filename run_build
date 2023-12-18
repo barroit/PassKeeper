@@ -1,18 +1,18 @@
 #!/usr/bin/bash
 
-project_dir=$(cd $(dirname $0) &> /dev/null && pwd)
+project_dir="$(cd $(dirname $0) &> /dev/null && pwd)"
 
-build_types=(debug test coverage penguin window)
-build_type=${1:-debug}
-build_dir=$project_dir/build
+build_types=("debug" "test" "coverage" "penguin" "window")
+build_type="${1:-debug}"
+build_dir="$project_dir/build"
 
-if [[ $build_type == clean ]]; then
-	rm -rf $(printf "$build_dir/%s " "${build_types[@]}")
+if [[ $build_type == "clean" ]]; then
+	rm -rf "$build_dir/*"
 	exit 0
 fi
 
 if printf '%s\0' "${build_types[@]}" | grep -Fxqz -- $build_type; then
-	build_dir+=/$build_type
+	build_dir+="/$build_type"
 else
 	echo "not a valid build type: $build_type"
 	exit 1
@@ -20,16 +20,12 @@ fi
 
 echo "found build type: $build_type"
 
-target=pk
+target="pk"
 
-if [[ $build_type == test || $build_type == coverage ]]; then
-	target=pk_test
+if [[ $build_type == "test" || $build_type == "coverage" ]]; then
+	target="pk_test"
 fi
 
 cmake -B $build_dir -DCMAKE_BUILD_TYPE=${build_type^}
 
 cmake --build $build_dir --target $target
-
-if [[ $build_type == test ]]; then
-	$build_dir/$target
-fi
