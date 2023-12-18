@@ -14,13 +14,12 @@ project(PassKeeper VERSION 0.1.0 LANGUAGES C)
 set(CMAKE_C_EXTENSIONS OFF)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-set(EXTERN_DIR "${CMAKE_SOURCE_DIR}/build/extern")
 set(RELEASE_BUILD_TYPES Penguin Window)
 
 # used by config.h
 set(PROJECT_NAME PassKeeper)
 set(AUTHOR barroit)
-set(DEFAULT_DB_FILE $CREDENTIALS)
+set(DEFAULT_DB_FILENAME $CREDENTIALS)
 
 configure_file(cmake/config.h.in config.h)
 

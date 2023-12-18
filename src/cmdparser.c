@@ -1,5 +1,6 @@
-#include "parse_command.h"
+#include "cmdparser.h"
 #include "utility.h"
+#include "config.h"
 #include <stdlib.h>
 #include <getopt.h>
 #include <ctype.h>
@@ -15,13 +16,39 @@
 #define OPTION_ALIAS_RECOVERY_CODE	12166
 #define OPTION_ALIAS_COMMENT		12167
 
-int parse_cmd_opts(int argc, char *argv[], struct app_option *appopt)
+struct app_option get_appopt(void)
+{
+	struct app_option tmp;
+
+	tmp.db_filename = getenv(DEFAULT_DB_FILENAME + 1);
+
+	tmp.command = NULL;
+
+	tmp.record_id = -1;
+	tmp.site_name = NULL;
+	tmp.site_url = NULL;
+	tmp.username = "NULL";
+	tmp.password = "NULL";
+	tmp.auth_text = NULL;
+	tmp.recovery_code = NULL;
+	tmp.comment = NULL;
+
+	tmp.is_help = 0;
+	tmp.is_version = 0;
+	tmp.is_verbose = 0;
+	tmp.is_db_init = 0;
+
+	return tmp;
+}
+
+int parse_cmdopts(int argc, char *argv[], struct app_option *appopt)
 {
 	struct option long_options[] = {
 		{ "verbose",		no_argument, &appopt->is_verbose, 1 },
 		{ "help",		no_argument, &appopt->is_help, 1 },
 		{ "version",		no_argument, &appopt->is_version, 1 },
-		{ "db_file",		required_argument, NULL, 'f' },
+		{ "init",		no_argument, &appopt->is_db_init, 1 },
+		{ "db",			required_argument, NULL, 'f' },
 		{ "id",			required_argument, NULL, OPTION_ALIAS_ID },
 		{ "site_name",		required_argument, NULL, OPTION_ALIAS_SITE_NAME },
 		{ "site_url",		required_argument, NULL, OPTION_ALIAS_SITE_URL },
@@ -33,7 +60,7 @@ int parse_cmd_opts(int argc, char *argv[], struct app_option *appopt)
 		{ NULL, 0, NULL, 0 }
 	};
 
-	char *short_options = "vf:";
+	char *short_options = "vf:i";
 
 	int c;
 	int option_index = 0;
@@ -80,7 +107,10 @@ int parse_cmd_opts(int argc, char *argv[], struct app_option *appopt)
 				appopt->is_verbose = 1;
 				break;
 			case 'f':
-				appopt->db_file = optarg;
+				appopt->db_filename = optarg;
+				break;
+			case 'i':
+				appopt->is_db_init = 1;
 				break;
 			case '?':
 				/* getopt_long already print an error message */
@@ -93,7 +123,7 @@ int parse_cmd_opts(int argc, char *argv[], struct app_option *appopt)
 	return 0;
 }
 
-int parse_cmd_args(int argc, char *argv[], struct app_option *appopt)
+int parse_cmdargs(int argc, char *argv[], struct app_option *appopt)
 {
 	char *arg;
 	int result;
@@ -178,7 +208,7 @@ int handle_argument_parse(const char *argument, struct app_option *appopt)
 
 int validate_field(char **missing_field, const struct app_option *appopt)
 {
-	if (!is_rw_file(appopt->db_file))
+	if (!is_rw_file(appopt->db_filename))
 		return ERR_FILE_INACCESS;
 
 	switch (appopt->command[0])
@@ -191,15 +221,19 @@ int validate_field(char **missing_field, const struct app_option *appopt)
 			bool missing_password = strcmp(appopt->password, "NULL") == 0 || appopt->password[0] == '\0';
 			bool missing_credential = missing_username && missing_password;
 
+			char *_missing_field = NULL;
 			if (missing_site_name)
-				*missing_field = "site_name";
+				_missing_field = "site_name";
 			if (missing_credential)
-				*missing_field = "username or password";
+				_missing_field = "username or password";
 			if (missing_site_name && missing_credential)
-				*missing_field = "site_name, username or password";
+				_missing_field = "site_name, username or password";
 
-			if (*missing_field)
+			if (_missing_field)
+			{
+				*missing_field = _missing_field;
 				return ERR_MISSING_FIELD;
+			}
 			break;
 		case 'r':
 		case 'R':

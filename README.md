@@ -1,34 +1,15 @@
 # PassKeeper for barroit
 
-### init dependencies
+You can build PassKeeper by running `./run_build [<build_type>]`, some of build types are available:
 
-```bash
-./run_build init
-```
++ debug (default)
++ test
++ coverage
++ penguin
++ window
++ clean
 
-### build with debug features
+To build and install sqlite3 from source, run `./make_sqlite3`. The source code will be placed in *$HOME/Source/sqlite3*
 
-```bash
-./run_build
-# or
-./run_build debug
-```
-
-### build for linux
-
-```bash
-./run_build penguin
-```
-
-### build for windows
-
-```bash
-./run_build window
-```
-
-### cleanup output
-
-```bash
-./run_build clean
-```
+run `./coverage_report` to generate code coverage report
 
