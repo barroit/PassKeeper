@@ -7,15 +7,20 @@ sqlite3_source="$HOME/Source/sqlite3"
 mkdir -p $sqlite3_source
 cd $sqlite3_source
 
-if [[ -f "Makefile" ]]; then
-	if [[ -f $sqlite3_zip ]] && which sqlite3 > /dev/null; then
+if [[ -f "Makefile" || $1 == "uninstall" ]]; then
+	if [[ $1 != "uninstall" && -f $sqlite3_zip ]] && which sqlite3 > /dev/null; then
 		echo "sqlite3 may be installed with version $sqlite3_version, do nothing"
 		exit 0
 	fi
 
-	echo "uinstalling mismatched version..."
+	echo "uninstalling..."
 	./configure > /dev/null
 	sudo make uninstall
+	sudo rm -f /usr/local/lib/libwin64sqlite3.a
+fi
+
+if [[ $1 == "uninstall" ]]; then
+	exit 0
 fi
 
 if [[ ! -f $sqlite3_zip ]]; then
@@ -36,5 +41,8 @@ fi
 echo "installing $sqlite3_version..."
 ./configure CFLAGS=-Os > /dev/null
 make
+x86_64-w64-mingw32-gcc -c -Os sqlite3.c -o .libs/win64sqlite3.o
+ar rcs .libs/libwin64sqlite3.a .libs/win64sqlite3.o
 sudo make install
+sudo cp .libs/libwin64sqlite3.a /usr/local/lib/libwin64sqlite3.a
 echo "sqlite3 version: $(sqlite3 --version)"

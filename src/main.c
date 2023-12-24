@@ -3,29 +3,28 @@
 #include "cli.h"
 #include "utility.h"
 #include "datastore.h"
-#include <stdlib.h>
-#include <stdio.h>
 #include <getopt.h>
 
 int main(int argc, char **argv)
 {
-	int result;
-	char *message = NULL;
+	int rc;
+	char *message;
+	sqlite3 *db;
 
 	char *appname = argv[0];
 	struct app_option appopt = get_appopt();
 
-	result = parse_cmdopts(argc, argv, &appopt);
+	rc = parse_cmdopts(argc, argv, &appopt);
 
-	switch (result)
+	switch (rc)
 	{
 		case 0:
 			break;
-		case ERR_PARSING_INTEGER:
-			report_error("error while parsing id, value '%s' is not an integer", appname, optarg);
+		case NOT_INTEGER:
+			fatal(EXIT_FAILURE, "unable to convert value '%s' to integer id", appname, optarg);
 			// fall through
-		case ERR_UNKNOW_OPT:
-			exit(EXIT_PROMPT);
+		case UNKNOW_OPTION:
+			exit(EXIT_FAILURE);
 		default:
 			abort();
 	}
@@ -36,6 +35,40 @@ int main(int argc, char **argv)
 		exit(EXIT_PROMPT);
 	}
 
+	if (appopt.is_db_init)
+	{
+		rc = init_db_file(appopt.db_filename, &db);
+
+		switch (rc)
+		{
+			case 0:
+				break;
+			case FILENAME_EXISTS:
+				fatal(EXIT_FAILURE, "'%s' already exists", appname, appopt.db_filename);
+			case INVALID_FILENAME:
+				fatal(EXIT_FAILURE, "invalid filename '%s'", appname, appopt.db_filename);
+			case MKDIR_FAILURE:
+				fatal(EXIT_FAILURE, "unable to make parent directory of '%s'", appname, appopt.db_filename);
+			default:
+				fatal(EXIT_FAILURE, "unable to open database, %s", appname, sqlite3_errstr(rc));
+		}
+
+		rc = init_db_table(db);
+
+		if (rc != SQLITE_OK)
+			REPORT_ERROR("unable to create table 'account', %s", appname, sqlite3_errstr(rc));
+
+		rc = sqlite3_close(db);
+
+		if (rc != SQLITE_OK)
+			fatal(EXIT_FAILURE, "unable to close db connection, %s", appname, sqlite3_errstr(rc));
+
+		printf("table 'account' created in scheme '%s'\n", appopt.db_filename);
+	}
+
+	if (appopt.is_db_init && optind == argc)
+		return EXIT_SUCCESS;
+
 	/* no argument found */
 	if (optind == argc)
 	{
@@ -43,24 +76,20 @@ int main(int argc, char **argv)
 		exit(EXIT_PROMPT);
 	}
 
-	result = parse_cmdargs(argc, argv, &appopt);
+	rc = parse_cmdargs(argc, argv, &appopt);
 
-	switch (result)
+	switch (rc)
 	{
 		case 0:
 			break;
-		case ERR_PARSING_COMMAND:
-			report_error("'%s' is not a command", appname, argv[optind]);
-			exit(EXIT_PROMPT);
-		case ERR_UNKNOW_ARGUMENT:
-			report_error("unknown argument '%s'", appname, argv[optind]);
-			exit(EXIT_PROMPT);
-		case ERR_PARSING_INTEGER:
-			report_error("error while parsing id, value '%s' is not an integer", appname, argv[optind]);
-			exit(EXIT_PROMPT);
-		case ERR_APPOPT_CONFLICT:
-			report_error("argument value '%s' conflicted with option value", appname, argv[optind]);
-			exit(EXIT_PROMPT);
+		case COMMAND_MISMATCH:
+			fatal(EXIT_FAILURE, "'%s' is not a valid command", appname, argv[optind]);
+		case UNKNOW_ARGUMENT:
+			fatal(EXIT_FAILURE, "unknown argument '%s'", appname, argv[optind]);
+		case NOT_INTEGER:
+			fatal(EXIT_FAILURE, "unable to convert value '%s' to integer id", appname, argv[optind]);
+		case FIELD_CONFLICT:
+			fatal(EXIT_FAILURE, "argument value '%s' conflicted with option value", appname, argv[optind]);
 		default:
 			abort();
 	}
@@ -71,23 +100,54 @@ int main(int argc, char **argv)
 		exit(EXIT_PROMPT);
 	}
 
-	result = validate_field(&message, &appopt);
+	rc = validate_field(&message, &appopt);
 
-	switch (result)
+	switch (rc)
 	{
 		case 0:
 			break;
-		case ERR_FILE_INACCESS:
-			report_error("db file '%s' does not meet the requirements (-rw...)", appname, PRINTABLE_STRING(appopt.db_filename));
-			exit(EXIT_PROMPT);
-		case ERR_MISSING_FIELD:
-			report_error("missing field '%s'", appname, message);
-			exit(EXIT_PROMPT);
+		case FILE_INACCESS:
+			fatal(EXIT_FAILURE, "db file '%s' is not meets the requirement -rw-...", appname, PRINTABLE_STRING(appopt.db_filename));
+		case MISSING_FIELD:
+			fatal(EXIT_FAILURE, "missing field '%s'", appname, message);
 		default:
 			abort();
 	}
 
-	DEBUG_ONLY(print_appopt(&appopt));
+	debug_only(print_appopt(&appopt));
 
-	return EXIT_SUCCESS;
+	rc = sqlite3_open(appopt.db_filename, &db);
+
+	if (rc != SQLITE_OK)
+		fatal(EXIT_FAILURE, "unable to open database, %s", appname, sqlite3_errstr(rc));
+
+	switch (appopt.command[0])
+	{
+		case 'c':
+		case 'C':
+			rc = create_record(db, &appopt);
+			break;
+		case 'r':
+		case 'R':
+			rc = read_record(db, &appopt);
+			break;
+		case 'u':
+		case 'U':
+			break;
+		case 'd':
+		case 'D':
+			break;
+		default:
+			abort();
+	}
+
+	if (rc != SQLITE_OK)
+		REPORT_ERROR("unable to execute statement, %s", appname, sqlite3_errstr(rc));
+
+	rc = sqlite3_close(db);
+
+	if (rc != SQLITE_OK)
+		fatal(EXIT_FAILURE, "unable to close db connection, %s", appname, sqlite3_errstr(rc));
+
+	return rc == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

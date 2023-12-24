@@ -1,8 +1,6 @@
 #include "cli.h"
 #include "config.h"
 #include "utility.h"
-#include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 
 void show_version(void)

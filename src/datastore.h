@@ -1,18 +1,34 @@
 #ifndef DATASTORE_H
 #define DATASTORE_H
 
-struct app_option;
-struct sqlite3;
-typedef struct sqlite3 sqlite3;
+#include "cmdparser.h"
+#include "queue.h"
+#include <sqlite3.h>
 
-int init_scheme(sqlite3 *db);
+#define FILENAME_EXISTS		37
+#define INVALID_FILENAME	38
+#define MKDIR_FAILURE		39
+
+#define return_on_fail(rc, stmt)						\
+	do									\
+	{									\
+		if (rc != SQLITE_OK)						\
+			return sqlite3_finalize(stmt);				\
+	}									\
+	while (0)
+
+int init_db_file(const char *filename, sqlite3 **db);
+
+int init_db_table(sqlite3 *db);
 
 int create_record(sqlite3 *db, const struct app_option *appopt);
 
 int read_record(sqlite3 *db, const struct app_option *appopt);
 
-int update_record(sqlite3 *db, const struct app_option *appopt);
+void process_field(sqlite3_stmt *stmt, int column, char **filed);
 
-int delete_record(sqlite3 *db, const struct app_option *appopt);
+void print_brief_field(const struct field *data, int wrap_threshold);
+
+void print_verbose_field(const struct field *data);
 
 #endif /* DATASTORE_H */

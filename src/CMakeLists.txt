@@ -1,5 +1,9 @@
 find_package(SQLite3 REQUIRED)
 
+if(${CMAKE_BUILD_TYPE} STREQUAL Window)
+	string(REPLACE "libsqlite3.a" "libwin64sqlite3.a" SQLite3_LIBRARIES ${SQLite3_LIBRARIES})
+endif(${CMAKE_BUILD_TYPE} STREQUAL Window)
+
 file(GLOB PK_SOURCES *.c)
 list(REMOVE_ITEM PK_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/main.c)
 
