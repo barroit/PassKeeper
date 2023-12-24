@@ -4,7 +4,8 @@
 #include <stdio.h>
 
 #define SUPPRESS_OUTPUT(fn) \
-	do { \
+	do \
+	{ \
 		fflush(stdout); \
 		FILE* rawout = stdout; \
 		stdout = freopen("/dev/null", "w", stdout); \
@@ -14,15 +15,18 @@
 			fclose(stdout); \
 			stdout = rawout; \
 		} \
-	} while (0)
+	} \
+	while (0)
 
 #define MOCK_FILE(filename, fn) \
-	do { \
+	do \
+	{ \
 		FILE *fptr; \
 		fptr = fopen(filename, "w"); \
 		fclose(fptr); \
 		(fn); \
 		remove(filename); \
-	} while (0)
+	} \
+	while (0)
 
 #endif /* HELPER_H */

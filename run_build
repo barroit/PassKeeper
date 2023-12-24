@@ -7,7 +7,7 @@ build_type="${1:-debug}"
 build_dir="$project_dir/build"
 
 if [[ $build_type == "clean" ]]; then
-	rm -rf "$build_dir/*"
+	rm -rf "$build_dir"
 	exit 0
 fi
 

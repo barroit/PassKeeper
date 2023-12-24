@@ -34,11 +34,11 @@ END_TEST
 START_TEST(test_get_space)
 {
 	char *spaces = NULL;
-	ck_assert_int_eq(get_space(&spaces, 5), 0);
+	ck_assert_int_eq(get_space(5, &spaces), 0);
 	free(spaces);
 
 	spaces = NULL;
-	ck_assert_int_eq(get_space(&spaces, -2), 1);
+	ck_assert_int_eq(get_space(-2, &spaces), 1);
 	free(spaces);
 }
 END_TEST

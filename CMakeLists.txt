@@ -27,7 +27,7 @@ add_library(develop_config INTERFACE)
 target_compile_options(develop_config INTERFACE -Wall -Wextra -O0)
 
 add_library(release_config INTERFACE)
-target_compile_options(release_config INTERFACE -Wall -Werror -O3)
+target_compile_options(release_config INTERFACE -Wall -Wextra -Werror -Os)
 
 add_library(debug_config INTERFACE)
 target_compile_options(debug_config INTERFACE -g3 -DDEBUG)

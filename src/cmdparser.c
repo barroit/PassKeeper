@@ -18,27 +18,29 @@
 
 struct app_option get_appopt(void)
 {
-	struct app_option tmp;
+	struct app_option appopt;
 
-	tmp.db_filename = getenv(DEFAULT_DB_FILENAME + 1);
+	appopt.db_filename = getenv(DEFAULT_DB_FILENAME + 1);
 
-	tmp.command = NULL;
+	appopt.command = NULL;
 
-	tmp.record_id = -1;
-	tmp.site_name = NULL;
-	tmp.site_url = NULL;
-	tmp.username = "NULL";
-	tmp.password = "NULL";
-	tmp.auth_text = NULL;
-	tmp.recovery_code = NULL;
-	tmp.comment = NULL;
+	appopt.record_id = -1;
+	appopt.site_name = NULL;
+	appopt.site_url = NULL;
+	appopt.username = NULL;
+	appopt.password = NULL;
+	appopt.auth_text = NULL;
+	appopt.recovery_code = NULL;
+	appopt.comment = NULL;
 
-	tmp.is_help = 0;
-	tmp.is_version = 0;
-	tmp.is_verbose = 0;
-	tmp.is_db_init = 0;
+	appopt.is_help = 0;
+	appopt.is_version = 0;
+	appopt.is_verbose = 0;
+	appopt.is_db_init = 0;
 
-	return tmp;
+	appopt.wrap_threshold = 24;
+
+	return appopt;
 }
 
 int parse_cmdopts(int argc, char *argv[], struct app_option *appopt)
@@ -49,6 +51,7 @@ int parse_cmdopts(int argc, char *argv[], struct app_option *appopt)
 		{ "version",		no_argument, &appopt->is_version, 1 },
 		{ "init",		no_argument, &appopt->is_db_init, 1 },
 		{ "db",			required_argument, NULL, 'f' },
+		{ "wrap",		required_argument, NULL, 'w' },
 		{ "id",			required_argument, NULL, OPTION_ALIAS_ID },
 		{ "site_name",		required_argument, NULL, OPTION_ALIAS_SITE_NAME },
 		{ "site_url",		required_argument, NULL, OPTION_ALIAS_SITE_URL },
@@ -60,7 +63,7 @@ int parse_cmdopts(int argc, char *argv[], struct app_option *appopt)
 		{ NULL, 0, NULL, 0 }
 	};
 
-	char *short_options = "vf:i";
+	char *short_options = "vf:iw:";
 
 	int c;
 	int option_index = 0;
@@ -100,7 +103,7 @@ int parse_cmdopts(int argc, char *argv[], struct app_option *appopt)
 				break;
 			case OPTION_ALIAS_ID:
 				if (!is_positive_integer(optarg))
-					return ERR_PARSING_INTEGER;
+					return NOT_INTEGER;
 				appopt->record_id = atoi(optarg);
 				break;
 			case 'v':
@@ -112,9 +115,14 @@ int parse_cmdopts(int argc, char *argv[], struct app_option *appopt)
 			case 'i':
 				appopt->is_db_init = 1;
 				break;
+			case 'w':
+				if (!is_positive_integer(optarg))
+					return NOT_INTEGER;
+				appopt->wrap_threshold = atoi(optarg);
+				break;
 			case '?':
 				/* getopt_long already print an error message */
-				return ERR_UNKNOW_OPT;
+				return UNKNOW_OPTION;
 			default:
 				abort();
 		}
@@ -126,7 +134,7 @@ int parse_cmdopts(int argc, char *argv[], struct app_option *appopt)
 int parse_cmdargs(int argc, char *argv[], struct app_option *appopt)
 {
 	char *arg;
-	int result;
+	int rc;
 	int arg_start = optind;
 
 	while (optind < argc)
@@ -136,15 +144,15 @@ int parse_cmdargs(int argc, char *argv[], struct app_option *appopt)
 		switch (optind - arg_start)
 		{
 			case 0:
-				if ((result = handle_command_parse(arg, appopt)) != 0)
-					return ERR_PARSING_COMMAND;
+				if ((rc = handle_parse_command(arg, appopt)) != 0)
+					return rc;
 				break;
 			case 1:
-				if ((result = handle_argument_parse(arg, appopt)) != 0)
-					return result;
+				if ((rc = handle_parse_argument(arg, appopt)) != 0)
+					return rc;
 				break;
 			default:
-				return ERR_UNKNOW_ARGUMENT;
+				return UNKNOW_ARGUMENT;
 		}
 
 		optind++;
@@ -153,7 +161,7 @@ int parse_cmdargs(int argc, char *argv[], struct app_option *appopt)
 	return 0;
 }
 
-int handle_command_parse(const char *argument, struct app_option *appopt)
+int handle_parse_command(const char *argument, struct app_option *appopt)
 {
 	char *commands[] = { "create", "read", "update", "delete", NULL };
 
@@ -173,20 +181,20 @@ int handle_command_parse(const char *argument, struct app_option *appopt)
 		idx++;
 	}
 
-	return ERR_PARSING_COMMAND;
+	return COMMAND_MISMATCH;
 }
 
-int handle_argument_parse(const char *argument, struct app_option *appopt)
+int handle_parse_argument(const char *argument, struct app_option *appopt)
 {
 	switch (appopt->command[0])
 	{
 		case 'c':
 		case 'C':
-			return ERR_UNKNOW_ARGUMENT;
+			return UNKNOW_ARGUMENT;
 		case 'r':
 		case 'R':
 			if (appopt->site_name != NULL)
-				return ERR_APPOPT_CONFLICT;
+				return FIELD_CONFLICT;
 			appopt->site_name = argument;
 			break;
 		case 'u':
@@ -194,9 +202,9 @@ int handle_argument_parse(const char *argument, struct app_option *appopt)
 		case 'd':
 		case 'D':
 			if (appopt->record_id != -1)
-				return ERR_APPOPT_CONFLICT;
+				return FIELD_CONFLICT;
 			if (!is_positive_integer(argument))
-				return ERR_PARSING_INTEGER;
+				return NOT_INTEGER;
 			appopt->record_id = atoi(argument);
 			break;
 		default:
@@ -209,7 +217,7 @@ int handle_argument_parse(const char *argument, struct app_option *appopt)
 int validate_field(char **missing_field, const struct app_option *appopt)
 {
 	if (!is_rw_file(appopt->db_filename))
-		return ERR_FILE_INACCESS;
+		return FILE_INACCESS;
 
 	switch (appopt->command[0])
 	{
@@ -217,8 +225,8 @@ int validate_field(char **missing_field, const struct app_option *appopt)
 		case 'C':
 			;
 			bool missing_site_name = is_empty_string(appopt->site_name);
-			bool missing_username = strcmp(appopt->username, "NULL") == 0 || appopt->username[0] == '\0';
-			bool missing_password = strcmp(appopt->password, "NULL") == 0 || appopt->password[0] == '\0';
+			bool missing_username = is_empty_string(appopt->username);
+			bool missing_password = is_empty_string(appopt->password);
 			bool missing_credential = missing_username && missing_password;
 
 			char *_missing_field = NULL;
@@ -232,16 +240,11 @@ int validate_field(char **missing_field, const struct app_option *appopt)
 			if (_missing_field)
 			{
 				*missing_field = _missing_field;
-				return ERR_MISSING_FIELD;
+				return MISSING_FIELD;
 			}
 			break;
 		case 'r':
 		case 'R':
-			if (is_empty_string(appopt->site_name))
-			{
-				*missing_field = "site_name";
-				return ERR_MISSING_FIELD;
-			}
 			break;
 		case 'u':
 		case 'U':
@@ -250,7 +253,7 @@ int validate_field(char **missing_field, const struct app_option *appopt)
 			if (appopt->record_id == -1)
 			{
 				*missing_field = "id";
-				return ERR_MISSING_FIELD;
+				return MISSING_FIELD;
 			}
 			break;
 		default:
