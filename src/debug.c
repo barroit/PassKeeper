@@ -1,7 +1,7 @@
 #include "debug.h"
 #include "utility.h"
 #include "cmdparser.h"
-#include "queue.h"
+#include "rcque.h"
 
 void print_appopt(const struct app_option *appopt)
 {
@@ -35,10 +35,10 @@ void print_appopt(const struct app_option *appopt)
 		PRINTABLE_STRING(appopt->comment));
 }
 
-void print_queue_size(const struct queue *q)
+void print_queue_size(const struct rcque *q)
 {
 	size_t size;
-	struct qnode *crt;
+	struct rcnode *crt;
 
 	size = 0;
 	crt = q->front;

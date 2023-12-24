@@ -7,6 +7,8 @@
 #include <string.h>
 #include <stdbool.h>
 
+#define WRAP_THRESHOLD 24
+
 #define OPTION_ALIAS_ID			12160
 #define OPTION_ALIAS_SITE_NAME		12161
 #define OPTION_ALIAS_SITE_URL		12162
@@ -38,7 +40,7 @@ struct app_option get_appopt(void)
 	appopt.is_verbose = 0;
 	appopt.is_db_init = 0;
 
-	appopt.wrap_threshold = 24;
+	appopt.wrap_threshold = WRAP_THRESHOLD;
 
 	return appopt;
 }
