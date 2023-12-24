@@ -16,11 +16,11 @@
 
 
 struct app_option;
-struct queue;
+struct rcque;
 
 void print_appopt(const struct app_option *appopt);
 
-void print_queue_size(const struct queue *q);
+void print_queue_size(const struct rcque *q);
 
 #else /* DEBUG */
 

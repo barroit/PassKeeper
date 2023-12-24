@@ -49,12 +49,16 @@ bool is_rw_file(const char *filename);
 /// if the `string` is null pointer, then falsy value returned
 bool is_empty_string(const char *string);
 
-int get_space(char **space, int length);
+int get_space(char **dest, int length);
 
 int get_parent_dir(char **dirname, const char *filename);
 
 int strndup(char **dest, const char *src, size_t n);
 
 int strapd(char **dest, const char *src);
+
+int fill_space_map(char ***space_map, int maxlen);
+
+void free_space_map(char **space_map);
 
 #endif /* UTILITY_H */

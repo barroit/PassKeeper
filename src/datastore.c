@@ -2,6 +2,14 @@
 #include "utility.h"
 #include "debug.h"
 
+#define return_on_fail(rc, stmt)						\
+	do									\
+	{									\
+		if (rc != SQLITE_OK)						\
+			return sqlite3_finalize(stmt);				\
+	}									\
+	while (0)
+
 int init_db_file(const char *filename, sqlite3 **db)
 {
 	if (is_rw_file(filename))
@@ -103,11 +111,11 @@ int read_record(sqlite3 *db, const struct app_option *appopt)
 	free(search_pattern);
 	return_on_fail(rc, stmt);
 
-	struct queue *q;
-	struct field *data;
+	struct rcque *q;
+	struct rcfield *data;
+	int maxlen_map[3] = { 0, 0, 0 };
 
-	q = make_queue();
-
+	rcqinit(&q);
 	while (1)
 	{
 		rc = sqlite3_step(stmt);
@@ -115,56 +123,114 @@ int read_record(sqlite3 *db, const struct app_option *appopt)
 		if (rc != SQLITE_ROW)
 			break;
 
-		data = make_field();
+		rcfinit(&data);
 
-		process_field(stmt, 1, &data->site_name);
-		process_field(stmt, 3, &data->username);
-		process_field(stmt, 4, &data->password);
+		process_field(stmt, 1, &data->site_name, &data->sitename_length);
+		if (data->sitename_length > maxlen_map[0])
+			maxlen_map[0] = data->sitename_length;
+		process_field(stmt, 3, &data->username, &data->username_length);
+		if (data->username_length > maxlen_map[1])
+			maxlen_map[1] = data->username_length;
+		process_field(stmt, 4, &data->password, &data->password_length);
+		if (data->password_length > maxlen_map[2])
+			maxlen_map[2] = data->password_length;
 
 		if (appopt->is_verbose)
 		{
-			process_field(stmt, 0, &data->id);
-			process_field(stmt, 2, &data->site_url);
-			process_field(stmt, 5, &data->auth_text);
-			process_field(stmt, 6, &data->recovery_code);
-			process_field(stmt, 7, &data->comment);
-			process_field(stmt, 8, &data->sqltime);
-			process_field(stmt, 9, &data->modtime);
+			process_field(stmt, 0, &data->id, NULL);
+			process_field(stmt, 2, &data->site_url, NULL);
+			process_field(stmt, 5, &data->auth_text, NULL);
+			process_field(stmt, 6, &data->recovery_code, NULL);
+			process_field(stmt, 7, &data->comment, NULL);
+			process_field(stmt, 8, &data->sqltime, NULL);
+			process_field(stmt, 9, &data->modtime, NULL);
 		}
 
-		enqueue(q, data);
+		enrcque(q, data);
 	}
 
 	debug_only(print_queue_size(q));
 
-	while ((data = dequeue(q)) != NULL)
+	struct string_buffer *buf;
+	char *space;
+
+	int threshold = appopt->wrap_threshold - 2;
+	int space_size = threshold - 1; // should contain at least one char
+	get_space(&space, space_size);
+
+	int is_init = 1;
+	sbinit(&buf);
+	while ((data = dercque(q)) != NULL)
 	{
-		if (appopt->is_verbose)
-			print_verbose_field(data);
-		else
-			print_brief_field(data, appopt->threshold);
-		free_field(data);
+		// if (appopt->is_verbose)
+		// 	print_verbose_field(buf, data, &is_init);
+
+		// if (buf->size > 16 * 1000)
+		// {
+		// 	fputs(buf->data, stdout);
+		// 	sbclean(buf);
+		// }
+
+		// maxlen < wrap_threshold - 2, use maxlen as threshold
+		// else, use wrap_threshold
+
+		// | abc  |
+
+		int align;
+		if (maxlen_map[0] <= threshold)
+		{
+			align = maxlen_map[0] - data->sitename_length;
+			sbprintf(buf, " %s%s ", data->site_name, space + (space_size - align));
+		}
+
+		rcffree(data);
 	}
 
-	free_queue(q);
+	if (buf->size)
+		fputs(buf->data, stdout);
+
+	free(space);
+
+	sbfree(buf);
+	rcqfree(q);
 
 	return sqlite3_finalize(stmt);
 }
 
-void process_field(sqlite3_stmt *stmt, int column, char **filed)
+void process_field(sqlite3_stmt *stmt, int column, char **filed, int *flen)
 {
 	const char *tmpf = (const char *)sqlite3_column_text(stmt, column);
 	int tmpflen = sqlite3_column_bytes(stmt, column) / sizeof(char);
 
 	strndup(filed, tmpf, tmpflen);
+
+	if (flen != NULL)
+		*flen = tmpflen;
 }
 
-void print_brief_field(const struct field *data, int wrap_threshold)
+void print_verbose_field(struct string_buffer *buf, const struct rcfield *data, int *is_init)
 {
-	char *site_name = data->site_name == NULL ? 
-	strlen()
-	data->site_name
-	// maxlen > wrap_threshold, wrap required
-	// maxlen <= wrap_threshold, align withe maxlen
-	puts(data->site_name);
+	sbprintf(buf,
+		"%s"
+		"id -> %s\n"
+		"site_name -> %s\n"
+		"site_url -> %s\n"
+		"username -> %s\n"
+		"password -> %s\n"
+		"auth_text -> %s\n"
+		"recovery_code -> %s\n"
+		"comment -> %s\n"
+		"sqltime -> %s\n"
+		"modtime -> %s\n",
+		*is_init ? (*is_init = false, "") : "\n",
+		data->id,
+		data->site_name,
+		PRINTABLE_STRING(data->site_url),
+		PRINTABLE_STRING(data->username),
+		PRINTABLE_STRING(data->password),
+		PRINTABLE_STRING(data->auth_text),
+		PRINTABLE_STRING(data->recovery_code),
+		PRINTABLE_STRING(data->comment),
+		PRINTABLE_STRING(data->sqltime),
+		PRINTABLE_STRING(data->modtime));
 }

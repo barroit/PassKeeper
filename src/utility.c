@@ -40,12 +40,12 @@ bool is_empty_string(const char *string)
 	return *string == '\0';
 }
 
-int get_space(char **space, int length)
+int get_space(char **dest, int length)
 {
-	if ((*space = calloc(length + 1, sizeof(char))) == NULL)
+	if ((*dest = calloc(length + 1, sizeof(char))) == NULL)
 		return MALLOC_FAILURE;
 
-	memset(*space, ' ', length);
+	memset(*dest, ' ', length);
 
 	return EXEC_OK;
 }
@@ -81,11 +81,11 @@ int strndup(char **dest, const char *src, size_t n)
 		return EXEC_OK;
 	}
 
-	*dest = (char *)malloc(n + 1 ? strlen(src) + 1 : n + 1);
-	if (*dest == NULL)
+	size_t srclen = n < 1 ? strlen(src) + 1 : n + 1;
+	if ((*dest = malloc(srclen)) == NULL)
 		return MALLOC_FAILURE;
 
-	strcpy(*dest, src);
+	memcpy(*dest, src, srclen);
 	return EXEC_OK;
 }
 
@@ -101,4 +101,27 @@ int strapd(char **dest, const char *src)
 
 	strcpy(*dest + dsz, src);
 	return EXEC_OK;
+}
+
+int fill_space_map(char ***space_map, int maxlen)
+{
+	if ((*space_map = malloc(sizeof(char *) * (maxlen + 1))) == NULL)
+		return MALLOC_FAILURE;
+
+	int i;
+	for (i = 0; i < maxlen; i++)
+		get_space(&(*space_map)[i], i);
+
+	(*space_map)[maxlen] = NULL;
+
+	return EXEC_OK;
+}
+
+void free_space_map(char **space_map)
+{
+	char **crt = space_map;
+	while (*crt != NULL)
+		free(*crt++);
+
+	free(space_map);
 }
