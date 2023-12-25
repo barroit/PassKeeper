@@ -4,12 +4,12 @@
 struct rcfield
 {
 	char *id;
-	char *site_name;
-	char *site_url;
+	char *sitename;
+	char *siteurl;
 	char *username;
 	char *password;
-	char *auth_text;
-	char *recovery_code;
+	char *authtext;
+	char *bakcode;
 	char *comment;
 	char *sqltime;
 	char *modtime;

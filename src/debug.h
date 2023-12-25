@@ -4,27 +4,36 @@
 #ifdef DEBUG
 
 #include <stdio.h>
+#include <stddef.h>
 
-#define debug_only(stmt)		\
+#define debug_message(stmt)		\
 	do				\
 	{				\
-		puts("[debug]");	\
+		puts("\n[debug]");	\
 		(stmt);			\
 		puts("[gubed]\n");	\
 	}				\
 	while (0)
 
+#define debug_execute(stmt)		\
+	do				\
+	{				\
+		(stmt);			\
+	}				\
+	while (0)
 
 struct app_option;
 struct rcque;
 
 void print_appopt(const struct app_option *appopt);
 
-void print_queue_size(const struct rcque *q);
+size_t get_rcque_size(const struct rcque *q);
 
 #else /* DEBUG */
 
-#define debug_only(stmt) ((void)0)
+#define debug_message(stmt) ((void)0)
+
+#define debug_execute(stmt) ((void)0)
 
 #endif /* DEBUG */
 

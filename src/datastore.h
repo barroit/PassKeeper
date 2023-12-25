@@ -18,9 +18,13 @@ int create_record(sqlite3 *db, const struct app_option *appopt);
 
 int read_record(sqlite3 *db, const struct app_option *appopt);
 
-void process_field(sqlite3_stmt *stmt, int column, char **filed, int *flen);
+void assign_field(sqlite3_stmt *stmt, int column, char **filed, int *flen);
 
-void print_brief_field(const struct rcfield *data, int wrap_threshold);
+void assign_by_large_value(int *dest, int tar);
+
+int align_and_wrap_field(struct string_buffer *buf, const char *field, int field_crtlen, int field_maxlen, int wrap_threshold, const char *padstr);
+
+void print_brief_field(struct string_buffer *buf, struct rcfield *data, int field_maxlen_map[3], int wrap_threshold, const char *padstr);
 
 void print_verbose_field(struct string_buffer *buf, const struct rcfield *data, int *is_init);
 

@@ -12,12 +12,12 @@ void print_appopt(const struct app_option *appopt)
 		"is_verbose: %s\n"
 		"is_db_init: %s\n"
 		"record_id: %d\n"
-		"site_name: %s\n"
-		"site_url: %s\n"
+		"sitename: %s\n"
+		"siteurl: %s\n"
 		"username: %s\n"
 		"password: %s\n"
-		"auth_text: %s\n"
-		"recovery_code: %s\n"
+		"authtext: %s\n"
+		"bakcode: %s\n"
 		"comment: %s\n",
 		PRINTABLE_STRING(appopt->db_filename),
 		PRINTABLE_STRING(appopt->command),
@@ -26,16 +26,16 @@ void print_appopt(const struct app_option *appopt)
 		READABLE_BOOLEAN(appopt->is_verbose),
 		READABLE_BOOLEAN(appopt->is_db_init),
 		appopt->record_id,
-		PRINTABLE_STRING(appopt->site_name),
-		PRINTABLE_STRING(appopt->site_url),
+		PRINTABLE_STRING(appopt->sitename),
+		PRINTABLE_STRING(appopt->siteurl),
 		PRINTABLE_STRING(appopt->username),
 		PRINTABLE_STRING(appopt->password),
-		PRINTABLE_STRING(appopt->auth_text),
-		PRINTABLE_STRING(appopt->recovery_code),
+		PRINTABLE_STRING(appopt->authtext),
+		PRINTABLE_STRING(appopt->bakcode),
 		PRINTABLE_STRING(appopt->comment));
 }
 
-void print_queue_size(const struct rcque *q)
+size_t get_rcque_size(const struct rcque *q)
 {
 	size_t size;
 	struct rcnode *crt;
@@ -48,5 +48,5 @@ void print_queue_size(const struct rcque *q)
 		crt = crt->next;
 	}
 
-	printf("size of q: %lu\n", size);
+	return size;
 }

@@ -15,12 +15,12 @@ struct app_option
 
 	const char *command;
 
-	const char *site_name;
-	const char *site_url;
+	const char *sitename;
+	const char *siteurl;
 	const char *username;
 	const char *password;
-	const char *auth_text;
-	const char *recovery_code;
+	const char *authtext;
+	const char *bakcode;
 	const char *comment;
 
 	int record_id;
@@ -37,8 +37,6 @@ struct app_option get_appopt(void);
 int parse_cmdopts(int argc, char *argv[], struct app_option *appopt);
 
 int parse_cmdargs(int argc, char *argv[], struct app_option *appopt);
-
-void process_parse_cmdargs_result(int result);
 
 int handle_parse_command(const char *argument, struct app_option *appopt);
 
