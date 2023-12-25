@@ -1,6 +1,7 @@
 #ifndef UTILITY_H
 #define UTILITY_H
 
+#include <stddef.h>
 #include <stdbool.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -26,7 +27,7 @@
 
 #define REPORT_ERROR(format, appname, ...) fprintf(stderr, "%s: " format "\n", appname, ##__VA_ARGS__);
 
-#define PRINTABLE_STRING(str) ((str) == NULL ? "(null)" : (str)[0] == '\0' ? "(empty)" : (str))
+#define PRINTABLE_STRING(str) ((str) == NULL ? "(null)" : (*str) == '\0' ? "(empty)" : (str))
 
 #define READABLE_BOOLEAN(v) ((v) ? "true" : "false")
 
@@ -35,6 +36,10 @@
 #else
 #define MKDIR(path) mkdir(path, 0775)
 #endif
+
+#define MAX(x, y) ((x > y) ? x : y)
+
+#define MIN(x, y) ((x < y) ? x : y)
 
 /// check if the `string` is a positive integer
 bool is_positive_integer(const char *str);
@@ -49,16 +54,14 @@ bool is_rw_file(const char *filename);
 /// if the `string` is null pointer, then falsy value returned
 bool is_empty_string(const char *string);
 
-int get_space(char **dest, int length);
+char *strpad(size_t padlen);
 
-int get_parent_dir(char **dirname, const char *filename);
+char *dirname(const char *filename);
 
 int strndup(char **dest, const char *src, size_t n);
 
-int strapd(char **dest, const char *src);
+char *strapd(const char *origin, const char *append);
 
-int fill_space_map(char ***space_map, int maxlen);
-
-void free_space_map(char **space_map);
+char *strsub(const char *src, size_t start, size_t cpylen);
 
 #endif /* UTILITY_H */

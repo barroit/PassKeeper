@@ -7,15 +7,15 @@
 #include <string.h>
 #include <stdbool.h>
 
-#define WRAP_THRESHOLD 24
+#define DEFAULT_WRAP_THRESHOLD 24
 
 #define OPTION_ALIAS_ID			12160
-#define OPTION_ALIAS_SITE_NAME		12161
-#define OPTION_ALIAS_SITE_URL		12162
+#define OPTION_ALIAS_SITENAME		12161
+#define OPTION_ALIAS_SITEURL		12162
 #define OPTION_ALIAS_USERNAME		12163
 #define OPTION_ALIAS_PASSWORD		12164
-#define OPTION_ALIAS_AUTH_TEXT		12165
-#define OPTION_ALIAS_RECOVERY_CODE	12166
+#define OPTION_ALIAS_AUTHTEXT		12165
+#define OPTION_ALIAS_BAKCODE		12166
 #define OPTION_ALIAS_COMMENT		12167
 
 struct app_option get_appopt(void)
@@ -27,12 +27,12 @@ struct app_option get_appopt(void)
 	appopt.command = NULL;
 
 	appopt.record_id = -1;
-	appopt.site_name = NULL;
-	appopt.site_url = NULL;
+	appopt.sitename = NULL;
+	appopt.siteurl = NULL;
 	appopt.username = NULL;
 	appopt.password = NULL;
-	appopt.auth_text = NULL;
-	appopt.recovery_code = NULL;
+	appopt.authtext = NULL;
+	appopt.bakcode = NULL;
 	appopt.comment = NULL;
 
 	appopt.is_help = 0;
@@ -40,7 +40,7 @@ struct app_option get_appopt(void)
 	appopt.is_verbose = 0;
 	appopt.is_db_init = 0;
 
-	appopt.wrap_threshold = WRAP_THRESHOLD;
+	appopt.wrap_threshold = DEFAULT_WRAP_THRESHOLD;
 
 	return appopt;
 }
@@ -55,12 +55,12 @@ int parse_cmdopts(int argc, char *argv[], struct app_option *appopt)
 		{ "db",			required_argument, NULL, 'f' },
 		{ "wrap",		required_argument, NULL, 'w' },
 		{ "id",			required_argument, NULL, OPTION_ALIAS_ID },
-		{ "site_name",		required_argument, NULL, OPTION_ALIAS_SITE_NAME },
-		{ "site_url",		required_argument, NULL, OPTION_ALIAS_SITE_URL },
+		{ "sitename",		required_argument, NULL, OPTION_ALIAS_SITENAME },
+		{ "siteurl",		required_argument, NULL, OPTION_ALIAS_SITEURL },
 		{ "username",		required_argument, NULL, OPTION_ALIAS_USERNAME },
 		{ "password",		required_argument, NULL, OPTION_ALIAS_PASSWORD },
-		{ "auth_text",		required_argument, NULL, OPTION_ALIAS_AUTH_TEXT },
-		{ "recovery_code",	required_argument, NULL, OPTION_ALIAS_RECOVERY_CODE },
+		{ "authtext",		required_argument, NULL, OPTION_ALIAS_AUTHTEXT },
+		{ "bakcode",		required_argument, NULL, OPTION_ALIAS_BAKCODE },
 		{ "comment",		required_argument, NULL, OPTION_ALIAS_COMMENT },
 		{ NULL, 0, NULL, 0 }
 	};
@@ -79,14 +79,14 @@ int parse_cmdopts(int argc, char *argv[], struct app_option *appopt)
 
 		switch (c)
 		{
-			case OPTION_ALIAS_SITE_NAME:
-				appopt->site_name = optarg;
+			case OPTION_ALIAS_SITENAME:
+				appopt->sitename = optarg;
 				break;
 			case 0:
 				/* resovle flag, do nothing */
 				break;
-			case OPTION_ALIAS_SITE_URL:
-				appopt->site_url = optarg;
+			case OPTION_ALIAS_SITEURL:
+				appopt->siteurl = optarg;
 				break;
 			case OPTION_ALIAS_USERNAME:
 				appopt->username = optarg;
@@ -94,11 +94,11 @@ int parse_cmdopts(int argc, char *argv[], struct app_option *appopt)
 			case OPTION_ALIAS_PASSWORD:
 				appopt->password = optarg;
 				break;
-			case OPTION_ALIAS_AUTH_TEXT:
-				appopt->auth_text = optarg;
+			case OPTION_ALIAS_AUTHTEXT:
+				appopt->authtext = optarg;
 				break;
-			case OPTION_ALIAS_RECOVERY_CODE:
-				appopt->recovery_code = optarg;
+			case OPTION_ALIAS_BAKCODE:
+				appopt->bakcode = optarg;
 				break;
 			case OPTION_ALIAS_COMMENT:
 				appopt->comment = optarg;
@@ -195,9 +195,9 @@ int handle_parse_argument(const char *argument, struct app_option *appopt)
 			return UNKNOW_ARGUMENT;
 		case 'r':
 		case 'R':
-			if (appopt->site_name != NULL)
+			if (appopt->sitename != NULL)
 				return FIELD_CONFLICT;
-			appopt->site_name = argument;
+			appopt->sitename = argument;
 			break;
 		case 'u':
 		case 'U':
@@ -226,18 +226,18 @@ int validate_field(char **missing_field, const struct app_option *appopt)
 		case 'c':
 		case 'C':
 			;
-			bool missing_site_name = is_empty_string(appopt->site_name);
+			bool missing_sitename = is_empty_string(appopt->sitename);
 			bool missing_username = is_empty_string(appopt->username);
 			bool missing_password = is_empty_string(appopt->password);
 			bool missing_credential = missing_username && missing_password;
 
 			char *_missing_field = NULL;
-			if (missing_site_name)
-				_missing_field = "site_name";
+			if (missing_sitename)
+				_missing_field = "sitename";
 			if (missing_credential)
 				_missing_field = "username or password";
-			if (missing_site_name && missing_credential)
-				_missing_field = "site_name, username or password";
+			if (missing_sitename && missing_credential)
+				_missing_field = "sitename, username or password";
 
 			if (_missing_field)
 			{

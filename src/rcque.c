@@ -18,15 +18,19 @@ int rcfinit(struct rcfield **f)
 		return MALLOC_FAILURE;
 
 	(*f)->id = NULL;
-	(*f)->site_name = NULL;
-	(*f)->site_url = NULL;
+	(*f)->sitename = NULL;
+	(*f)->siteurl = NULL;
 	(*f)->username = NULL;
 	(*f)->password = NULL;
-	(*f)->auth_text = NULL;
-	(*f)->recovery_code = NULL;
+	(*f)->authtext = NULL;
+	(*f)->bakcode = NULL;
 	(*f)->comment = NULL;
 	(*f)->sqltime = NULL;
 	(*f)->modtime = NULL;
+
+	(*f)->sitename_length = 0;
+	(*f)->username_length = 0;
+	(*f)->password_length = 0;
 
 	return EXEC_OK;
 }
@@ -73,12 +77,12 @@ void rcffree(struct rcfield *data)
 		return;
 
 	free(data->id);
-	free(data->site_name);
-	free(data->site_url);
+	free(data->sitename);
+	free(data->siteurl);
 	free(data->username);
 	free(data->password);
-	free(data->auth_text);
-	free(data->recovery_code);
+	free(data->authtext);
+	free(data->bakcode);
 	free(data->comment);
 	free(data->sqltime);
 	free(data->modtime);

@@ -114,7 +114,7 @@ int main(int argc, char **argv)
 			abort();
 	}
 
-	debug_only(print_appopt(&appopt));
+	debug_message(print_appopt(&appopt));
 
 	rc = sqlite3_open(appopt.db_filename, &db);
 
