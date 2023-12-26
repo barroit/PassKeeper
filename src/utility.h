@@ -58,8 +58,6 @@ char *strpad(size_t padlen);
 
 char *dirname(const char *filename);
 
-int strndup(char **dest, const char *src, size_t n);
-
 char *strapd(const char *origin, const char *append);
 
 char *strsub(const char *src, size_t start, size_t cpylen);

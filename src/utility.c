@@ -68,22 +68,6 @@ char *strpad(size_t padlen)
 	return padstr;
 }
 
-int strndup(char **dest, const char *src, size_t n)
-{
-	if (src == NULL)
-	{
-		*dest = NULL;
-		return EXEC_OK;
-	}
-
-	size_t srclen = n < 1 ? strlen(src) + 1 : n + 1;
-	if ((*dest = malloc(srclen)) == NULL)
-		return MALLOC_FAILURE;
-
-	memcpy(*dest, src, srclen);
-	return EXEC_OK;
-}
-
 char *strapd(const char *origin, const char *append)
 {
 	if (origin == NULL || append == NULL)
@@ -120,6 +104,11 @@ char *strsub(const char *src, size_t start, size_t cpylen)
 	if (start + cpylen > srclen)
 	{
 		cpylen = srclen - start;
+	}
+
+	if (cpylen == 0)
+	{
+		cpylen = srclen;
 	}
 
 	char *substr;

@@ -1,0 +1,65 @@
+#!/usr/bin/bash
+
+project_dir="$(cd $(dirname $0) &> /dev/null && pwd)"
+build_dir="$project_dir/build"
+cache_file="$build_dir/make_sqlite_cache"
+build_target="${1:-penguin}"
+
+prev_targer=$(grep -s '' "$cache_file")
+
+if [[ "$prev_targer" == "$build_target" ]]; then
+	exit 0
+fi
+
+sqlite_version='sqlite-autoconf-3440200'
+sqlite_zip="$sqlite_version.tar.gz"
+sqlite_source="$HOME/Source/sqlite"
+
+mkdir -p $sqlite_source
+cd $sqlite_source
+
+if grep -qs 'uninstall' Makefile; then
+	sudo make uninstall
+	sudo make clean
+fi
+
+if [[ ! -f $sqlite_zip ]]; then
+	echo 'the source file corresponding to the version is not found'
+	sqlite_download_url="https://www.sqlite.org/2023/$sqlite_zip"
+
+	rm -rf $sqlite_source/*
+
+	echo 'downloading source files...'
+	wget -q $sqlite_download_url
+	echo "unpacking $sqlite_zip"
+	tar -xzf $sqlite_zip
+
+	mv $sqlite_version/* ./
+	rmdir $sqlite_version
+fi
+
+if [[ $build_target == 'window' ]]; then
+	config_args='--disable-shared --enable-static --host=x86_64-w64-mingw32 CC=x86_64-w64-mingw32-gcc CFLAGS=-Os'
+else
+	config_args='CC=gcc CFLAGS=-Os'
+fi
+
+echo "building $sqlite_version..."
+
+./configure $config_args > /dev/null 2>&1
+
+make > /dev/null
+
+sudo make install
+
+mkdir -p $build_dir
+
+echo "$build_target" > $cache_file
+
+echo "finished build"
+
+# may be useful if later we use sqlcipher
+# ./configure --host=x86_64-w64-mingw32 CC=x86_64-w64-mingw32-gcc CFLAGS=-Os
+# ./Configure mingw64 no-asm no-apps no-shared --cross-compile-prefix=x86_64-w64-mingw32- --prefix=$HOME/.local
+# make CFLAGS=-Os
+# make install
