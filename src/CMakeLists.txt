@@ -1,7 +1,7 @@
 find_package(SQLite3 REQUIRED)
 
 if(${CMAKE_BUILD_TYPE} STREQUAL Window)
-	string(REPLACE "libsqlite3.a" "libwin64sqlite3.a" SQLite3_LIBRARIES ${SQLite3_LIBRARIES})
+	string(REGEX REPLACE ".dll" "" SQLite3_LIBRARIES ${SQLite3_LIBRARIES})
 endif(${CMAKE_BUILD_TYPE} STREQUAL Window)
 
 file(GLOB PK_SOURCES *.c)
@@ -16,9 +16,8 @@ elseif(${CMAKE_BUILD_TYPE} STREQUAL Coverage)
 	target_link_libraries(pkdev PRIVATE coverage_config)
 endif()
 target_include_directories(pkdev PUBLIC ${PROJECT_BINARY_DIR} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} PUBLIC ${SQLite3_INCLUDE_DIRS})
-set_target_properties(pkdev PROPERTIES C_STANDARD 11)
 
 # pk
 add_executable(pk main.c)
 target_link_libraries(pk pkdev)
-set_target_properties(pk PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR} C_STANDARD 11)
+set_target_properties(pk PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})

@@ -19,7 +19,7 @@ int init_db_file(const char *filename, sqlite3 **db)
 		return FILENAME_EXISTS;
 	}
 
-	int rc;
+	int rc = 0;
 	char *prt_name; // prt stands for parent
 
 	prt_name = dirname(filename);
@@ -212,20 +212,20 @@ int read_record(sqlite3 *db, const struct app_option *appopt)
 
 void assign_field(sqlite3_stmt *stmt, int column, char **field, int *flen)
 {
-	const char *tmpf = (const char *)sqlite3_column_text(stmt, column);
-	int tmpflen = sqlite3_column_bytes(stmt, column) / sizeof(char);
+	const char *tmp_field = (const char *)sqlite3_column_text(stmt, column);
+	int tmp_flen = sqlite3_column_bytes(stmt, column) / sizeof(char);
 
-	if (tmpf == NULL)
+	if (tmp_field == NULL)
 	{
-		tmpf = "(null)";
-		tmpflen = 6;
+		tmp_field = "(null)";
+		tmp_flen = 6;
 	}
 
-	strndup(field, tmpf, tmpflen);
+	*field = strsub(tmp_field, 0, 0);
 
 	if (flen != NULL)
 	{
-		*flen = tmpflen;
+		*flen = tmp_flen;
 	}
 }
 

@@ -26,6 +26,8 @@ if [[ $build_type == "test" || $build_type == "coverage" ]]; then
 	target="pk_test"
 fi
 
+./make_sqlite $build_type
+
 cmake -B $build_dir -DCMAKE_BUILD_TYPE=${build_type^}
 
 cmake --build $build_dir --target $target
