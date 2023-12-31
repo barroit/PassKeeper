@@ -1,7 +1,15 @@
 #ifndef RCQUE_H
 #define RCQUE_H
 
-struct rcfield
+#include <stddef.h>
+
+#ifdef PK_IS_DEBUG
+
+extern size_t record_queue_size;
+
+#endif /* PK_IS_DEBUG */
+
+typedef struct
 {
 	char *id;
 	char *sitename;
@@ -17,30 +25,30 @@ struct rcfield
 	int sitename_length;
 	int username_length;
 	int password_length;
-};
+} record_field;
 
-struct rcnode
+typedef struct node
 {
-	struct rcfield *data;
-	struct rcnode *next;
-};
+	record_field *data;
+	struct node *next;
+} record_node;
 
-struct rcque
+typedef struct
 {
-	struct rcnode *front;
-	struct rcnode *back;
-};
+	record_node *front;
+	record_node *back;
+} record_queue;
 
-int rcqinit(struct rcque **q);
+record_queue *rcqmake(void);
 
-int rcfinit(struct rcfield **f);
+record_field *rcfmake(void);
 
-int enrcque(struct rcque *q, struct rcfield *data);
+record_field *enrcque(record_queue *q, record_field *data);
 
-struct rcfield *dercque(struct rcque *q);
+record_field *dercque(record_queue *q);
 
-void rcffree(struct rcfield *data);
+void rcffree(record_field *data);
 
-void rcqfree(struct rcque *q);
+void rcqfree(record_queue *q);
 
 #endif /* RCQUE_H */

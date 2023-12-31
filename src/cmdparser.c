@@ -1,13 +1,13 @@
 #include "cmdparser.h"
 #include "utility.h"
+#include "rescode.h"
 #include "config.h"
+#include <stddef.h>
 #include <stdlib.h>
 #include <getopt.h>
 #include <ctype.h>
 #include <string.h>
 #include <stdbool.h>
-
-#define DEFAULT_WRAP_THRESHOLD 24
 
 #define OPTION_ALIAS_ID			12160
 #define OPTION_ALIAS_SITENAME		12161
@@ -18,34 +18,35 @@
 #define OPTION_ALIAS_BAKCODE		12166
 #define OPTION_ALIAS_COMMENT		12167
 
-struct app_option get_appopt(void)
+app_option make_appopt(void)
 {
-	struct app_option appopt;
+	app_option appopt = {
+		.db_pathname = getenv(DEFAULT_DB_PATHNAME + 1),
+		.db_key_pathname = getenv(DEFAULT_DB_KEY_PATHNAME + 1),
 
-	appopt.db_filename = getenv(DEFAULT_DB_FILENAME + 1);
+		.command = NULL,
 
-	appopt.command = NULL;
+		.record_id = -1,
+		.sitename = NULL,
+		.siteurl = NULL,
+		.username = NULL,
+		.password = NULL,
+		.authtext = NULL,
+		.bakcode = NULL,
+		.comment = NULL,
 
-	appopt.record_id = -1;
-	appopt.sitename = NULL;
-	appopt.siteurl = NULL;
-	appopt.username = NULL;
-	appopt.password = NULL;
-	appopt.authtext = NULL;
-	appopt.bakcode = NULL;
-	appopt.comment = NULL;
+		.is_help = 0,
+		.is_version = 0,
+		.is_verbose = 0,
+		.is_db_init = 0,
 
-	appopt.is_help = 0;
-	appopt.is_version = 0;
-	appopt.is_verbose = 0;
-	appopt.is_db_init = 0;
-
-	appopt.wrap_threshold = DEFAULT_WRAP_THRESHOLD;
+		.wrap_threshold = DEFAULT_WRAP_THRESHOLD,
+	};
 
 	return appopt;
 }
 
-int parse_cmdopts(int argc, char *argv[], struct app_option *appopt)
+int parse_cmdopts(int argc, char *argv[], app_option *appopt, const char *error_messages[2])
 {
 	struct option long_options[] = {
 		{ "verbose",		no_argument, &appopt->is_verbose, 1 },
@@ -53,6 +54,7 @@ int parse_cmdopts(int argc, char *argv[], struct app_option *appopt)
 		{ "version",		no_argument, &appopt->is_version, 1 },
 		{ "init",		no_argument, &appopt->is_db_init, 1 },
 		{ "db",			required_argument, NULL, 'f' },
+		{ "key",		required_argument, NULL, 'k' },
 		{ "wrap",		required_argument, NULL, 'w' },
 		{ "id",			required_argument, NULL, OPTION_ALIAS_ID },
 		{ "sitename",		required_argument, NULL, OPTION_ALIAS_SITENAME },
@@ -65,75 +67,103 @@ int parse_cmdopts(int argc, char *argv[], struct app_option *appopt)
 		{ NULL, 0, NULL, 0 }
 	};
 
-	char *short_options = "vf:iw:";
+	const char *short_options = ":vf:iw:k:"; /* leading colon make getopt quiet */
 
-	int c;
-	int option_index = 0;
+	int rc, alias, optidx;
 
 	while (1)
 	{
-		c = getopt_long(argc, argv, short_options, long_options, &option_index);
-
-		if (c == -1)
-			break;
-
-		switch (c)
+		if ((alias = getopt_long(argc, argv, short_options, long_options, &optidx)) == -1) /* No more options */
 		{
-			case OPTION_ALIAS_SITENAME:
-				appopt->sitename = optarg;
+			break;
+		}
+
+		switch (rc = handle_parse_option(appopt, alias))
+		{
+			case PK_SUCCESS:
 				break;
-			case 0:
-				/* resovle flag, do nothing */
-				break;
-			case OPTION_ALIAS_SITEURL:
-				appopt->siteurl = optarg;
-				break;
-			case OPTION_ALIAS_USERNAME:
-				appopt->username = optarg;
-				break;
-			case OPTION_ALIAS_PASSWORD:
-				appopt->password = optarg;
-				break;
-			case OPTION_ALIAS_AUTHTEXT:
-				appopt->authtext = optarg;
-				break;
-			case OPTION_ALIAS_BAKCODE:
-				appopt->bakcode = optarg;
-				break;
-			case OPTION_ALIAS_COMMENT:
-				appopt->comment = optarg;
-				break;
-			case OPTION_ALIAS_ID:
-				if (!is_positive_integer(optarg))
-					return NOT_INTEGER;
-				appopt->record_id = atoi(optarg);
-				break;
-			case 'v':
-				appopt->is_verbose = 1;
-				break;
-			case 'f':
-				appopt->db_filename = optarg;
-				break;
-			case 'i':
-				appopt->is_db_init = 1;
-				break;
-			case 'w':
-				if (!is_positive_integer(optarg))
-					return NOT_INTEGER;
-				appopt->wrap_threshold = atoi(optarg);
-				break;
-			case '?':
-				/* getopt_long already print an error message */
-				return UNKNOW_OPTION;
+			case PK_INCOMPATIBLE_TYPE:
+				error_messages[ERRMSG_IDX_K] = long_options[optidx].name;
+				error_messages[ERRMSG_IDX_V] = optarg;
+				return rc;
+			case PK_UNKNOWN_OPTION:
+			case PK_MISSING_OPERAND:
+				error_messages[ERRMSG_IDX_K] = argv[optind - 1];
+				return rc;
 			default:
 				abort();
 		}
 	}
 
-	return 0;
+	return PK_SUCCESS;
 }
 
-int parse_cmdargs(int argc, char *argv[], struct app_option *appopt)
+int handle_parse_option(app_option *appopt, int alias)
+{
+	switch (alias)
+	{
+		case OPTION_ALIAS_SITENAME:
+			appopt->sitename = optarg;
+			break;
+		case 0:
+			/* flag resovled, do nothing */
+			break;
+		case OPTION_ALIAS_SITEURL:
+			appopt->siteurl = optarg;
+			break;
+		case OPTION_ALIAS_USERNAME:
+			appopt->username = optarg;
+			break;
+		case OPTION_ALIAS_PASSWORD:
+			appopt->password = optarg;
+			break;
+		case OPTION_ALIAS_AUTHTEXT:
+			appopt->authtext = optarg;
+			break;
+		case OPTION_ALIAS_BAKCODE:
+			appopt->bakcode = optarg;
+			break;
+		case OPTION_ALIAS_COMMENT:
+			appopt->comment = optarg;
+			break;
+		case OPTION_ALIAS_ID:
+			if (!is_positive_integer(optarg))
+			{
+				return PK_INCOMPATIBLE_TYPE;
+			}
+			appopt->record_id = atoi(optarg);
+			break;
+		case 'v':
+			appopt->is_verbose = 1;
+			break;
+		case 'f':
+			appopt->db_pathname = optarg;
+			break;
+		case 'k':
+			appopt->db_key_pathname = optarg;
+			break;
+		case 'i':
+			appopt->is_db_init = 1;
+			break;
+		case 'w':
+			if (!is_positive_integer(optarg))
+			{
+				return PK_INCOMPATIBLE_TYPE;
+			}
+			appopt->wrap_threshold = atoi(optarg);
+			break;
+		case '?':
+			return PK_UNKNOWN_OPTION;
+		case ':':
+			return PK_MISSING_OPERAND;
+		default:
+			abort();
+	}
+
+	return PK_SUCCESS;
+}
+
+int parse_cmdargs(int argc, char *argv[], app_option *appopt)
 {
 	char *arg;
 	int rc;
@@ -163,7 +193,7 @@ int parse_cmdargs(int argc, char *argv[], struct app_option *appopt)
 	return 0;
 }
 
-int handle_parse_command(const char *argument, struct app_option *appopt)
+int handle_parse_command(const char *argument, app_option *appopt)
 {
 	char *commands[] = { "create", "read", "update", "delete", NULL };
 
@@ -186,7 +216,7 @@ int handle_parse_command(const char *argument, struct app_option *appopt)
 	return COMMAND_MISMATCH;
 }
 
-int handle_parse_argument(const char *argument, struct app_option *appopt)
+int handle_parse_argument(const char *argument, app_option *appopt)
 {
 	switch (appopt->command[0])
 	{
@@ -216,9 +246,9 @@ int handle_parse_argument(const char *argument, struct app_option *appopt)
 	return 0;
 }
 
-int validate_field(char **missing_field, const struct app_option *appopt)
+int validate_field(char **missing_field, const app_option *appopt)
 {
-	if (!is_rw_file(appopt->db_filename))
+	if (!is_rw_file(appopt->db_pathname))
 		return FILE_INACCESS;
 
 	switch (appopt->command[0])

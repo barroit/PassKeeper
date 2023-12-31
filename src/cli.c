@@ -2,6 +2,8 @@
 #include "config.h"
 #include "utility.h"
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 void show_version(void)
 {
@@ -15,7 +17,7 @@ void show_all_usages(const char *appname)
 {
 	char *margin = strpad(strlen(appname) + 8);
 
-	printf("usage: %s [--version] [--help] [--db_filename=<path>]\n"
+	printf("usage: %s [--version] [--help] [--db_pathname=<path>]\n"
 		"%s<command> [<args>]\n"
 		"\n"
 		"There are four main commands used to interact with\n"

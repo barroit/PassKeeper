@@ -1,0 +1,183 @@
+#!/usr/bin/bash
+
+temp_stderr=$(mktemp)
+
+exec 3>/dev/null
+
+project_dir="$(cd $(dirname $0) &> /dev/null && pwd)/.."
+
+build_dir="$project_dir/build"
+
+cache_file="$build_dir/make_sqlite_cache"
+
+build_type=$([ "$1" == 'window' ] && echo 'window' || echo 'penguin')
+
+prev_type="$(grep -s '' "$cache_file")"
+
+if [[ "$prev_type" == "$build_type" ]]; then
+	exit 0
+fi
+
+spinner()
+{
+	local pid=$!
+	local spin='-\|/'
+	local i=0
+
+	while kill -0 $pid 2>/dev/null
+	do
+		i=$(((i + 1) % 4))
+		printf '%s\b' "${spin:$i:1}"
+		sleep .2
+	done
+}
+
+process_start()
+{
+	printf '%s... ' "$1"
+}
+
+process_exec() {
+	eval "$1" 2>$temp_stderr >&3 & spinner
+}
+
+process_end()
+{
+	if [[ -s "$1" ]]; then
+		echo 'maybe'
+		cat "$1" >&2
+		truncate -s 0 $1
+	else
+		echo 'ok'
+	fi
+}
+
+srcdir="$HOME/Source"
+
+install_prefix="$HOME/.local"
+
+if [[ $build_type == 'window' ]]; then
+	openssl_dir="$srcdir/openssl"
+
+	cd $srcdir
+
+	if [[ ! -d $openssl_dir ]]; then
+		git clone https://github.com/openssl/openssl.git
+	fi
+
+	cd $openssl_dir
+
+	process_start 'configuring openssl'
+	process_exec "./Configure mingw64 no-asm no-apps no-shared no-docs no-tests \
+	--cross-compile-prefix=x86_64-w64-mingw32- --prefix=$install_prefix CFLAGS=-Os"
+	process_end $temp_stderr
+
+	process_start 'building openssl'
+	process_exec 'make'
+	process_end $temp_stderr
+
+	process_start 'installing openssl'
+	process_exec 'make install_sw'
+	process_end $temp_stderr
+fi
+
+cd $srcdir
+
+sqlcipher_dir="$srcdir/sqlcipher"
+
+if [[ ! -d $sqlcipher_dir ]]; then
+	git clone https://github.com/sqlcipher/sqlcipher.git
+fi
+
+cd $sqlcipher_dir
+
+flags="--disable-tcl --enable-tempstore=yes --prefix=$install_prefix"
+cflags='-DSQLITE_HAS_CODEC -DSQLCIPHER_CRYPTO_OPENSSL -Os'
+ldflags='-static'
+
+# we need mksourceid
+if [[ ! -f mksourceid || $build_type == 'penguin' ]]; then
+	ldflags+=' -lcrypto'
+
+	process_start 'configuring sqlcipher for penguin'
+	process_exec "./configure $flags CFLAGS=\"$cflags\" LDFLAGS=\"$ldflags\""
+	process_end $temp_stderr
+
+	process_start 'building sqlcipher for penguin'
+	process_exec 'make'
+	process_end $temp_stderr
+fi
+
+if [[ $build_type == 'window' ]]; then
+	flags+=" --host=x86_64-w64-mingw32 --with-crypto-lib=none config_TARGET_EXEEXT=.exe"
+	cflags+=" -I$install_prefix/include "
+	ldflags+=" -L$install_prefix/lib64 -lcrypto -lcrypt32 -lws2_32"
+
+	process_start 'configuring sqlcipher for windows'
+	process_exec "./configure $flags CFLAGS=\"$cflags\" LDFLAGS=\"$ldflags\""
+	process_end $temp_stderr
+
+	# remove built penguin files but mksourceid
+	make clean > /dev/null
+
+	process_start 'building sqlcipher for windows'
+	process_exec 'make'
+	process_end $temp_stderr
+fi
+
+if ! grep -qs 'uninstall' 'Makefile'; then
+	echo '
+uninstall:
+	rm -f $(DESTDIR)$(libdir)/libsqlcipher.la
+	rm -f $(DESTDIR)$(bindir)/sqlcipher$(TEXE)
+	rm -f $(DESTDIR)$(includedir)/sqlite3.h
+	rm -f $(DESTDIR)$(includedir)/sqlite3ext.h
+	rm -f $(DESTDIR)$(pkgconfigdir)/sqlcipher.pc' >> Makefile
+fi
+
+if ! grep -qs 'header_install' 'Makefile'; then
+	echo '
+header_install: sqlite3.h sqlite3ext.h
+	$(INSTALL) -d $(DESTDIR)$(includedir)
+	$(INSTALL) -m 0644 sqlite3.h $(DESTDIR)$(includedir)
+	$(INSTALL) -m 0644 $(TOP)/src/sqlite3ext.h $(DESTDIR)$(includedir)' >> Makefile
+fi
+
+if ! grep -qs 'pc_install' 'Makefile'; then
+	echo '
+pc_install: sqlcipher.pc
+	$(INSTALL) -d $(DESTDIR)$(pkgconfigdir)
+	$(INSTALL) -m 0644 sqlcipher.pc $(DESTDIR)$(pkgconfigdir)' >> Makefile
+fi
+
+make lib_install
+make header_install
+make pc_install
+
+echo $build_type > $cache_file
+
+rm $temp_stderr
+
+# CREATE TABLE account (
+# id INTEGER PRIMARY KEY AUTOINCREMENT,
+# sitename TEXT NOT NULL,
+# siteurl TEXT,
+# username TEXT,
+# password TEXT,
+# authtext TEXT,
+# bakcode TEXT,
+# comment TEXT,
+# sqltime DATETIME DEFAULT (datetime('now', '+9 hours')),
+# modtime DATETIME
+# );
+# CREATE TRIGGER update_modtime 
+# AFTER UPDATE ON account 
+# FOR EACH ROW 
+# BEGIN 
+# UPDATE account SET modtime = datetime('now', '+9 hours') WHERE id = old.id;
+# END;
+
+# INSERT INTO account 
+# (sitename, siteurl, username, password, authtext, bakcode, comment) 
+# VALUES
+# ('test', 0, 'barroit', 0, 0, 0, 0);

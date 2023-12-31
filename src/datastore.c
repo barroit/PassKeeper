@@ -1,6 +1,11 @@
 #include "datastore.h"
 #include "utility.h"
 #include "debug.h"
+#include "rescode.h"
+#include <sqlite3.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #define return_on_fail(rc, stmt)						\
 	do									\
@@ -12,39 +17,38 @@
 	}									\
 	while (0)
 
-int init_db_file(const char *filename, sqlite3 **db)
+int make_db_dir(const char *filename)
 {
 	if (is_rw_file(filename))
 	{
-		return FILENAME_EXISTS;
+		return PK_FILE_EXIST;
 	}
 
-	int rc = 0;
-	char *prt_name; // prt stands for parent
+	int rc;
+	char *dirname; /* prt stands for parent */
 
-	prt_name = dirname(filename);
-
-	if (prt_name == NULL)
+	if ((dirname = dirof(filename)) == NULL)
 	{
-		return INVALID_FILENAME;
+		return PK_INVALID_PATHNAME;
 	}
 
-	if (!is_rwx_dir(prt_name))
+	rc = 0;
+	if (!is_rwx_dir(dirname))
 	{
-		rc = MKDIR(prt_name);
+		rc = dirmake(dirname);
 	}
 
-	free(prt_name);
+	free(dirname);
 
-	if (rc != EXEC_OK)
+	if (rc != PK_SUCCESS)
 	{
-		return MKDIR_FAILURE;
+		return PK_MKDIR_FAILURE;
 	}
 
-	return sqlite3_open(filename, db);
+	return PK_SUCCESS;
 }
 
-int init_db_table(sqlite3 *db)
+int create_db_table(sqlite3 *db)
 {
 	const char *sql;
 
@@ -70,7 +74,24 @@ int init_db_table(sqlite3 *db)
 	return sqlite3_exec(db, sql, NULL, NULL, NULL);
 }
 
-int create_record(sqlite3 *db, const struct app_option *appopt)
+int apply_db_key(sqlite3 *db, const char *key)
+{
+	if (key == NULL)
+	{
+		return PK_SUCCESS;
+	}
+
+	sqlite3_key(db, NULL, 0);
+
+	return 0;
+}
+
+bool is_db_decrypted(sqlite3 *db)
+{
+	return sqlite3_exec(db, "SELECT count(*) FROM sqlite_master;", NULL, NULL, NULL) == SQLITE_OK;
+}
+
+int create_record(sqlite3 *db, const app_option *appopt)
 {
 	const char *sql;
 	sqlite3_stmt *stmt;
@@ -90,21 +111,23 @@ int create_record(sqlite3 *db, const struct app_option *appopt)
 	return_on_fail(sqlite3_bind_text(stmt, 6, appopt->bakcode, -1, SQLITE_STATIC), stmt);
 	return_on_fail(sqlite3_bind_text(stmt, 7, appopt->comment, -1, SQLITE_STATIC), stmt);
 
-	int rc;
+	int rc __attribute__ ((unused));
 	// If the most recent evaluation of statement S failed,
 	// then sqlite3_finalize(S) returns the appropriate error code.
 	// we can leave sqlite3_step without checking its rc
 	rc = sqlite3_step(stmt);
 
-	if (rc != SQLITE_DONE)
-	{
-		debug_message(puts(sqlite3_errmsg(db)));
-	}
-	
+	debug_execute({
+		if (rc != SQLITE_DONE)
+		{
+			puts(sqlite3_errmsg(db));
+		}
+	});
+
 	return sqlite3_finalize(stmt);
 }
 
-int read_record(sqlite3 *db, const struct app_option *appopt)
+int read_record(sqlite3 *db, const app_option *appopt)
 {
 	int rc;
 	const char *sql;
@@ -127,19 +150,21 @@ int read_record(sqlite3 *db, const struct app_option *appopt)
 
 	return_on_fail(rc, stmt);
 
-	struct rcque *q;
-	struct rcfield *data;
+	record_queue *q;
+	record_field *data;
 	int field_maxlen_map[3] = { 0, 0, 0 };
 
-	rcqinit(&q);
+	q = rcqmake();
 	while (1)
 	{
 		rc = sqlite3_step(stmt);
 
 		if (rc != SQLITE_ROW)
+		{
 			break;
+		}
 
-		rcfinit(&data);
+		data = rcfmake();
 
 		assign_field(stmt, 1, &data->sitename, &data->sitename_length);
 		assign_by_large_value(&field_maxlen_map[0], data->sitename_length);
@@ -164,18 +189,17 @@ int read_record(sqlite3 *db, const struct app_option *appopt)
 		enrcque(q, data);
 	}
 
-	debug_execute({
-		size_t sz = get_rcque_size(q);
-		debug_message(printf("size of rcque is %lu\n", sz));
-	});
+	debug_log("size of rcque is %lu\n", record_queue_size);
 
-	struct string_buffer *buf;
+	string_buffer *buf;
 	char *padstr;
 
-	sbinit(&buf);
+	buf = sbmake(200);
 	padstr = strpad(appopt->wrap_threshold);
-	int is_init = 1;
 
+	int is_init;
+
+	is_init = 1;
 	while ((data = dercque(q)) != NULL)
 	{
 		if (appopt->is_verbose)
@@ -190,7 +214,8 @@ int read_record(sqlite3 *db, const struct app_option *appopt)
 		if (buf->size > 16 * 1000)
 		{
 			fputs(buf->data, stdout);
-			sbclean(buf);
+			sbfree(buf);
+			buf = sbmake(200);
 		}
 
 		rcffree(data);
@@ -205,7 +230,7 @@ int read_record(sqlite3 *db, const struct app_option *appopt)
 	sbfree(buf);
 	rcqfree(q);
 
-	debug_message(printf("strbuffer resize executed %d times\n", resize_execution_count));
+	debug_log("strbuffer resize executed %d times\n", resize_execution_count);
 
 	return sqlite3_finalize(stmt);
 }
@@ -237,7 +262,7 @@ void assign_by_large_value(int *dest, int tar)
 	}
 }
 
-int align_and_wrap_field(struct string_buffer *buf, const char *field, int field_crtlen, int field_maxlen, int wrap_threshold, const char *padstr)
+int align_and_wrap_field(string_buffer *buf, const char *field, int field_crtlen, int field_maxlen, int wrap_threshold, const char *padstr)
 {
 	if (field == NULL)
 	{
@@ -279,7 +304,7 @@ int align_and_wrap_field(struct string_buffer *buf, const char *field, int field
 	return substr_length;
 }
 
-void print_brief_field(struct string_buffer *buf, struct rcfield *data, int field_maxlen_map[3], int wrap_threshold, const char *padstr)
+void print_brief_field(string_buffer *buf, record_field *data, int field_maxlen_map[3], int wrap_threshold, const char *padstr)
 {
 	int substr_length[3];
 
@@ -315,7 +340,7 @@ void print_brief_field(struct string_buffer *buf, struct rcfield *data, int fiel
 	data->password_length = rawlen_map[2];
 }
 
-void print_verbose_field(struct string_buffer *buf, const struct rcfield *data, int *is_init)
+void print_verbose_field(string_buffer *buf, const record_field *data, int *is_init)
 {
 	sbprintf(buf,
 		"%s"
@@ -332,12 +357,12 @@ void print_verbose_field(struct string_buffer *buf, const struct rcfield *data, 
 		*is_init ? (*is_init = false, "") : "\n",
 		data->id,
 		data->sitename,
-		PRINTABLE_STRING(data->siteurl),
-		PRINTABLE_STRING(data->username),
-		PRINTABLE_STRING(data->password),
-		PRINTABLE_STRING(data->authtext),
-		PRINTABLE_STRING(data->bakcode),
-		PRINTABLE_STRING(data->comment),
-		PRINTABLE_STRING(data->sqltime),
-		PRINTABLE_STRING(data->modtime));
+		STRINGIFY(data->siteurl),
+		STRINGIFY(data->username),
+		STRINGIFY(data->password),
+		STRINGIFY(data->authtext),
+		STRINGIFY(data->bakcode),
+		STRINGIFY(data->comment),
+		STRINGIFY(data->sqltime),
+		STRINGIFY(data->modtime));
 }
