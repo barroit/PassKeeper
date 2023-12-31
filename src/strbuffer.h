@@ -3,29 +3,32 @@
 
 #define BUFFER_OVERFLOW 1
 
-#ifdef DEBUG
-extern int resize_execution_count;
-#endif /* DEBUG */
+#include <stddef.h>
 
-struct string_buffer
+#ifdef PK_IS_DEBUG
+
+extern int resize_execution_count;
+
+#endif /* PK_IS_DEBUG */
+
+typedef struct
 {
 	char *data;
 	int size;
 	int capacity;
-};
 
-int sbinit(struct string_buffer **buf);
+} string_buffer;
 
-int sbresize(struct string_buffer *buf, int lower_bound);
+string_buffer *sbmake(int capacity);
 
-void sbprint(struct string_buffer *buf, const char *src);
+string_buffer *sbresize(string_buffer *buf, int lower_bound);
 
-void sbprintf(struct string_buffer *buf, const char *format, ...);
+void sbprint(string_buffer *buf, const char *src);
 
-void sbnprintf(struct string_buffer *buf, int len, const char *format, ...);
+void sbprintf(string_buffer *buf, const char *format, ...);
 
-int sbclean(struct string_buffer *buf);
+void sbnprintf(string_buffer *buf, int len, const char *format, ...);
 
-void sbfree(struct string_buffer *buf);
+void sbfree(string_buffer *buf);
 
 #endif /* STRBUFFER_H */

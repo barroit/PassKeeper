@@ -1,16 +1,15 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
-#ifdef DEBUG
+#ifdef PK_IS_DEBUG
 
 #include <stdio.h>
-#include <stddef.h>
 
-#define debug_message(stmt)		\
+#define debug_log(...)			\
 	do				\
 	{				\
 		puts("\n[debug]");	\
-		(stmt);			\
+		printf(__VA_ARGS__);	\
 		puts("[gubed]\n");	\
 	}				\
 	while (0)
@@ -22,19 +21,12 @@
 	}				\
 	while (0)
 
-struct app_option;
-struct rcque;
+#else /* PK_IS_DEBUG */
 
-void print_appopt(const struct app_option *appopt);
-
-size_t get_rcque_size(const struct rcque *q);
-
-#else /* DEBUG */
-
-#define debug_message(stmt) ((void)0)
+#define debug_log(...) ((void)0)
 
 #define debug_execute(stmt) ((void)0)
 
-#endif /* DEBUG */
+#endif /* PK_IS_DEBUG */
 
 #endif /* DEBUG_H */

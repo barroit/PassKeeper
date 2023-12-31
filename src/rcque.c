@@ -1,45 +1,63 @@
 #include "rcque.h"
 #include "utility.h"
+#include "debug.h"
+#include "rescode.h"
 
-int rcqinit(struct rcque **q)
+#include <stdlib.h>
+
+#ifdef PK_IS_DEBUG
+
+size_t record_queue_size = 0;
+
+#endif /* PK_IS_DEBUG */
+
+record_queue *rcqmake(void)
 {
-	if ((*q = malloc(sizeof(struct rcque))) == NULL)
-		return MALLOC_FAILURE;
+	record_queue *q;
+	if ((q = malloc(sizeof(record_queue))) == NULL)
+	{
+		return NULL;
+	}
 
-	(*q)->front = NULL;
-	(*q)->back = NULL;
+	q->front = NULL;
+	q->back = NULL;
 
-	return EXEC_OK;
+	return q;
 }
 
-int rcfinit(struct rcfield **f)
+record_field *rcfmake(void)
 {
-	if ((*f = malloc(sizeof(struct rcfield))) == NULL)
-		return MALLOC_FAILURE;
+	record_field *f;
+	if ((f = malloc(sizeof(record_field))) == NULL)
+	{
+		return NULL;
+	}
 
-	(*f)->id = NULL;
-	(*f)->sitename = NULL;
-	(*f)->siteurl = NULL;
-	(*f)->username = NULL;
-	(*f)->password = NULL;
-	(*f)->authtext = NULL;
-	(*f)->bakcode = NULL;
-	(*f)->comment = NULL;
-	(*f)->sqltime = NULL;
-	(*f)->modtime = NULL;
+	f->id = NULL;
+	f->sitename = NULL;
+	f->siteurl = NULL;
+	f->username = NULL;
+	f->password = NULL;
+	f->authtext = NULL;
+	f->bakcode = NULL;
+	f->comment = NULL;
+	f->sqltime = NULL;
+	f->modtime = NULL;
 
-	(*f)->sitename_length = 0;
-	(*f)->username_length = 0;
-	(*f)->password_length = 0;
+	f->sitename_length = 0;
+	f->username_length = 0;
+	f->password_length = 0;
 
-	return EXEC_OK;
+	return f;
 }
 
-int enrcque(struct rcque *q, struct rcfield *data)
+record_field *enrcque(record_queue *q, record_field *data)
 {
-	struct rcnode *n;
-	if ((n = malloc(sizeof(struct rcnode))) == NULL)
-		return MALLOC_FAILURE;
+	record_node *n;
+	if ((n = malloc(sizeof(record_node))) == NULL)
+	{
+		return NULL;
+	}
 
 	n->data = data;
 	n->next = NULL;
@@ -48,30 +66,43 @@ int enrcque(struct rcque *q, struct rcfield *data)
 	//     front ----------> back
 	//                        |-----<
 	if (q->back == NULL)
+	{
 		q->front = n;
+	}
 	else
+	{
 		q->back->next = n;
+	}
 	q->back = n;
 
-	return EXEC_OK;
-}
+	debug_execute(record_queue_size++);
 
-struct rcfield *dercque(struct rcque *q)
-{
-	if (q->front == NULL)
-		return NULL;
-
-	struct rcnode *tmp = q->front;
-	struct rcfield *data = tmp->data;
-
-	if ((q->front = q->front->next) == NULL)
-		q->back = NULL;
-
-	free(tmp);
 	return data;
 }
 
-void rcffree(struct rcfield *data)
+record_field *dercque(record_queue *q)
+{
+	if (q->front == NULL)
+	{
+		return NULL;
+	}
+
+	record_node *tmp = q->front;
+	record_field *data = tmp->data;
+
+	if ((q->front = q->front->next) == NULL)
+	{
+		q->back = NULL;
+	}
+
+	free(tmp);
+
+	debug_execute(record_queue_size--);
+
+	return data;
+}
+
+void rcffree(record_field *data)
 {
 	if (data == NULL)
 		return;
@@ -89,14 +120,18 @@ void rcffree(struct rcfield *data)
 	free(data);
 }
 
-void rcqfree(struct rcque *q)
+void rcqfree(record_queue *q)
 {
 	if (q == NULL)
+	{
 		return;
+	}
 
-	struct rcfield *data;
+	record_field *data;
 	while ((data = dercque(q)) != NULL)
+	{
 		rcffree(data);
+	}
 
 	free(q);
 }

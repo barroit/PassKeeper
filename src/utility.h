@@ -3,63 +3,43 @@
 
 #include <stddef.h>
 #include <stdbool.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <stdio.h>
 
-// program exit code
-#define EXIT_PROMPT		1
+#include "os.h"
 
-// function result code
-#define EXEC_OK			0
-#define INVLIAD_ARGUMENT	60
-#define MALLOC_FAILURE		61
-#define MISSING_SEPERATOR	62
+#define STRINGIFY(str) ((str) == ((void *)0) ? "(null)" : (*str) == '\0' ? "(empty)" : (str))
 
-#define fatal(code, format, appname, ...)					\
-	do									\
-	{									\
-		fprintf(stderr, "%s: " format "\n", appname, ##__VA_ARGS__);	\
-		exit(code);							\
-	}									\
-	while (0)
-
-#define REPORT_ERROR(format, appname, ...) fprintf(stderr, "%s: " format "\n", appname, ##__VA_ARGS__);
-
-#define PRINTABLE_STRING(str) ((str) == NULL ? "(null)" : (*str) == '\0' ? "(empty)" : (str))
-
-#define READABLE_BOOLEAN(v) ((v) ? "true" : "false")
-
-#ifdef _WIN64
-#define MKDIR(path) mkdir(path)
-#else
-#define MKDIR(path) mkdir(path, 0775)
-#endif
+#define STRBOOL(v) ((v) ? "true" : "false")
 
 #define MAX(x, y) ((x > y) ? x : y)
 
 #define MIN(x, y) ((x < y) ? x : y)
 
-/// check if the `string` is a positive integer
 bool is_positive_integer(const char *str);
 
-/// test the `dirname` with permission drwx...
 bool is_rwx_dir(const char *dirname);
 
-/// test the `filename` with permission -rw-...
-bool is_rw_file(const char *filename);
+bool is_rw_file(const char *pathname);
 
-/// check if `string` is empty
-/// if the `string` is null pointer, then falsy value returned
 bool is_empty_string(const char *string);
 
 char *strpad(size_t padlen);
 
-char *dirname(const char *filename);
+char *dirof(const char *pathname);
 
 char *strapd(const char *origin, const char *append);
 
 char *strsub(const char *src, size_t start, size_t cpylen);
+
+int dirmake(const char *pathname);
+
+#ifdef PK_USE_ARC4RANDOM
+
+/* generate `length` bytes data using arc4random */
+void *genbytes(size_t length); /* length in bytes */
+
+/* name stands for "bytes to hexadecimal characters". */
+char *btoh(void *data, size_t length); /* length of bytes data */
+
+#endif /* PK_USE_ARC4RANDOM */
 
 #endif /* UTILITY_H */

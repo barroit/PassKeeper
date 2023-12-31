@@ -4,55 +4,69 @@
 #include <string.h>
 #include <math.h>
 #include <stdarg.h>
+#include "rescode.h"
 
-#define INIT_CAPACITY 200
+#include <stdlib.h>
+#include <stdio.h>
 
-#ifdef DEBUG
+#ifdef PK_IS_DEBUG
+
 int resize_execution_count = 0;
-#endif
 
-int sbinit(struct string_buffer **buf)
+#endif /* PK_IS_DEBUG */
+
+string_buffer *sbmake(int capacity)
 {
-	if ((*buf = malloc(sizeof(struct string_buffer))) == NULL)
-		return MALLOC_FAILURE;
+	string_buffer *buf;
+	if ((buf = malloc(sizeof(string_buffer))) == NULL)
+	{
+		return NULL;
+	}
 
-	(*buf)->data = malloc(INIT_CAPACITY);
-	(*buf)->size = 0;
-	(*buf)->capacity = INIT_CAPACITY;
+	buf->data = malloc(capacity);
+	buf->size = 0;
+	buf->capacity = capacity;
 
-	return EXEC_OK;
+	return buf;
 }
 
-int sbresize(struct string_buffer *buf, int lower_bound)
+string_buffer *sbresize(string_buffer *buf, int lower_bound)
 {
 	debug_execute(resize_execution_count++);
-	int factor = 2;
-	int newsize = MAX(buf->capacity, lower_bound) * factor;
-	char *newdata;
 
+	int factor, newsize;
+
+	factor = 2;
+	newsize = MAX(buf->capacity, lower_bound) * factor;
+
+	char *newdata;
 	if ((newdata = realloc(buf->data, newsize)) == NULL)
-		return MALLOC_FAILURE;
+	{
+		return NULL;
+	}
 
 	buf->data = newdata;
 	buf->capacity = newsize;
 
-	return EXEC_OK;
+	return buf;
 }
 
-void sbprint(struct string_buffer *buf, const char *src)
+void sbprint(string_buffer *buf, const char *src)
 {
 	int srclen = strlen(src);
 	int newsize = buf->size + srclen;
 
 	if (newsize > buf->capacity * 0.8)
+	{
 		sbresize(buf, newsize);
+	}
 
 	memcpy(buf->data + buf->size, src, srclen + 1);
 
 	buf->size = newsize;
 }
 
-void sbprintf(struct string_buffer *buf, const char *format, ...)
+void sbprintf(string_buffer *buf, const char *format, ...)
 {
 	va_list args, _args;
 	va_start(args, format);
@@ -63,7 +77,9 @@ void sbprintf(struct string_buffer *buf, const char *format, ...)
 	int newsize = buf->size + srclen;
 
 	if (newsize > buf->capacity * 0.8)
+	{
 		sbresize(buf, newsize);
+	}
 
 	vsnprintf(buf->data + buf->size, srclen + 1, format, args);
 
@@ -72,14 +88,16 @@ void sbprintf(struct string_buffer *buf, const char *format, ...)
 	va_end(args);
 }
 
-void sbnprintf(struct string_buffer *buf, int len, const char *format, ...)
+void sbnprintf(string_buffer *buf, int len, const char *format, ...)
 {
 	va_list args;
 	va_start(args, format);
 
 	int newsize = buf->size + len;
 	if (newsize > buf->capacity * 0.8)
+	{
 		sbresize(buf, newsize);
+	}
 
 	vsnprintf(buf->data + buf->size, len + 1, format, args);
 
@@ -89,20 +107,7 @@ void sbnprintf(struct string_buffer *buf, int len, const char *format, ...)
 	va_end(args);
 }
 
-int sbclean(struct string_buffer *buf)
-{
-	free(buf->data);
-
-	if ((buf->data = malloc(INIT_CAPACITY)) == NULL)
-		return MALLOC_FAILURE;
-
-	buf->size = 0;
-	buf->capacity = INIT_CAPACITY;
-
-	return EXEC_OK;
-}
-
-void sbfree(struct string_buffer *buf)
+void sbfree(string_buffer *buf)
 {
 	free(buf->data);
 	free(buf);

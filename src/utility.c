@@ -1,5 +1,6 @@
 #include "utility.h"
-#include <stddef.h>
+
+#include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
 #include <unistd.h>
@@ -23,9 +24,9 @@ bool is_rwx_dir(const char *dirname)
 	return dirname == NULL ? false : access(dirname, F_OK | R_OK | W_OK | X_OK) == 0;
 }
 
-bool is_rw_file(const char *filename)
+bool is_rw_file(const char *pathname)
 {
-	return filename == NULL ? false : access(filename, F_OK | R_OK | W_OK) == 0;
+	return pathname == NULL ? false : access(pathname, F_OK | R_OK | W_OK) == 0;
 }
 
 bool is_empty_string(const char *string)
@@ -33,24 +34,24 @@ bool is_empty_string(const char *string)
 	return string == NULL ? true : *string == '\0';
 }
 
-char *dirname(const char *filename)
+char *dirof(const char *pathname)
 {
 	const char *seperator;
-	if ((seperator = strrchr(filename, '/')) == NULL || (seperator = strrchr(filename, '\\')) == NULL)
+	if ((seperator = strrchr(pathname, '/')) == NULL || (seperator = strrchr(pathname, '\\')) == NULL)
 	{
 		return NULL;
 	}
 
 	char *dirname;
-	ptrdiff_t dnlen;
+	ptrdiff_t dnlen; /* directory name length */
 
-	dnlen = seperator - filename;
+	dnlen = seperator - pathname;
 	if ((dirname = calloc(dnlen + 1, sizeof(char))) == NULL)
 	{
 		return NULL;
 	}
 
-	memcpy(dirname, filename, dnlen);
+	memcpy(dirname, pathname, dnlen);
 
 	return dirname;
 }
@@ -121,3 +122,72 @@ char *strsub(const char *src, size_t start, size_t cpylen)
 
 	return substr;
 }
+
+#ifdef PK_USE_FHS
+
+#include <sys/stat.h>
+
+#endif
+
+int dirmake(const char *pathname)
+{
+#ifdef PK_USE_FHS
+	return mkdir(pathname, 0755);
+#else
+	return mkdir(pathname);
+#endif
+}
+
+#ifdef PK_USE_ARC4RANDOM
+
+#include <bsd/stdlib.h>
+
+#define HAXCHR(chr) ((chr > 9) ? (chr - 10 + 'A') : (chr + '0'))
+
+void *genbytes(size_t length)
+{
+	unsigned char *buf;
+	if ((buf = malloc(length)) == NULL)
+	{
+		return NULL;
+	}
+
+	arc4random_buf(buf, length);
+
+	return (void *)buf;
+}
+
+char *btoh(void *data, size_t length)
+{
+	char *res;
+	if ((res = malloc(length * 2 + 1)) == NULL)
+	{
+		return NULL;
+	}
+
+	unsigned char *iter, *tail;
+
+	iter = data;
+	tail = iter + length;
+
+	unsigned char hn, ln; /* higher / lower nibble */
+	int residx;
+
+	residx = 0;
+	while (iter < tail)
+	{
+		hn = *iter >> 4;
+		ln = *iter & 0x0F;
+
+		res[residx++] = HAXCHR(hn);
+		res[residx++] = HAXCHR(ln);
+
+		iter++;
+	}
+
+	res[residx] = '\0';
+
+	return res;
+}
+
+#endif /* PK_USE_ARC4RANDOM */
