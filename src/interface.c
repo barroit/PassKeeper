@@ -1,48 +1,42 @@
 #include "cmdparser.h"
-#include "debug.h"
-#include "cli.h"
-#include "utility.h"
-#include "datastore.h"
 #include "rescode.h"
 #include "errhandler.h"
+#include "appinfo.h"
+#include "debug.h"
+#include "datastore.h"
+#include "utility.h"
+
 #include <stdlib.h>
+
+extern int optind;
+
+const char *appname;
 
 int main(int argc, char **argv)
 {
 	int rc;
 
-	const char *error_messages[4];
+	const char *errmsg[4] = { NULL, NULL, NULL, NULL };
 
 	app_option _appopt;
 	app_option *appopt;
 
+	appname = argv[0];
+
 	_appopt = make_appopt();
 	appopt = &_appopt;
 
-	if ((rc = parse_cmdopts(argc, argv, appopt, error_messages)) != PK_SUCCESS)
+	if ((rc = parse_cmdopts(argc, argv, appopt, errmsg)) != PK_SUCCESS)
 	{
-		handle_parse_cmdopts_error(rc, error_messages);
+		handle_parse_cmdopts_error(rc, errmsg);
 		return EXIT_FAILURE;
 	}
 
-	// switch (rc)
-	// {
-	// 	case 0:
-	// 		break;
-	// 	case NOT_INTEGER:
-	// 		PRINT_ERROR("unable to convert value '%s' to integer", optarg);
-	// 		// fall through
-	// 	case UNKNOW_OPTION:
-	// 		return EXIT_FAILURE;
-	// 	default:
-	// 		abort();
-	// }
-
-	// if (appopt.is_version)
-	// {
-	// 	show_version();
-	// 	exit(EXIT_PROMPT);
-	// }
+	if (appopt->is_version)
+	{
+		show_version();
+		exit(EXIT_SUCCESS);
+	}
 
 	// if (appopt.is_db_init)
 	// {
@@ -82,50 +76,29 @@ int main(int argc, char **argv)
 	// if (appopt.is_db_init && optind == argc)
 	// 	return EXIT_SUCCESS;
 
-	// /* no argument found */
-	// if (optind == argc)
-	// {
-	// 	show_all_usages(appname);
-	// 	exit(EXIT_PROMPT);
-	// }
+	if (optind == argc) /* no operation found */
+	{
+		handle_missing_operation_error();
+		return EXIT_FAILURE;
+	}
 
-	// rc = parse_cmdargs(argc, argv, &appopt);
+	if ((rc = parse_cmdargs(argc, argv, appopt, errmsg)) != PK_SUCCESS)
+	{
+		handle_parse_cmdargs_error(rc, errmsg);
+		return EXIT_FAILURE;
+	}
 
-	// switch (rc)
-	// {
-	// 	case 0:
-	// 		break;
-	// 	case COMMAND_MISMATCH:
-	// 		fatal(EXIT_FAILURE, "'%s' is not a valid command", appname, argv[optind]);
-	// 	case UNKNOW_ARGUMENT:
-	// 		fatal(EXIT_FAILURE, "unknown argument '%s'", appname, argv[optind]);
-	// 	case NOT_INTEGER:
-	// 		fatal(EXIT_FAILURE, "unable to convert value '%s' to integer id", appname, argv[optind]);
-	// 	case FIELD_CONFLICT:
-	// 		fatal(EXIT_FAILURE, "argument value '%s' conflicted with option value", appname, argv[optind]);
-	// 	default:
-	// 		abort();
-	// }
+	if (appopt->is_help)
+	{
+		show_command_usage(appname, appopt.command);
+		exit(EXIT_SUCCESS);
+	}
 
-	// if (appopt.is_help)
-	// {
-	// 	show_command_usage(appname, appopt.command);
-	// 	exit(EXIT_PROMPT);
-	// }
-
-	// rc = validate_field(&message, &appopt);
-
-	// switch (rc)
-	// {
-	// 	case 0:
-	// 		break;
-	// 	case FILE_INACCESS:
-	// 		fatal(EXIT_FAILURE, "db file '%s' is not meets the requirement -rw-...", appname, STRINGIFY(appopt.db_pathname));
-	// 	case MISSING_FIELD:
-	// 		fatal(EXIT_FAILURE, "missing field '%s'", appname, message);
-	// 	default:
-	// 		abort();
-	// }
+	if ((rc = validate_appopt(appopt, errmsg)) != PK_SUCCESS)
+	{
+		handle_validate_appopt_error(rc, errmsg);
+		return EXIT_FAILURE;
+	}
 
 	// debug_log("db_pathname: %s\n"
 	// 	"db_key_pathname: %s\n"
@@ -201,5 +174,5 @@ int main(int argc, char **argv)
 	// 	fatal(EXIT_FAILURE, "unable to close db connection, %s", appname, sqlite3_errstr(rc));
 
 	// return rc == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
-	return 0;
+	return EXIT_SUCCESS;
 }

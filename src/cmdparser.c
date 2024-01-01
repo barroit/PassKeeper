@@ -4,10 +4,10 @@
 #include "config.h"
 #include <stddef.h>
 #include <stdlib.h>
-#include <getopt.h>
-#include <ctype.h>
-#include <string.h>
 #include <stdbool.h>
+#include <string.h>
+#include <ctype.h>
+#include <getopt.h>
 
 #define OPTION_ALIAS_ID			12160
 #define OPTION_ALIAS_SITENAME		12161
@@ -46,7 +46,7 @@ app_option make_appopt(void)
 	return appopt;
 }
 
-int parse_cmdopts(int argc, char *argv[], app_option *appopt, const char *error_messages[2])
+int parse_cmdopts(int argc, char *argv[], app_option *appopt, const char *errmsg[2])
 {
 	struct option long_options[] = {
 		{ "verbose",		no_argument, &appopt->is_verbose, 1 },
@@ -73,7 +73,7 @@ int parse_cmdopts(int argc, char *argv[], app_option *appopt, const char *error_
 
 	while (1)
 	{
-		if ((alias = getopt_long(argc, argv, short_options, long_options, &optidx)) == -1) /* No more options */
+		if ((alias = getopt_long(argc, argv, short_options, long_options, &optidx)) == -1) /* no more options */
 		{
 			break;
 		}
@@ -83,12 +83,13 @@ int parse_cmdopts(int argc, char *argv[], app_option *appopt, const char *error_
 			case PK_SUCCESS:
 				break;
 			case PK_INCOMPATIBLE_TYPE:
-				error_messages[ERRMSG_IDX_K] = long_options[optidx].name;
-				error_messages[ERRMSG_IDX_V] = optarg;
-				return rc;
+				errmsg[ERRMSG_IK] = long_options[optidx].name;
+				// fall through
 			case PK_UNKNOWN_OPTION:
+				errmsg[ERRMSG_IV] = argv[optind - 1];
+				return rc;
 			case PK_MISSING_OPERAND:
-				error_messages[ERRMSG_IDX_K] = argv[optind - 1];
+				errmsg[ERRMSG_IK] = argv[optind - 1];
 				return rc;
 			default:
 				abort();
@@ -163,70 +164,106 @@ int handle_parse_option(app_option *appopt, int alias)
 	return PK_SUCCESS;
 }
 
-int parse_cmdargs(int argc, char *argv[], app_option *appopt)
+int parse_cmdargs(int argc, char *argv[], app_option *appopt, const char *errmsg[3])
 {
-	char *arg;
-	int rc;
-	int arg_start = optind;
+	int rc, handind, origind; /* result code, handler index, original index */
+	const char *argument;
 
+	int (*handler[2])(const char *, app_option *) = {
+		handle_parse_operation,
+		handle_parse_argument,
+	};
+
+	const char *opttab['u' - 'D' + 1]; /* 114 r, 82 R; 117 u, 85 U; 100 d, 68D; offset -68 */
+	unsigned char margtab['u' - 'C' + 1]; /* max args lookup table */
+
+	opttab['r' - 'D'] = opttab['R' - 'D'] = "sitename";
+	opttab['u' - 'D'] = opttab['U' - 'D'] = "id";
+	opttab['d' - 'D'] = opttab['D' - 'D'] = "id";
+
+	margtab['c' - 'C'] = margtab['C' - 'C'] = 0;
+	margtab['r' - 'C'] = margtab['R' - 'C'] = 1;
+	margtab['u' - 'C'] = margtab['U' - 'C'] = 1;
+	margtab['d' - 'C'] = margtab['D' - 'C'] = 1;
+
+	origind = optind;
 	while (optind < argc)
 	{
-		arg = argv[optind];
+		argument = argv[optind];
+		handind = optind - origind;
 
-		switch (optind - arg_start)
+		if (handind > 0 && handind > margtab[*appopt->command - 'C'])
 		{
-			case 0:
-				if ((rc = handle_parse_command(arg, appopt)) != 0)
-					return rc;
+			errmsg[ERRMSG_IK] = argv[optind];
+
+			if (optind + 1 < argc)
+			{
+				errmsg[ERRMSG_IV] = argv[optind + 1];
+			}
+			if (optind + 2 < argc) /* we display up to 3 arguments */
+			{
+				errmsg[ERRMSG_IE1] = argv[optind + 2];
+			}
+
+			return PK_TOOMANY_ARGUMENTS;
+		}
+
+		switch (rc = handler[handind](argument, appopt))
+		{
+			case PK_SUCCESS:
 				break;
-			case 1:
-				if ((rc = handle_parse_argument(arg, appopt)) != 0)
-					return rc;
-				break;
+			case PK_UNCLEAR_OPTARG:
+			case PK_INCOMPATIBLE_TYPE:
+				errmsg[ERRMSG_IK] = opttab[*appopt->command - 'D'];
+				// fall through
+			case PK_UNKNOWN_OPERATION:
+				errmsg[ERRMSG_IV] = argument;
+				return rc;
 			default:
-				return UNKNOW_ARGUMENT;
+				abort();
 		}
 
 		optind++;
 	}
 
-	return 0;
+	return PK_SUCCESS;
 }
 
-int handle_parse_command(const char *argument, app_option *appopt)
+int handle_parse_operation(const char *argument, app_option *appopt)
 {
-	char *commands[] = { "create", "read", "update", "delete", NULL };
+	const char **iter, *commands[5] = { "create", "read", "update", "delete", NULL };
 
-	int idx = 0;
-	char *command;
-	while ((command = commands[idx]) != NULL)
+	bool is_shortcut;
+	bool is_fullname;
+
+	iter = commands;
+	while (*iter != NULL)
 	{
-		int is_shortcut = strlen(argument) == 1 && argument[0] == toupper(command[0]);
-		int is_fullname = strcmp(argument, command) == 0;
+		is_shortcut = strlen(argument) == 1 && *argument == toupper(**iter);
+		is_fullname = strcmp(argument, *iter) == 0;
 
 		if (is_shortcut || is_fullname)
 		{
 			appopt->command = argument;
-			return 0;
+			return PK_SUCCESS;
 		}
 
-		idx++;
+		iter++;
 	}
 
-	return COMMAND_MISMATCH;
+	return PK_UNKNOWN_OPERATION;
 }
 
 int handle_parse_argument(const char *argument, app_option *appopt)
 {
-	switch (appopt->command[0])
+	switch (*appopt->command)
 	{
-		case 'c':
-		case 'C':
-			return UNKNOW_ARGUMENT;
 		case 'r':
 		case 'R':
 			if (appopt->sitename != NULL)
-				return FIELD_CONFLICT;
+			{
+				return PK_UNCLEAR_OPTARG;
+			}
 			appopt->sitename = argument;
 			break;
 		case 'u':
@@ -234,9 +271,13 @@ int handle_parse_argument(const char *argument, app_option *appopt)
 		case 'd':
 		case 'D':
 			if (appopt->record_id != -1)
-				return FIELD_CONFLICT;
+			{
+				return PK_UNCLEAR_OPTARG;
+			}
 			if (!is_positive_integer(argument))
-				return NOT_INTEGER;
+			{
+				return PK_INCOMPATIBLE_TYPE;
+			}
 			appopt->record_id = atoi(argument);
 			break;
 		default:
@@ -246,37 +287,33 @@ int handle_parse_argument(const char *argument, app_option *appopt)
 	return 0;
 }
 
-int validate_field(char **missing_field, const app_option *appopt)
+int validate_appopt(const app_option *appopt, const char *errmsg[3])
 {
 	if (!is_rw_file(appopt->db_pathname))
-		return FILE_INACCESS;
+	{
+		errmsg[ERRMSG_IV] = appopt->db_pathname;
+		return PK_FILE_INACCESSIBLE;
+	}
 
-	switch (appopt->command[0])
+	switch (*appopt->command)
 	{
 		case 'c':
 		case 'C':
-			;
-			bool missing_sitename = is_empty_string(appopt->sitename);
-			bool missing_username = is_empty_string(appopt->username);
-			bool missing_password = is_empty_string(appopt->password);
-			bool missing_credential = missing_username && missing_password;
+			bool is_invalid_record = is_empty_string(appopt->sitename);
+			bool is_useless_record = is_empty_string(appopt->username) && is_empty_string(appopt->password);
 
-			char *_missing_field = NULL;
-			if (missing_sitename)
-				_missing_field = "sitename";
-			if (missing_credential)
-				_missing_field = "username or password";
-			if (missing_sitename && missing_credential)
-				_missing_field = "sitename, username or password";
-
-			if (_missing_field)
+			if (is_invalid_record && is_useless_record)
 			{
-				*missing_field = _missing_field;
-				return MISSING_FIELD;
+				errmsg[ERRMSG_IE1] = "one of the username and password";
 			}
-			break;
-		case 'r':
-		case 'R':
+
+			if (is_invalid_record || is_useless_record)
+			{
+				errmsg[ERRMSG_IK] = appopt->command;
+				errmsg[ERRMSG_IV] = is_invalid_record ? "sitename" : "one of the username and password";
+				return PK_UNSATISFIED_CONDITION;
+			}
+
 			break;
 		case 'u':
 		case 'U':
@@ -284,13 +321,17 @@ int validate_field(char **missing_field, const app_option *appopt)
 		case 'D':
 			if (appopt->record_id == -1)
 			{
-				*missing_field = "id";
-				return MISSING_FIELD;
+				errmsg[ERRMSG_IK] = appopt->command;
+				errmsg[ERRMSG_IV] = "sitename";
+				return PK_UNSATISFIED_CONDITION;
 			}
+			// fall through
+		case 'r':
+		case 'R':
 			break;
 		default:
 			abort();
 	}
 
-	return 0;
+	return PK_SUCCESS;
 }
