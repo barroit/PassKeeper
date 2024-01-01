@@ -1,9 +1,11 @@
-#include "cli.h"
+#include "appinfo.h"
 #include "config.h"
 #include "utility.h"
-#include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+
+extern const char *appname;
 
 void show_version(void)
 {
@@ -13,7 +15,7 @@ void show_version(void)
 		AUTHOR);
 }
 
-void show_all_usages(const char *appname)
+void show_all_usages(void)
 {
 	char *margin = strpad(strlen(appname) + 8);
 
