@@ -34,26 +34,9 @@ bool is_empty_string(const char *string)
 	return string == NULL ? true : *string == '\0';
 }
 
-char *dirof(const char *pathname)
+bool is_hexchr(char c)
 {
-	const char *seperator;
-	if ((seperator = strrchr(pathname, '/')) == NULL || (seperator = strrchr(pathname, '\\')) == NULL)
-	{
-		return NULL;
-	}
-
-	char *dirname;
-	ptrdiff_t dnlen; /* directory name length */
-
-	dnlen = seperator - pathname;
-	if ((dirname = calloc(dnlen + 1, sizeof(char))) == NULL)
-	{
-		return NULL;
-	}
-
-	memcpy(dirname, pathname, dnlen);
-
-	return dirname;
+	return IN_RANGE(c, '0', '9') || IN_RANGE(c, 'A', 'F') || IN_RANGE(c, 'a', 'f');
 }
 
 char *strpad(size_t padlen)
@@ -123,71 +106,24 @@ char *strsub(const char *src, size_t start, size_t cpylen)
 	return substr;
 }
 
-#ifdef PK_USE_FHS
-
-#include <sys/stat.h>
-
-#endif
-
-int dirmake(const char *pathname)
+char *prefix(const char *pathname)
 {
-#ifdef PK_USE_FHS
-	return mkdir(pathname, 0755);
-#else
-	return mkdir(pathname);
-#endif
-}
-
-#ifdef PK_USE_ARC4RANDOM
-
-#include <bsd/stdlib.h>
-
-#define HAXCHR(chr) ((chr > 9) ? (chr - 10 + 'A') : (chr + '0'))
-
-void *genbytes(size_t length)
-{
-	unsigned char *buf;
-	if ((buf = malloc(length)) == NULL)
+	const char *seperator;
+	if ((seperator = strrchr(pathname, '/')) == NULL && (seperator = strrchr(pathname, '\\')) == NULL)
 	{
 		return NULL;
 	}
 
-	arc4random_buf(buf, length);
+	char *dirname;
+	ptrdiff_t dnlen; /* directory name length */
 
-	return (void *)buf;
-}
-
-char *btoh(void *data, size_t length)
-{
-	char *res;
-	if ((res = malloc(length * 2 + 1)) == NULL)
+	dnlen = seperator - pathname;
+	if ((dirname = calloc(dnlen + 1, sizeof(char))) == NULL)
 	{
 		return NULL;
 	}
 
-	unsigned char *iter, *tail;
+	memcpy(dirname, pathname, dnlen);
 
-	iter = data;
-	tail = iter + length;
-
-	unsigned char hn, ln; /* higher / lower nibble */
-	int residx;
-
-	residx = 0;
-	while (iter < tail)
-	{
-		hn = *iter >> 4;
-		ln = *iter & 0x0F;
-
-		res[residx++] = HAXCHR(hn);
-		res[residx++] = HAXCHR(ln);
-
-		iter++;
-	}
-
-	res[residx] = '\0';
-
-	return res;
+	return dirname;
 }
-
-#endif /* PK_USE_ARC4RANDOM */

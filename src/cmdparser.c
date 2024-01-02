@@ -174,12 +174,12 @@ int parse_cmdargs(int argc, char *argv[], app_option *appopt, const char *errmsg
 		handle_parse_argument,
 	};
 
-	const char *opttab['u' - 'D' + 1]; /* 114 r, 82 R; 117 u, 85 U; 100 d, 68D; offset -68 */
+	const char *optab['u' - 'D' + 1]; /* 114 r, 82 R; 117 u, 85 U; 100 d, 68D; offset -68 */
 	unsigned char margtab['u' - 'C' + 1]; /* max args lookup table */
 
-	opttab['r' - 'D'] = opttab['R' - 'D'] = "sitename";
-	opttab['u' - 'D'] = opttab['U' - 'D'] = "id";
-	opttab['d' - 'D'] = opttab['D' - 'D'] = "id";
+	optab['r' - 'D'] = optab['R' - 'D'] = "sitename";
+	optab['u' - 'D'] = optab['U' - 'D'] = "id";
+	optab['d' - 'D'] = optab['D' - 'D'] = "id";
 
 	margtab['c' - 'C'] = margtab['C' - 'C'] = 0;
 	margtab['r' - 'C'] = margtab['R' - 'C'] = 1;
@@ -214,7 +214,7 @@ int parse_cmdargs(int argc, char *argv[], app_option *appopt, const char *errmsg
 				break;
 			case PK_UNCLEAR_OPTARG:
 			case PK_INCOMPATIBLE_TYPE:
-				errmsg[ERRMSG_IK] = opttab[*appopt->command - 'D'];
+				errmsg[ERRMSG_IK] = optab[*appopt->command - 'D'];
 				// fall through
 			case PK_UNKNOWN_OPERATION:
 				errmsg[ERRMSG_IV] = argument;

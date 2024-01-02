@@ -38,45 +38,16 @@ int main(int argc, char **argv)
 		exit(EXIT_SUCCESS);
 	}
 
-	// if (appopt.is_db_init)
-	// {
-	// 	rc = make_db_dir(appopt.db_pathname);
-	// 	switch (rc)
-	// 	{
-	// 		case PK_SUCCESS:
-	// 			break;
-	// 		case PK_FILE_EXIST:
-	// 			fatal(EXIT_FAILURE, "'%s' already exists", appname, appopt.db_pathname);
-	// 		case PK_INVALID_PATHNAME:
-	// 			fatal(EXIT_FAILURE, "invalid filename '%s'", appname, appopt.db_pathname);
-	// 		case PK_MKDIR_FAILURE:
-	// 			fatal(EXIT_FAILURE, "unable to make parent directory of '%s'", appname, appopt.db_pathname);
-	// 		default:
-	// 			abort();
-	// 	}
+	if (appopt->is_db_init)
+	{
+	}
 
-	// 	if ((rc = sqlite3_open(appopt.db_pathname, &db)) != SQLITE_OK)
-	// 	{
-	// 		fatal(EXIT_FAILURE, "unable to open database, %s", appname, sqlite3_errstr(rc));
-	// 	}
+	if (appopt->is_db_init && optind == argc)
+	{
+		return EXIT_SUCCESS;
+	}
 
-	// 	if ((rc = create_db_table(db)) != SQLITE_OK)
-	// 	{
-	// 		REPORT_ERROR("unable to create table 'account', %s", appname, sqlite3_errstr(rc));
-	// 	}
-
-	// 	if ((rc = sqlite3_close(db)) != SQLITE_OK)
-	// 	{
-	// 		fatal(EXIT_FAILURE, "unable to close db connection, %s", appname, sqlite3_errstr(rc));
-	// 	}
-
-	// 	printf("table 'account' created in scheme '%s'\n", appopt.db_pathname);
-	// }
-
-	// if (appopt.is_db_init && optind == argc)
-	// 	return EXIT_SUCCESS;
-
-	if (optind == argc) /* no operation found */
+	if (optind == argc && !appopt->is_help) /* no operation found */
 	{
 		handle_missing_operation_error();
 		return EXIT_FAILURE;
@@ -88,10 +59,15 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if (appopt->is_help)
+	if (appopt->is_help && appopt->command != NULL)
 	{
-		show_command_usage(appname, appopt.command);
-		exit(EXIT_SUCCESS);
+		show_command_usage(appopt->command);
+		return EXIT_SUCCESS;
+	}
+	else if (appopt->is_help)
+	{
+		show_all_usages();
+		return EXIT_SUCCESS;
 	}
 
 	if ((rc = validate_appopt(appopt, errmsg)) != PK_SUCCESS)
@@ -131,7 +107,7 @@ int main(int argc, char **argv)
 	// 	STRINGIFY(appopt.bakcode),
 	// 	STRINGIFY(appopt.comment));
 
-	// rc = sqlite3_open(appopt.db_pathname, &db);
+	// rc = sqlite3 _open(appopt.db_pathname, &db);
 
 	// apply_db_key(db, "");
 

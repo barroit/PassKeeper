@@ -35,30 +35,24 @@ void show_all_usages(void)
 	free(margin);
 }
 
-void show_command_usage(const char *appname, const char *command)
+void show_command_usage(const char *command)
 {
+	int optab['u' - 'C' + 1];
+
+	optab['c' - 'C'] = optab['C' - 'C'] = 0;
+	optab['r' - 'C'] = optab['R' - 'C'] = 1;
+	optab['u' - 'C'] = optab['U' - 'C'] = 2;
+	optab['d' - 'C'] = optab['D' - 'C'] = 3;
+
 	const char *format;
-	switch (command[0])
-	{
-		case 'c':
-		case 'C':
-			format = get_create_usage_format();
-			break;
-		case 'r':
-		case 'R':
-			format = get_read_usage_format();
-			break;
-		case 'u':
-		case 'U':
-			format = get_update_usage_format();
-			break;
-		case 'd':
-		case 'D':
-			format = get_delete_usage_format();
-			break;
-		default:
-			abort();
-	}
+	const char * (*fmthandler[4])(void) = {
+		get_create_usage_format,
+		get_read_usage_format,
+		get_update_usage_format,
+		get_delete_usage_format,
+	};
+
+	format = fmthandler[optab[*command - 'C']]();
 
 	printf(format, appname, command);
 }

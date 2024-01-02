@@ -51,6 +51,18 @@ string_buffer *sbresize(string_buffer *buf, int lower_bound)
 	return buf;
 }
 
+void sbputc(string_buffer *buf, char c)
+{
+	int newsize;
+	if ((newsize = buf->size + 1) > buf->capacity * 0.8)
+	{
+		sbresize(buf, newsize);
+	}
+
+	buf->data[buf->size++] = c;
+	buf->data[buf->size] = 0;
+}
+
 void sbprint(string_buffer *buf, const char *src)
 {
 	int srclen = strlen(src);

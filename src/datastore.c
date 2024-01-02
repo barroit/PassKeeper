@@ -2,10 +2,13 @@
 #include "utility.h"
 #include "debug.h"
 #include "rescode.h"
-#include <sqlite3.h>
-#include <string.h>
+#include "io.h"
+#include "os.h"
+#include "encrypt.h"
+
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #define return_on_fail(rc, stmt)						\
 	do									\
@@ -17,73 +20,91 @@
 	}									\
 	while (0)
 
-int make_db_dir(const char *filename)
+int init_database(const char *db_pathname, const char *db_key_pathname)
 {
-	if (is_rw_file(filename))
+	int rc;
+
+	if (is_rw_file(db_pathname))
 	{
 		return PK_FILE_EXIST;
 	}
 
-	int rc;
-	char *dirname; /* prt stands for parent */
-
-	if ((dirname = dirof(filename)) == NULL)
+	if ((rc = prepare_file_folder(db_pathname)) != PK_SUCCESS)
 	{
-		return PK_INVALID_PATHNAME;
+		return rc;
 	}
 
-	rc = 0;
-	if (!is_rwx_dir(dirname))
+	sqlite3 *db;
+	if ((rc = sqlite3_open(db_pathname, &db)) != SQLITE_OK)
 	{
-		rc = dirmake(dirname);
+		return rc;
 	}
 
-	free(dirname);
-
-	if (rc != PK_SUCCESS)
+	if (db_key_pathname != NULL) /* encrypt db */
 	{
-		return PK_MKDIR_FAILURE;
+		//
 	}
+
+	rc = sqlite3_exec(db,
+		"CREATE TABLE account ("
+			"id INTEGER PRIMARY KEY AUTOINCREMENT,"
+			"sitename TEXT NOT NULL,"
+			"siteurl TEXT,"
+			"username TEXT,"
+			"password TEXT,"
+			"authtext TEXT,"
+			"bakcode TEXT,"
+			"comment TEXT,"
+			"sqltime DATETIME DEFAULT (datetime('now', '+9 hours')),"
+			"modtime DATETIME"
+		");"
+		"CREATE TRIGGER update_modtime "
+		"AFTER UPDATE ON account "
+		"FOR EACH ROW "
+		"BEGIN "
+			"UPDATE account SET modtime = datetime('now', '+9 hours') WHERE id = old.id;"
+		"END;", NULL, NULL, NULL);
+
+	sqlite3_close(db);
+
+	return rc;
+}
+
+int encrypt_database(const char *db_key_pathname)
+{
+	void *key;
+	size_t keysz;
+
+	key = NULL;
+	if (is_rw_file(db_key_pathname)) /* apply key from file */
+	{
+		key = get_database_key(db_key_pathname, &keysz);
+	}
+
+#ifdef PK_USE_ARC4RANDOM
+	else /* generate key and write into file */
+	{
+		char *hexstr;
+
+		key = genbytes(32); // TODO change this
+		hexstr = btoh(key, 32);
+
+		prepare_file_folder(db_key_pathname);
+
+		FILE *file;
+		if ((file = fopen(db_key_pathname, "w")) == NULL)
+		{
+			return 1;
+		}
+
+		fprintf(file, "0x%s", hexstr);
+
+		free(hexstr);
+		fclose(file);
+	}
+#endif
 
 	return PK_SUCCESS;
-}
-
-int create_db_table(sqlite3 *db)
-{
-	const char *sql;
-
-	sql = "CREATE TABLE account ("
-		"id INTEGER PRIMARY KEY AUTOINCREMENT,"
-		"sitename TEXT NOT NULL,"
-		"siteurl TEXT,"
-		"username TEXT,"
-		"password TEXT,"
-		"authtext TEXT,"
-		"bakcode TEXT,"
-		"comment TEXT,"
-		"sqltime DATETIME DEFAULT (datetime('now', '+9 hours')),"
-		"modtime DATETIME"
-	");"
-	"CREATE TRIGGER update_modtime "
-	"AFTER UPDATE ON account "
-	"FOR EACH ROW "
-	"BEGIN "
-		"UPDATE account SET modtime = datetime('now', '+9 hours') WHERE id = old.id;"
-	"END;";
-
-	return sqlite3_exec(db, sql, NULL, NULL, NULL);
-}
-
-int apply_db_key(sqlite3 *db, const char *key)
-{
-	if (key == NULL)
-	{
-		return PK_SUCCESS;
-	}
-
-	sqlite3_key(db, NULL, 0);
-
-	return 0;
 }
 
 bool is_db_decrypted(sqlite3 *db)

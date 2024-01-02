@@ -5,7 +5,7 @@ void show_version(void);
 
 void show_all_usages(void);
 
-void show_command_usage(const char *appname, const char *command);
+void show_command_usage(const char *command);
 
 const char *get_create_usage_format(void);
 
