@@ -4,15 +4,14 @@
 #include "cmdparser.h"
 #include "rcque.h"
 #include "strbuffer.h"
+
 #include <stddef.h>
 #include <stdbool.h>
 #include <sqlite3.h>
 
-int make_db_dir(const char *filename);
+int init_database(const char *db_pathname, const char *db_key_pathname);
 
-int create_db_table(sqlite3 *db);
-
-int apply_db_key(sqlite3 *db, const char *key);
+int encrypt_database(const char *db_key_pathname);
 
 bool is_db_decrypted(sqlite3 *db);
 

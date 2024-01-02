@@ -1,9 +1,6 @@
 #ifndef CMDPARSER_H
 #define CMDPARSER_H
 
-#define FILE_INACCESS		35
-#define MISSING_FIELD		36
-
 typedef struct
 {
 	const char *db_pathname;

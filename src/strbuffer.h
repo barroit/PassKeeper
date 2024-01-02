@@ -23,6 +23,8 @@ string_buffer *sbmake(int capacity);
 
 string_buffer *sbresize(string_buffer *buf, int lower_bound);
 
+void sbputc(string_buffer *buf, char c);
+
 void sbprint(string_buffer *buf, const char *src);
 
 void sbprintf(string_buffer *buf, const char *format, ...);
