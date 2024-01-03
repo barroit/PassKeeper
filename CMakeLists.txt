@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.27)
 
-# compiler should set before project()
 if(CMAKE_BUILD_TYPE STREQUAL "Window")
 	set(CMAKE_C_COMPILER x86_64-w64-mingw32-gcc)
 	set(CMAKE_SYSTEM_NAME Windows)
@@ -14,7 +13,11 @@ project(PassKeeper VERSION 0.1.0 LANGUAGES C)
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_EXTENSIONS OFF)
 
+# config pkgconfig
+set(ENV{PKG_CONFIG_PATH} "${INSTALL_PREFIX}/lib64/pkgconfig:${INSTALL_PREFIX}/lib/pkgconfig")
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
+# define release build
 list(APPEND RELEASE_BUILD_TYPES "Penguin" "Window")
 
 # used by config.h

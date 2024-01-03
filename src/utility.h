@@ -18,9 +18,11 @@
 
 bool is_positive_integer(const char *str);
 
-bool is_rwx_dir(const char *dirname);
+bool exists(const char *pathname);
 
 bool is_rw_file(const char *pathname);
+
+bool is_rwx_dir(const char *dirname);
 
 bool is_empty_string(const char *string);
 

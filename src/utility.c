@@ -19,14 +19,19 @@ bool is_positive_integer(const char *str)
 	return true;
 }
 
-bool is_rwx_dir(const char *dirname)
+bool exists(const char *pathname)
 {
-	return dirname == NULL ? false : access(dirname, F_OK | R_OK | W_OK | X_OK) == 0;
+	return pathname == NULL ? false : access(pathname, F_OK) == 0;
 }
 
 bool is_rw_file(const char *pathname)
 {
 	return pathname == NULL ? false : access(pathname, F_OK | R_OK | W_OK) == 0;
+}
+
+bool is_rwx_dir(const char *dirname)
+{
+	return dirname == NULL ? false : access(dirname, F_OK | R_OK | W_OK | X_OK) == 0;
 }
 
 bool is_empty_string(const char *string)

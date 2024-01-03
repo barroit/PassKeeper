@@ -1,4 +1,6 @@
 #include "strbuffer.h"
+#include <check.h>
+#include <string.h>
 
 string_buffer *buf;
 
@@ -11,10 +13,6 @@ void stringbuffer_test_teardown(void)
 {
 	sbfree(buf);
 }
-
-#include <check.h>
-
-#include <string.h>
 
 START_TEST(test_sbputc)
 {
@@ -35,7 +33,7 @@ END_TEST
 
 START_TEST(test_sbprint)
 {
-	const char **iter, *str, *strarr[4] = {
+	const char **iter, *str, *strarr[5] = {
 		"Cras non metus vitae enim sollicitudin sollicitudin nec auctor libero. "
 		"Ut tempus lorem porta tortor cursus pharetra. ",
 		"Fusce tellus erat, volutpat sit amet tristique vel, venenatis eu leo. ",

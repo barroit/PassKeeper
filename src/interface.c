@@ -12,8 +12,22 @@ extern int optind;
 
 const char *appname;
 
+#include <openssl/rand.h>
+#include "encrypt.h"
+#include <stdio.h>
+
 int main(int argc, char **argv)
 {
+	unsigned char *buf = malloc(32);
+	
+
+	char *hexstr = bin_to_hex(buf, 32);
+	puts(hexstr);
+
+	free(buf);
+	free(hexstr);
+	return 0;
+
 	int rc;
 
 	const char *errmsg[4] = { NULL, NULL, NULL, NULL };
@@ -35,15 +49,35 @@ int main(int argc, char **argv)
 	if (appopt->is_version)
 	{
 		show_version();
-		exit(EXIT_SUCCESS);
+		return EXIT_SUCCESS;
 	}
+
+	sqlite3 *db;
 
 	if (appopt->is_db_init)
 	{
+		if ((rc = init_db_file(&db, appopt->db_pathname, errmsg)) != PK_SUCCESS)
+		{
+			handle_init_database_error(rc, errmsg);
+			return EXIT_FAILURE;
+		}
+
+		if (appopt->db_key_pathname != NULL && (rc = apply_db_key(db, appopt->db_key_pathname, errmsg)) != PK_SUCCESS)
+		{
+			handle_apply_key_error(rc, errmsg);
+			return EXIT_FAILURE;
+		}
+
+		if ((rc = init_db_table(db)) != SQLITE_OK)
+		{
+			handle_sqlite_error(rc);
+			return EXIT_FAILURE;
+		}
 	}
 
 	if (appopt->is_db_init && optind == argc)
 	{
+		sqlite3_close(db);
 		return EXIT_SUCCESS;
 	}
 

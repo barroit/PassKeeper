@@ -1,4 +1,4 @@
-#include "io.h"
+#include "fileio.h"
 #include "strbuffer.h"
 #include "utility.h"
 #include "os.h"
@@ -58,6 +58,8 @@ char *read_file_content(const char *pathname, size_t *size)
 
 #ifdef PK_USE_FHS
 #include <sys/stat.h>
+#else
+#include <unistd.h>
 #endif
 
 int dirmake(const char *pathname)
