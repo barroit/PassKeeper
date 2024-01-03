@@ -1,7 +1,5 @@
 #include "utility.h"
-
 #include <check.h>
-
 #include <stdlib.h>
 
 START_TEST(test_prefix)

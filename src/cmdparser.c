@@ -299,6 +299,7 @@ int validate_appopt(const app_option *appopt, const char *errmsg[3])
 	{
 		case 'c':
 		case 'C':
+			;
 			bool is_invalid_record = is_empty_string(appopt->sitename);
 			bool is_useless_record = is_empty_string(appopt->username) && is_empty_string(appopt->password);
 

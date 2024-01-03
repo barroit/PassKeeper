@@ -3,25 +3,28 @@
 #include "utility.h"
 #include "strbuffer.h"
 
+#include <sqlite3.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 extern const char *appname;
 
-#define WRITE_ERR(format, ...) fprintf(stderr, "%s: " format "\n", appname, __VA_ARGS__)
+#define eprintf(format, ...) fprintf(stderr, "%s: " format "\n", appname, __VA_ARGS__)
+#define eputs(str) eprintf("%s", str)
 
 void handle_parse_cmdopts_error(int rc, const char *errmsg[2])
 {
 	switch (rc)
 	{
 		case PK_UNKNOWN_OPTION:
-			WRITE_ERR("unrecognized option '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
+			eprintf("unrecognized option '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
 			break;
 		case PK_MISSING_OPERAND:
-			WRITE_ERR("option '%s' requires an operand", errmsg[ERRMSG_IK]);
+			eprintf("option '%s' requires an operand", errmsg[ERRMSG_IK]);
 			break;
 		case PK_INCOMPATIBLE_TYPE:
-			WRITE_ERR("incompatible value '%s' converted to option '%s'", STRINGIFY(errmsg[ERRMSG_IV]), errmsg[ERRMSG_IK]);
+			eprintf("incompatible value '%s' converted to option '%s'", STRINGIFY(errmsg[ERRMSG_IV]), errmsg[ERRMSG_IK]);
 			break;
 		default:
 			abort();
@@ -33,16 +36,16 @@ void handle_parse_cmdargs_error(int rc, const char *errmsg[3])
 	switch (rc)
 	{
 		case PK_UNKNOWN_OPERATION:
-			WRITE_ERR("unrecognized database operation '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
+			eprintf("unrecognized database operation '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
 			break;
 		case PK_INCOMPATIBLE_TYPE:
-			WRITE_ERR("incompatible value '%s' converted to option '%s'", STRINGIFY(errmsg[ERRMSG_IV]), errmsg[ERRMSG_IK]);
+			eprintf("incompatible value '%s' converted to option '%s'", STRINGIFY(errmsg[ERRMSG_IV]), errmsg[ERRMSG_IK]);
 			break;
 		case PK_UNCLEAR_OPTARG:
-			WRITE_ERR("option '%s' redefined with argument value '%s'", errmsg[ERRMSG_IK], STRINGIFY(errmsg[ERRMSG_IV]));
+			eprintf("option '%s' redefined with argument value '%s'", errmsg[ERRMSG_IK], STRINGIFY(errmsg[ERRMSG_IV]));
 			break;
 		case PK_TOOMANY_ARGUMENTS:
-			WRITE_ERR("too many arguments ('%s'%s%s%s%s) found during parsing",
+			eprintf("too many arguments ('%s'%s%s%s%s) found during parsing",
 				errmsg[ERRMSG_IK],
 				errmsg[ERRMSG_IV] == NULL ? "" : ", '",
 				errmsg[ERRMSG_IV] == NULL ? "" : errmsg[ERRMSG_IV],
@@ -59,10 +62,10 @@ void handle_validate_appopt_error(int rc, const char *errmsg[3])
 	switch (rc)
 	{
 		case PK_FILE_INACCESSIBLE:
-			WRITE_ERR("inaccessed database pathname '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
+			eprintf("inaccessed database pathname '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
 			break;
 		case PK_UNSATISFIED_CONDITION:
-			WRITE_ERR("database operation '%s' requires %s%s%s",
+			eprintf("database operation '%s' requires %s%s%s",
 				errmsg[ERRMSG_IK],
 				errmsg[ERRMSG_IV],
 				errmsg[ERRMSG_IE1] == NULL ? "" : " and ",
@@ -73,11 +76,59 @@ void handle_validate_appopt_error(int rc, const char *errmsg[3])
 	}
 }
 
-// 
+void handle_init_database_error(int rc, const char *errmsg[2])
+{
+	switch (rc)
+	{
+		case PK_INVALID_PATHNAME:
+			eprintf("unsupported pathname '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
+			break;
+		case PK_FILE_EXIST:
+			eprintf("db file already exists '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
+			break;
+		case PK_MKDIR_FAILURE:
+			eprintf("Unable to create directory for file '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
+			break;
+		default:
+			handle_sqlite_error(rc);
+	}
+}
+
+void handle_apply_key_error(int rc, const char *errmsg[2])
+{
+	switch (rc)
+	{
+		case PK_FILE_INACCESSIBLE:
+			eprintf("Unable to read file '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
+			break;
+		case PK_INVALID_KEY:
+			eprintf("invalid key found in '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
+			break;
+		case PK_MKDIR_FAILURE:
+			eprintf("Unable to create directory for file '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
+			break;
+		case PK_MKFILE_FAILURE:
+			eprintf("Unable to create file with path '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
+			break;
+		default:
+			abort();
+	}
+}
+
+void handle_sqlite_error(int rc)
+{
+	const char *errstr;
+	if (strcmp((errstr = sqlite3_errstr(rc)), "unknown error") == 0)
+	{
+		abort(); /* You definitely forgot to handle error */
+	}
+
+	eputs(errstr);
+}
 
 void handle_missing_operation_error(void)
 {
-	WRITE_ERR("missing database operation\n"
+	eprintf("missing database operation\n"
 		"Try '%s --help' for more information.",
 		appname);
 }

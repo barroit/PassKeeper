@@ -1,10 +1,14 @@
+#include "fileio.h"
+#include "rescode.h"
+#include <check.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
 #define FPATHNAME	"./dummyfile"
 #define DPATHNAME	"./dummydir"
 #define KEYSTR		"0x0A335A9EC0EE2AED994324AABBAC7EBAB17492D025EAEDDB5E70DAEA499D6587"
-
-#include <stdio.h>
-
-#include <unistd.h>
 
 void io_test_setup(void)
 {
@@ -24,18 +28,12 @@ void io_test_teardown(void)
 	rmdir(DPATHNAME);
 }
 
-#include "io.h"
-
-#include <check.h>
-
 START_TEST(test_mkdir)
 {
 	dirmake(DPATHNAME);
 	ck_assert_int_eq(access(DPATHNAME, R_OK | W_OK | X_OK), 0);
 }
 END_TEST
-
-#include "rescode.h"
 
 START_TEST(test_prepare_file_folder)
 {
@@ -46,10 +44,6 @@ START_TEST(test_prepare_file_folder)
 	ck_assert_int_eq(access(DPATHNAME, R_OK | W_OK | X_OK), 0);
 }
 END_TEST
-
-#include <string.h>
-
-#include <stdlib.h>
 
 START_TEST(test_read_file_content)
 {

@@ -1,5 +1,5 @@
-#ifndef IO_H
-#define IO_H
+#ifndef PKIO_H
+#define PKIO_H
 
 #include <stddef.h>
 
@@ -9,4 +9,4 @@ char *read_file_content(const char *pathname, size_t *size);
 
 int dirmake(const char *pathname);
 
-#endif /* IO_H */
+#endif /* PKIO_H */

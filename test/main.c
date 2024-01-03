@@ -1,4 +1,5 @@
 #include <check.h>
+#include <stdlib.h>
 
 Suite *io_test_suite(void);
 
@@ -7,8 +8,6 @@ Suite *utility_test_suite(void);
 Suite *stringbuffer_test_suite(void);
 
 Suite *encrypt_test_suite(void);
-
-#include <stdlib.h>
 
 int main()
 {

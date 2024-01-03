@@ -1,24 +1,21 @@
 #ifndef ENCRYPT_H
 #define ENCRYPT_H
 
+#include "os.h"
 #include <stddef.h>
 
-void *get_database_key(const char *db_key_pathname, size_t *size);
+void *read_key(const char *db_key_pathname, size_t *size);
 
-#include "os.h"
+void *init_key(const char *db_key_pathname);
 
-#ifdef PK_USE_ARC4RANDOM
+void *get_binary_key(size_t length); /* length in bytes */
 
-char itoh(unsigned char c);
+char *bin_to_hex(void *data, size_t length); /* length of bytes data */
 
-void *genbytes(size_t length); /* length in bytes */
+void *hex_to_bin(const char *data, size_t *size); /* size after convert */
 
-char *btoh(void *data, size_t length); /* length of bytes data */
+char byte_to_hexchar(unsigned char c);
 
-#endif /* PK_USE_ARC4RANDOM */
-
-void *htob(const char *data, size_t *size); /* size after convert */
-
-unsigned char htoi(char c);
+unsigned char hexchar_to_byte(char c);
 
 #endif

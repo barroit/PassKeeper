@@ -2,51 +2,86 @@
 #include "utility.h"
 #include "debug.h"
 #include "rescode.h"
-#include "io.h"
+#include "fileio.h"
 #include "os.h"
 #include "encrypt.h"
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
+#include <stddef.h>
 
-#define return_on_fail(rc, stmt)						\
-	do									\
-	{									\
-		if (rc != SQLITE_OK)						\
-		{								\
-			return sqlite3_finalize(stmt);				\
-		}								\
-	}									\
-	while (0)
-
-int init_database(const char *db_pathname, const char *db_key_pathname)
+int init_db_file(sqlite3 **db, const char *dbpath, const char *errmsg[2])
 {
 	int rc;
 
-	if (is_rw_file(db_pathname))
+	if (exists(dbpath))
 	{
+		errmsg[ERRMSG_IV] = dbpath;
 		return PK_FILE_EXIST;
 	}
 
-	if ((rc = prepare_file_folder(db_pathname)) != PK_SUCCESS)
+	if ((rc = prepare_file_folder(dbpath)) != PK_SUCCESS)
 	{
+		errmsg[ERRMSG_IV] = dbpath;
 		return rc;
 	}
 
-	sqlite3 *db;
-	if ((rc = sqlite3_open(db_pathname, &db)) != SQLITE_OK)
+	return sqlite3_open(dbpath, db);
+}
+
+int apply_db_key(sqlite3 *db, const char *keypath, const char *errmsg[2])
+{
+	void *key;
+	size_t keysz;
+
+	key = NULL;
+	if (exists(keypath)) /* apply key from file */
 	{
-		return rc;
+		if (!is_rw_file(keypath))
+		{
+			errmsg[ERRMSG_IV] = keypath;
+			return PK_FILE_INACCESSIBLE;
+		}
+
+		if ((key = read_key(keypath, &keysz)) == NULL)
+		{
+			errmsg[ERRMSG_IV] = keypath;
+			return PK_INVALID_KEY;
+		}
 	}
 
-	if (db_key_pathname != NULL) /* encrypt db */
+#ifdef PK_USE_ARC4RANDOM
+	else /* generate key and write into file */
 	{
-		//
+		if (prepare_file_folder(keypath) != PK_SUCCESS)
+		{
+			errmsg[ERRMSG_IV] = keypath;
+			return PK_MKDIR_FAILURE;
+		}
+
+		if ((key = init_key(keypath)) == NULL)
+		{
+			errmsg[ERRMSG_IV] = keypath;
+			return PK_MKFILE_FAILURE;
+		}
+	}
+#endif
+
+	if (key == NULL) /* this would be an undefined behavior for windows users 🤣👉 */
+	{
+		return PK_SUCCESS;
 	}
 
-	rc = sqlite3_exec(db,
-		"CREATE TABLE account ("
+	sqlite3_key(db, key, keysz);
+
+	return PK_SUCCESS;
+}
+
+int init_db_table(sqlite3 *db)
+{
+	const char *sql;
+
+	sql = "CREATE TABLE account ("
 			"id INTEGER PRIMARY KEY AUTOINCREMENT,"
 			"sitename TEXT NOT NULL,"
 			"siteurl TEXT,"
@@ -63,54 +98,25 @@ int init_database(const char *db_pathname, const char *db_key_pathname)
 		"FOR EACH ROW "
 		"BEGIN "
 			"UPDATE account SET modtime = datetime('now', '+9 hours') WHERE id = old.id;"
-		"END;", NULL, NULL, NULL);
+		"END;";
 
-	sqlite3_close(db);
-
-	return rc;
-}
-
-int encrypt_database(const char *db_key_pathname)
-{
-	void *key;
-	size_t keysz;
-
-	key = NULL;
-	if (is_rw_file(db_key_pathname)) /* apply key from file */
-	{
-		key = get_database_key(db_key_pathname, &keysz);
-	}
-
-#ifdef PK_USE_ARC4RANDOM
-	else /* generate key and write into file */
-	{
-		char *hexstr;
-
-		key = genbytes(32); // TODO change this
-		hexstr = btoh(key, 32);
-
-		prepare_file_folder(db_key_pathname);
-
-		FILE *file;
-		if ((file = fopen(db_key_pathname, "w")) == NULL)
-		{
-			return 1;
-		}
-
-		fprintf(file, "0x%s", hexstr);
-
-		free(hexstr);
-		fclose(file);
-	}
-#endif
-
-	return PK_SUCCESS;
+	return sqlite3_exec(db, sql, NULL, NULL, NULL);
 }
 
 bool is_db_decrypted(sqlite3 *db)
 {
 	return sqlite3_exec(db, "SELECT count(*) FROM sqlite_master;", NULL, NULL, NULL) == SQLITE_OK;
 }
+
+#define return_on_fail(rc, stmt)						\
+	do									\
+	{									\
+		if (rc != SQLITE_OK)						\
+		{								\
+			return sqlite3_finalize(stmt);				\
+		}								\
+	}									\
+	while (0)
 
 int create_record(sqlite3 *db, const app_option *appopt)
 {

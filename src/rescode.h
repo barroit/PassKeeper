@@ -7,6 +7,8 @@
 #define PK_MKDIR_FAILURE		32	/* Make directory failure */
 #define PK_MALLOC_FAILURE		33	/* Memory Allocate failure */
 #define PK_FILE_INACCESSIBLE		33	/* File cannot be accessed */
+#define PK_INVALID_KEY			34	/* File cannot be accessed */
+#define PK_MKFILE_FAILURE		35	/* File cannot be accessed */
 
 #define PK_UNKNOWN_OPTION		60	/* Unknown option */
 #define PK_MISSING_OPERAND		61	/* Requires value */

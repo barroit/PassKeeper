@@ -5,13 +5,14 @@
 #include "rcque.h"
 #include "strbuffer.h"
 
-#include <stddef.h>
 #include <stdbool.h>
 #include <sqlite3.h>
 
-int init_database(const char *db_pathname, const char *db_key_pathname);
+int init_db_file(sqlite3 **db, const char *dbpath, const char *errmsg[2]);
 
-int encrypt_database(const char *db_key_pathname);
+int apply_db_key(sqlite3 *db, const char *keypath, const char *errmsg[2]);
+
+int init_db_table(sqlite3 *db);
 
 bool is_db_decrypted(sqlite3 *db);
 

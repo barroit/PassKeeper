@@ -1,33 +1,40 @@
 #!/usr/bin/bash
 
-project_dir="$(cd $(dirname $0) &> /dev/null && pwd)"
+project_root="$(cd $(dirname $0) &> /dev/null && pwd)"
 
-build_types=("debug" "test" "coverage" "penguin" "window")
-build_type="${1:-debug}"
-build_dir="$project_dir/build"
+targets=('debug' 'test' 'coverage' 'penguin' 'window')
+target="${1:-debug}"
+build_dir='/dummydir' # for safety reason
 
-if [[ $build_type == "clean" ]]; then
-	rm -rf $(printf "$build_dir/%s " "${build_types[@]}")
+source "$project_root/tool/util"
+
+if [[ $target == 'clean' ]]
+then
+	rm -rf $(printf "$build_dir/%s " "${targets[@]}")
 	exit 0
 fi
 
-if printf '%s\0' "${build_types[@]}" | grep -Fxqz -- $build_type; then
-	build_dir+="/$build_type"
+if printf '%s\0' "${targets[@]}" | grep -Fxqz -- $target; then
+	build_dir+="/$target"
 else
-	echo "not a valid build type: $build_type"
+	echo "not a valid build type: $target"
 	exit 1
 fi
 
-echo "found build type: $build_type"
+echo "found build type: $target"
 
-build_target="pk"
+cmake_build_target='pk'
 
-if [[ $build_type == "test" || $build_type == "coverage" ]]; then
-	build_target="pk_test"
+if [[ $target == 'test' || $target == 'coverage' ]]
+then
+	cmake_build_target='pk_test'
 fi
 
-./tool/make_sqlcipher $build_type
+export TARGET_PLATFORM=$([[ $target == 'window' ]] && echo "window" || echo "penguin")
 
-cmake -B $build_dir -DCMAKE_BUILD_TYPE=${build_type^} -DINSTALL_PREFIX="$HOME/.local"
+$project_root/tool/make_openssl
+$project_root/tool/make_sqlcipher
 
-cmake --build $build_dir --target $build_target
+cmake -B $build_dir -DCMAKE_BUILD_TYPE=${target^} -DINSTALL_PREFIX=$install_prefix
+
+cmake --build $build_dir --target $cmake_build_target

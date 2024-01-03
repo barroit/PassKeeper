@@ -1,19 +1,21 @@
 #include "encrypt.h"
 #include "utility.h"
-#include "io.h"
+#include "fileio.h"
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
-#define HEXKEY_SIZE 32
+#define BINKEY_SIZE 32
 
-void *get_database_key(const char *db_key_pathname, size_t *size)
+void *read_key(const char *db_key_pathname, size_t *size)
 {
 	char *keystr;
 	void *key;
 
 	keystr = read_file_content(db_key_pathname, size); /* keystr cannot be NULL */
-	if ((*size == HEXKEY_SIZE * 2 + 2) && keystr[0] == '0' && keystr[1] == 'x')
+	if ((*size == BINKEY_SIZE * 2 + 2) && keystr[0] == '0' && keystr[1] == 'x')
 	{
-		key = htob(keystr + 2, size); /* hex key */
+		key = hex_to_bin(keystr + 2, size); /* hex key */
 	}
 	else
 	{
@@ -25,17 +27,31 @@ void *get_database_key(const char *db_key_pathname, size_t *size)
 	return key;
 }
 
-
-#ifdef PK_USE_ARC4RANDOM
-
-#include <bsd/stdlib.h>
-
-char itoh(unsigned char c)
+void *init_key(const char *db_key_pathname)
 {
-	return c > 9 ? c - 10 + 'A' : c + '0';
+	FILE *file;
+	if ((file = fopen(db_key_pathname, "w")) == NULL)
+	{
+		return NULL;
+	}
+
+	void *binkey;
+	char *hexstr;
+
+	binkey = get_binary_key(BINKEY_SIZE);
+	hexstr = bin_to_hex(binkey, BINKEY_SIZE);
+
+	fprintf(file, "0x%s", hexstr);
+
+	free(hexstr);
+	fclose(file);
+
+	return binkey;
 }
 
-void *genbytes(size_t length)
+#include <openssl/rand.h>
+
+void *get_binary_key(size_t length)
 {
 	unsigned char *buf;
 	if ((buf = malloc(length)) == NULL)
@@ -43,12 +59,12 @@ void *genbytes(size_t length)
 		return NULL;
 	}
 
-	arc4random_buf(buf, length);
+	RAND_bytes(buf, length);
 
-	return (void *)buf;
+	return buf;
 }
 
-char *btoh(void *data, size_t length)
+char *bin_to_hex(void *data, size_t length)
 {
 	char *res;
 	if ((res = malloc(length * 2 + 1)) == NULL)
@@ -70,8 +86,8 @@ char *btoh(void *data, size_t length)
 		hn = *iter >> 4;
 		ln = *iter & 0x0F;
 
-		res[residx++] = itoh(hn);
-		res[residx++] = itoh(ln);
+		res[residx++] = byte_to_hexchar(hn);
+		res[residx++] = byte_to_hexchar(ln);
 
 		iter++;
 	}
@@ -81,11 +97,7 @@ char *btoh(void *data, size_t length)
 	return res;
 }
 
-#endif /* PK_USE_ARC4RANDOM */
-
-#include <string.h>
-
-void *htob(const char *str, size_t *size)
+void *hex_to_bin(const char *str, size_t *size)
 {
 	size_t strsz, ressz;
 	if ((strsz = strlen(str)) % 2 != 0) /* invalid hex str */
@@ -114,8 +126,8 @@ void *htob(const char *str, size_t *size)
 			return NULL;
 		}
 
-		*resiter = htoi(*striter) << 4;
-		*resiter += htoi(*(striter + 1));
+		*resiter = hexchar_to_byte(*striter) << 4;
+		*resiter += hexchar_to_byte(*(striter + 1));
 
 		resiter++;
 		striter += 2;
@@ -129,7 +141,12 @@ void *htob(const char *str, size_t *size)
 	return res;
 }
 
-unsigned char htoi(char c)
+char byte_to_hexchar(unsigned char c)
+{
+	return c > 9 ? c - 10 + 'A' : c + '0';
+}
+
+unsigned char hexchar_to_byte(char c)
 {
 	unsigned char v1, v2, v3;
 

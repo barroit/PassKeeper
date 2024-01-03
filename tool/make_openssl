@@ -1,0 +1,45 @@
+#!/usr/bin/bash
+
+project_root="$(cd $(dirname $0) &> /dev/null && pwd)/.."
+
+source "$project_root/tool/util"
+
+check_depstat 'openssl'
+
+openssl_dir="$source_dir/openssl"
+
+cd $source_dir
+
+if [[ ! -d $openssl_dir ]]
+then
+	git clone https://github.com/openssl/openssl.git
+fi
+
+cd $openssl_dir
+
+feature='no-apps no-shared no-docs no-tests no-legacy'
+target='linux-x86_64'
+flag="--prefix=$install_prefix"
+
+if [[ $TARGET_PLATFORM == 'window' ]]
+then
+	feature+=' no-asm'
+	target=mingw64
+	flag+=' --cross-compile-prefix=x86_64-w64-mingw32-'
+fi
+
+process_start "configuring openssl for $TARGET_PLATFORM"
+process_exec "./Configure $target $feature $flag CFLAGS=-Os"
+process_end
+
+process_start 'building openssl'
+process_exec 'make'
+process_end
+
+process_start 'installing openssl'
+process_exec 'make install_sw'
+process_end
+
+process_cleanup
+
+set_depstat 'openssl'
