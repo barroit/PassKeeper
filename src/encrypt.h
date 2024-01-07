@@ -1,12 +1,7 @@
 #ifndef ENCRYPT_H
 #define ENCRYPT_H
 
-#include "os.h"
 #include <stddef.h>
-
-void *read_key(const char *db_key_pathname, size_t *size);
-
-void *init_key(const char *db_key_pathname);
 
 void *get_binary_key(size_t length); /* length in bytes */
 

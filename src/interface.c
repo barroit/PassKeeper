@@ -7,27 +7,15 @@
 #include "utility.h"
 
 #include <stdlib.h>
+#include <stdbool.h>
+#include <stdio.h>
 
 extern int optind;
 
 const char *appname;
 
-#include <openssl/rand.h>
-#include "encrypt.h"
-#include <stdio.h>
-
 int main(int argc, char **argv)
 {
-	unsigned char *buf = malloc(32);
-	
-
-	char *hexstr = bin_to_hex(buf, 32);
-	puts(hexstr);
-
-	free(buf);
-	free(hexstr);
-	return 0;
-
 	int rc;
 
 	const char *errmsg[4] = { NULL, NULL, NULL, NULL };
@@ -52,8 +40,10 @@ int main(int argc, char **argv)
 		return EXIT_SUCCESS;
 	}
 
+	bool request_encryption;
 	sqlite3 *db;
 
+	request_encryption = appopt->db_key_pathname != NULL;
 	if (appopt->is_db_init)
 	{
 		if ((rc = init_db_file(&db, appopt->db_pathname, errmsg)) != PK_SUCCESS)
@@ -62,22 +52,28 @@ int main(int argc, char **argv)
 			return EXIT_FAILURE;
 		}
 
-		if (appopt->db_key_pathname != NULL && (rc = apply_db_key(db, appopt->db_key_pathname, errmsg)) != PK_SUCCESS)
+		rc = PK_SUCCESS;
+		if (request_encryption && (rc = encrypt_db(db, appopt->db_key_pathname, errmsg)) != PK_SUCCESS)
 		{
-			handle_apply_key_error(rc, errmsg);
-			return EXIT_FAILURE;
+			handle_db_key_error(rc, errmsg);
 		}
 
-		if ((rc = init_db_table(db)) != SQLITE_OK)
+		if (rc == PK_SUCCESS && (rc = init_db_table(db)) != SQLITE_OK)
 		{
 			handle_sqlite_error(rc);
+		}
+
+		sqlite3_close(db);
+
+		if (rc != SQLITE_OK)
+		{
 			return EXIT_FAILURE;
 		}
 	}
 
 	if (appopt->is_db_init && optind == argc)
 	{
-		sqlite3_close(db);
+		printf("table 'account' created in database '%s'\n", appopt->db_pathname);
 		return EXIT_SUCCESS;
 	}
 
@@ -93,14 +89,17 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if (appopt->is_help && appopt->command != NULL)
+	if (appopt->is_help)
 	{
-		show_command_usage(appopt->command);
-		return EXIT_SUCCESS;
-	}
-	else if (appopt->is_help)
-	{
-		show_all_usages();
+		if (appopt->command != NULL)
+		{
+			show_command_usage(appopt->command);
+		}
+		else
+		{
+			show_all_usages();
+		}
+
 		return EXIT_SUCCESS;
 	}
 
@@ -110,79 +109,94 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	// debug_log("db_pathname: %s\n"
-	// 	"db_key_pathname: %s\n"
-	// 	"command: %s\n"
-	// 	"is_help: %s\n"
-	// 	"is_version: %s\n"
-	// 	"is_verbose: %s\n"
-	// 	"is_db_init: %s\n"
-	// 	"record_id: %d\n"
-	// 	"sitename: %s\n"
-	// 	"siteurl: %s\n"
-	// 	"username: %s\n"
-	// 	"password: %s\n"
-	// 	"authtext: %s\n"
-	// 	"bakcode: %s\n"
-	// 	"comment: %s\n",
-	// 	STRINGIFY(appopt.db_pathname),
-	// 	STRINGIFY(appopt.db_key_pathname),
-	// 	STRINGIFY(appopt.command),
-	// 	STRBOOL(appopt.is_help),
-	// 	STRBOOL(appopt.is_version),
-	// 	STRBOOL(appopt.is_verbose),
-	// 	STRBOOL(appopt.is_db_init),
-	// 	appopt.record_id,
-	// 	STRINGIFY(appopt.sitename),
-	// 	STRINGIFY(appopt.siteurl),
-	// 	STRINGIFY(appopt.username),
-	// 	STRINGIFY(appopt.password),
-	// 	STRINGIFY(appopt.authtext),
-	// 	STRINGIFY(appopt.bakcode),
-	// 	STRINGIFY(appopt.comment));
+	debug_log("db_pathname: %s\n"
+		"db_key_pathname: %s\n"
+		"command: %s\n"
+		"is_help: %s\n"
+		"is_version: %s\n"
+		"is_verbose: %s\n"
+		"is_db_init: %s\n"
+		"record_id: %d\n"
+		"sitename: %s\n"
+		"siteurl: %s\n"
+		"username: %s\n"
+		"password: %s\n"
+		"authtext: %s\n"
+		"bakcode: %s\n"
+		"comment: %s\n",
+		STRINGIFY(appopt->db_pathname),
+		STRINGIFY(appopt->db_key_pathname),
+		STRINGIFY(appopt->command),
+		STRBOOL(appopt->is_help),
+		STRBOOL(appopt->is_version),
+		STRBOOL(appopt->is_verbose),
+		STRBOOL(appopt->is_db_init),
+		appopt->record_id,
+		STRINGIFY(appopt->sitename),
+		STRINGIFY(appopt->siteurl),
+		STRINGIFY(appopt->username),
+		STRINGIFY(appopt->password),
+		STRINGIFY(appopt->authtext),
+		STRINGIFY(appopt->bakcode),
+		STRINGIFY(appopt->comment));
 
-	// rc = sqlite3 _open(appopt.db_pathname, &db);
+	if ((rc = sqlite3_open(appopt->db_pathname, &db)) != SQLITE_OK)
+	{
+		handle_sqlite_error(rc);
+		return EXIT_FAILURE;
+	}
 
-	// apply_db_key(db, "");
+	if (request_encryption)
+	{
+		if ((rc = decrypt_db(db, appopt->db_key_pathname, errmsg)) != PK_SUCCESS)
+		{
+			handle_db_key_error(rc, errmsg);
+		}
 
-	// if (!is_db_decrypted(db))
-	// {
-	// 	rc = sqlite3_close(db);
-	// 	fputs("test\n", stderr);
-	// 	exit(1);
-	// }
+		if (rc == PK_SUCCESS && (rc = !is_db_decrypted(db)) == 1)
+		{
+			handle_db_key_error(PK_INCORRECT_KEY, NULL);
+		}
 
-	// if (rc != SQLITE_OK)
-	// 	fatal(EXIT_FAILURE, "unable to open database, %s", appname, sqlite3_errstr(rc));
+		if (rc != PK_SUCCESS)
+		{
+			sqlite3_close(db);
+			return EXIT_FAILURE;
+		}
+	}
 
-	// switch (appopt.command[0])
-	// {
-	// 	case 'c':
-	// 	case 'C':
-	// 		rc = create_record(db, &appopt);
-	// 		break;
-	// 	case 'r':
-	// 	case 'R':
-	// 		rc = read_record(db, &appopt);
-	// 		break;
-	// 	case 'u':
-	// 	case 'U':
-	// 		break;
-	// 	case 'd':
-	// 	case 'D':
-	// 		break;
-	// 	default:
-	// 		abort();
-	// }
+	char *message;
+	int (*cmdfn_table['u' - 'C' + 1])(sqlite3 *, const app_option *, char **message);
 
-	// if (rc != SQLITE_OK)
-	// 	REPORT_ERROR("unable to execute statement, %s", appname, sqlite3_errstr(rc));
+	cmdfn_table['c' - 'C'] = cmdfn_table['C' - 'C'] = create_record;
+	cmdfn_table['r' - 'C'] = cmdfn_table['R' - 'C'] = read_record;
+	cmdfn_table['u' - 'C'] = cmdfn_table['U' - 'C'] = update_record;
+	cmdfn_table['d' - 'C'] = cmdfn_table['D' - 'C'] = delete_record;
 
-	// rc = sqlite3_close(db);
+	message = NULL;
+	if ((rc = cmdfn_table[*appopt->command - 'C'](db, appopt, &message)) != SQLITE_OK)
+	{
+		handle_sqlite_error(rc);
+	}
 
-	// if (rc != SQLITE_OK)
-	// 	fatal(EXIT_FAILURE, "unable to close db connection, %s", appname, sqlite3_errstr(rc));
+	if (rc == SQLITE_OK && *appopt->command != 'r' && *appopt->command != 'R')
+	{
+		if (message == NULL)
+		{
+			printf("nothing to be done for %s\n", appopt->command);
+		}
+		else
+		{
+			printf("a record for '%s' has been %sd\n", message, appopt->command);
+		}
+	}
 
-	// return rc == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
-	return EXIT_SUCCESS;
+	if (message != NULL)
+	{
+		free(message);
+	}
+
+	sqlite3_close(db);
+
+	return rc == SQLITE_OK ? EXIT_SUCCESS : EXIT_FAILURE;
 }

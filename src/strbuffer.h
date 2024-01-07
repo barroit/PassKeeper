@@ -7,7 +7,7 @@
 
 #ifdef PK_IS_DEBUG
 
-extern int resize_execution_count;
+extern int strbuffer_resize_count;
 
 #endif /* PK_IS_DEBUG */
 

@@ -3,12 +3,14 @@
 #include "debug.h"
 #include "rescode.h"
 #include "fileio.h"
-#include "os.h"
 #include "encrypt.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>
+#include <assert.h>
+
+#define BINKEY_SIZE 32
 
 int init_db_file(sqlite3 **db, const char *dbpath, const char *errmsg[2])
 {
@@ -17,7 +19,7 @@ int init_db_file(sqlite3 **db, const char *dbpath, const char *errmsg[2])
 	if (exists(dbpath))
 	{
 		errmsg[ERRMSG_IV] = dbpath;
-		return PK_FILE_EXIST;
+		return PK_FILE_EXISTS;
 	}
 
 	if ((rc = prepare_file_folder(dbpath)) != PK_SUCCESS)
@@ -29,50 +31,134 @@ int init_db_file(sqlite3 **db, const char *dbpath, const char *errmsg[2])
 	return sqlite3_open(dbpath, db);
 }
 
-int apply_db_key(sqlite3 *db, const char *keypath, const char *errmsg[2])
+int encrypt_db(sqlite3 *db, const char *keypath, const char *errmsg[2])
 {
+	int rc;
 	void *key;
-	size_t keysz;
+	size_t ksz;
 
-	key = NULL;
-	if (exists(keypath)) /* apply key from file */
+	if (exists(keypath))
 	{
-		if (!is_rw_file(keypath))
-		{
-			errmsg[ERRMSG_IV] = keypath;
-			return PK_FILE_INACCESSIBLE;
-		}
-
-		if ((key = read_key(keypath, &keysz)) == NULL)
-		{
-			errmsg[ERRMSG_IV] = keypath;
-			return PK_INVALID_KEY;
-		}
+		rc = read_db_key(keypath, &key, &ksz);
+	}
+	else
+	{
+		rc = init_db_key(keypath, &key, &ksz);
 	}
 
-#ifdef PK_USE_ARC4RANDOM
-	else /* generate key and write into file */
+	if (rc != PK_SUCCESS && rc != PK_KEYGEN_FAILURE)
 	{
-		if (prepare_file_folder(keypath) != PK_SUCCESS)
-		{
-			errmsg[ERRMSG_IV] = keypath;
-			return PK_MKDIR_FAILURE;
-		}
-
-		if ((key = init_key(keypath)) == NULL)
-		{
-			errmsg[ERRMSG_IV] = keypath;
-			return PK_MKFILE_FAILURE;
-		}
-	}
-#endif
-
-	if (key == NULL) /* this would be an undefined behavior for windows users 🤣👉 */
-	{
-		return PK_SUCCESS;
+		errmsg[ERRMSG_IV] = keypath;
 	}
 
-	sqlite3_key(db, key, keysz);
+	if (rc != PK_SUCCESS)
+	{
+		return rc;
+	}
+
+	sqlite3_key(db, key, ksz);
+
+	free(key);
+
+	return PK_SUCCESS;
+}
+
+int decrypt_db(sqlite3 *db, const char *keypath, const char *errmsg[2])
+{
+	int rc;
+	void *key;
+	size_t ksz;
+
+	if (!exists(keypath))
+	{
+		errmsg[ERRMSG_IV] = keypath;
+		return PK_MISSING_FILE;
+	}
+	
+	if ((rc = read_db_key(keypath, &key, &ksz)) != PK_SUCCESS)
+	{
+		errmsg[ERRMSG_IV] = keypath;
+		return rc;
+	}
+
+	sqlite3_key(db, key, ksz);
+
+	free(key);
+
+	return PK_SUCCESS;
+}
+
+int read_db_key(const char *keypath, void **__key, size_t *__ksz)
+{
+	char *keystr;
+	size_t ksz;
+	if (!is_rw_file(keypath) || (keystr = read_file_content(keypath, &ksz)) == NULL)
+	{
+		return PK_PERMISSION_DENIED;
+	}
+
+	void *key;
+	if ((ksz == BINKEY_SIZE * 2 + 2) && keystr[0] == '0' && keystr[1] == 'x')
+	{
+		key = hex_to_bin(keystr + 2, &ksz); /* replace ksz with the binary's */
+	}
+	else
+	{
+		key = strsub(keystr, 0, ksz);
+	}
+
+	free(keystr);
+
+	if (key == NULL) /* hex_to_bin failure */
+	{
+		return PK_INVALID_KEY;
+	}
+
+	if (__ksz != NULL)
+	{
+		*__ksz = ksz;
+	}
+
+	assert(__key != NULL);
+	*__key = key;
+
+	return PK_SUCCESS;
+}
+
+int init_db_key(const char *keypath, void **__key, size_t *__ksz)
+{
+	int rc;
+	if ((rc = prepare_file_folder(keypath)) != PK_SUCCESS)
+	{
+		return rc;
+	}
+
+	FILE *file;
+	if ((file = fopen(keypath, "w")) == NULL)
+	{
+		return PK_PERMISSION_DENIED;
+	}
+
+	void *binkey;
+	char *hexstr;
+	if ((binkey = get_binary_key(BINKEY_SIZE)) == NULL)
+	{
+		fclose(file);
+		return PK_KEYGEN_FAILURE;
+	}
+
+	fprintf(file, "0x%s", (hexstr = bin_to_hex(binkey, BINKEY_SIZE)));
+
+	free(hexstr);
+	fclose(file);
+
+	if (__ksz != NULL)
+	{
+		*__ksz = BINKEY_SIZE;
+	}
+
+	assert(__key != NULL);
+	*__key = binkey;
 
 	return PK_SUCCESS;
 }
@@ -108,17 +194,7 @@ bool is_db_decrypted(sqlite3 *db)
 	return sqlite3_exec(db, "SELECT count(*) FROM sqlite_master;", NULL, NULL, NULL) == SQLITE_OK;
 }
 
-#define return_on_fail(rc, stmt)						\
-	do									\
-	{									\
-		if (rc != SQLITE_OK)						\
-		{								\
-			return sqlite3_finalize(stmt);				\
-		}								\
-	}									\
-	while (0)
-
-int create_record(sqlite3 *db, const app_option *appopt)
+int create_record(sqlite3 *db, const app_option *appopt, char **message)
 {
 	const char *sql;
 	sqlite3_stmt *stmt;
@@ -126,44 +202,58 @@ int create_record(sqlite3 *db, const app_option *appopt)
 	sql = "INSERT INTO account "
 		"(sitename, siteurl, username, password, authtext, bakcode, comment) "
 		"VALUES"
-		"(:sitename, :siteurl, :username, :password, :authtext, :bakcode, :comment);";
+		"(:sitename, :siteurl, :username, :password, :authtext, :bakcode, :comment)";
 
-	return_on_fail(sqlite3_prepare_v2(db, sql, -1, &stmt, NULL), stmt);
+	if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK)
+	{
+		return sqlite3_finalize(stmt);
+	}
 
-	return_on_fail(sqlite3_bind_text(stmt, 1, appopt->sitename, -1, SQLITE_STATIC), stmt);
-	return_on_fail(sqlite3_bind_text(stmt, 2, appopt->siteurl, -1, SQLITE_STATIC), stmt);
-	return_on_fail(sqlite3_bind_text(stmt, 3, appopt->username, -1, SQLITE_STATIC), stmt);
-	return_on_fail(sqlite3_bind_text(stmt, 4, appopt->password, -1, SQLITE_STATIC), stmt);
-	return_on_fail(sqlite3_bind_text(stmt, 5, appopt->authtext, -1, SQLITE_STATIC), stmt);
-	return_on_fail(sqlite3_bind_text(stmt, 6, appopt->bakcode, -1, SQLITE_STATIC), stmt);
-	return_on_fail(sqlite3_bind_text(stmt, 7, appopt->comment, -1, SQLITE_STATIC), stmt);
+	int idx;
+	const entry *iter, field_table[8] = {
+		{ "", appopt->sitename },
+		{ "", appopt->siteurl },
+		{ "", appopt->username },
+		{ "", appopt->password },
+		{ "", appopt->authtext },
+		{ "", appopt->bakcode },
+		{ "", appopt->comment },
+		{ NULL, NULL },
+	};
 
-	int rc __attribute__ ((unused));
-	// If the most recent evaluation of statement S failed,
-	// then sqlite3_finalize(S) returns the appropriate error code.
-	// we can leave sqlite3_step without checking its rc
-	rc = sqlite3_step(stmt);
-
-	debug_execute({
-		if (rc != SQLITE_DONE)
+	idx = 1;
+	iter = field_table;
+	while (iter->key != NULL)
+	{
+		if (sqlite3_bind_text(stmt, idx++, iter->value, -1, SQLITE_STATIC) != SQLITE_OK)
 		{
-			puts(sqlite3_errmsg(db));
+			return sqlite3_finalize(stmt);
 		}
-	});
+
+		iter++;
+	}
+
+	if (sqlite3_step(stmt) == SQLITE_DONE)
+	{
+		assert(message != NULL);
+		*message = strsub(appopt->sitename, 0, 0);
+	}
 
 	return sqlite3_finalize(stmt);
 }
 
-int read_record(sqlite3 *db, const app_option *appopt)
+int read_record(sqlite3 *db, const app_option *appopt, char __attribute__ ((unused)) **message)
 {
-	int rc;
 	const char *sql;
 	sqlite3_stmt *stmt;
 
 	sql = "SELECT * FROM account WHERE sitename LIKE :sitename";
-	rc = sqlite3_prepare_v3(db, sql, -1, SQLITE_PREPARE_PERSISTENT, &stmt, NULL);
-	return_on_fail(rc, stmt);
+	if (sqlite3_prepare_v3(db, sql, -1, SQLITE_PREPARE_PERSISTENT, &stmt, NULL) != SQLITE_OK)
+	{
+		return sqlite3_finalize(stmt);
+	}
 
+	int rc;
 	if (appopt->sitename == NULL)
 	{
 		rc = sqlite3_bind_text(stmt, 1, "%", 1, SQLITE_STATIC);
@@ -175,7 +265,10 @@ int read_record(sqlite3 *db, const app_option *appopt)
 		free(search_pattern);
 	}
 
-	return_on_fail(rc, stmt);
+	if (rc != SQLITE_OK)
+	{
+		return sqlite3_finalize(stmt);
+	}
 
 	record_queue *q;
 	record_field *data;
@@ -257,7 +350,7 @@ int read_record(sqlite3 *db, const app_option *appopt)
 	sbfree(buf);
 	rcqfree(q);
 
-	debug_log("strbuffer resize executed %d times\n", resize_execution_count);
+	debug_log("strbuffer resize executed %d times\n", strbuffer_resize_count);
 
 	return sqlite3_finalize(stmt);
 }
@@ -392,4 +485,104 @@ void print_verbose_field(string_buffer *buf, const record_field *data, int *is_i
 		STRINGIFY(data->comment),
 		STRINGIFY(data->sqltime),
 		STRINGIFY(data->modtime));
+}
+
+int update_record(sqlite3 *db, const app_option *appopt, char **message)
+{
+	int rc, idx;
+	sqlite3_stmt *stmt;
+
+	string_buffer *buf;
+
+	const entry *iter, entries[8] = {
+		{ "sitename", appopt->sitename },
+		{ "siteurl", appopt->siteurl },
+		{ "username", appopt->username },
+		{ "password", appopt->password },
+		{ "authtext", appopt->authtext },
+		{ "bakcode", appopt->bakcode },
+		{ "comment", appopt->comment },
+		{ NULL, NULL },
+	};
+
+	buf = sbmake(200);
+	iter = entries;
+	while (iter->key != NULL)
+	{
+		sbprintf(buf, iter->value == NULL ? ", %s = %s" : ", %s = :%s", iter->key, iter->key);
+		iter++;
+	}
+
+	char *update_column;
+	int sql_offset;
+
+	sql_offset = buf->size;
+	update_column = strsub(buf->data, 2, buf->size - 2);
+	sbprintf(buf, "UPDATE account SET %s WHERE id = :id RETURNING sitename", update_column); /* skip first comma */
+	free(update_column);
+
+	rc = sqlite3_prepare_v2(db, buf->data + sql_offset, buf->size - sql_offset, &stmt, NULL);
+	sbfree(buf);
+
+	if (rc != SQLITE_OK)
+	{
+		return sqlite3_finalize(stmt);
+	}
+
+	iter = entries;
+	idx = 1;
+	while (iter->key != NULL)
+	{
+		if (iter->value == NULL)
+		{
+			iter++;
+			continue;
+		}
+
+		if (sqlite3_bind_text(stmt, idx++, *(const char *)iter->value == '\0' ? NULL : iter->value, -1, SQLITE_STATIC) != SQLITE_OK)
+		{
+			return sqlite3_finalize(stmt);
+		}
+
+		iter++;
+	}
+
+	if (sqlite3_bind_int(stmt, idx, appopt->record_id) != SQLITE_OK)
+	{
+		return sqlite3_finalize(stmt);
+	}
+
+	if (sqlite3_step(stmt) == SQLITE_ROW)
+	{
+		assert(message != NULL);
+		*message = strsub((const char *)sqlite3_column_text(stmt, 0), 0, 0);
+	}
+
+	return sqlite3_finalize(stmt);
+}
+
+int delete_record(sqlite3 *db, const app_option *appopt, char **message)
+{
+	const char *sql;
+	sqlite3_stmt *stmt;
+
+	sql = "DELETE FROM account WHERE id = :id RETURNING sitename";
+
+	if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK)
+	{
+		return sqlite3_finalize(stmt);
+	}
+
+	if (sqlite3_bind_int(stmt, sqlite3_bind_parameter_index(stmt, ":id"), appopt->record_id) != SQLITE_OK)
+	{
+		return sqlite3_finalize(stmt);
+	}
+
+	if (sqlite3_step(stmt) == SQLITE_ROW)
+	{
+		assert(message != NULL);
+		*message = strsub((const char *)sqlite3_column_text(stmt, 0), 0, 0);
+	}
+
+	return sqlite3_finalize(stmt);
 }

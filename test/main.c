@@ -1,7 +1,7 @@
 #include <check.h>
 #include <stdlib.h>
 
-Suite *io_test_suite(void);
+Suite *fileio_test_suite(void);
 
 Suite *utility_test_suite(void);
 
@@ -14,7 +14,7 @@ int main()
 	int number_failed;
 	SRunner *sr;
 
-	sr = srunner_create(io_test_suite());
+	sr = srunner_create(fileio_test_suite());
 	srunner_add_suite(sr, utility_test_suite());
 	srunner_add_suite(sr, stringbuffer_test_suite());
 	srunner_add_suite(sr, encrypt_test_suite());

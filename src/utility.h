@@ -4,8 +4,6 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#include "os.h"
-
 #define STRINGIFY(str) ((str) == ((void *)0) ? "(null)" : (*str) == '\0' ? "(empty)" : (str))
 
 #define STRBOOL(v) ((v) ? "true" : "false")

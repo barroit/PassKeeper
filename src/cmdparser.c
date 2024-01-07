@@ -289,10 +289,16 @@ int handle_parse_argument(const char *argument, app_option *appopt)
 
 int validate_appopt(const app_option *appopt, const char *errmsg[3])
 {
+	if (!exists(appopt->db_pathname))
+	{
+		errmsg[ERRMSG_IV] = appopt->db_pathname;
+		return PK_MISSING_FILE;
+	}
+
 	if (!is_rw_file(appopt->db_pathname))
 	{
 		errmsg[ERRMSG_IV] = appopt->db_pathname;
-		return PK_FILE_INACCESSIBLE;
+		return PK_PERMISSION_DENIED;
 	}
 
 	switch (*appopt->command)
