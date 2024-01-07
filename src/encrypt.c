@@ -1,54 +1,7 @@
 #include "encrypt.h"
 #include "utility.h"
-#include "fileio.h"
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
-
-#define BINKEY_SIZE 32
-
-void *read_key(const char *db_key_pathname, size_t *size)
-{
-	char *keystr;
-	void *key;
-
-	keystr = read_file_content(db_key_pathname, size); /* keystr cannot be NULL */
-	if ((*size == BINKEY_SIZE * 2 + 2) && keystr[0] == '0' && keystr[1] == 'x')
-	{
-		key = hex_to_bin(keystr + 2, size); /* hex key */
-	}
-	else
-	{
-		key = strsub(keystr, 0, *size);
-	}
-
-	free(keystr);
-
-	return key;
-}
-
-void *init_key(const char *db_key_pathname)
-{
-	FILE *file;
-	if ((file = fopen(db_key_pathname, "w")) == NULL)
-	{
-		return NULL;
-	}
-
-	void *binkey;
-	char *hexstr;
-
-	binkey = get_binary_key(BINKEY_SIZE);
-	hexstr = bin_to_hex(binkey, BINKEY_SIZE);
-
-	fprintf(file, "0x%s", hexstr);
-
-	free(hexstr);
-	fclose(file);
-
-	return binkey;
-}
-
 #include <openssl/rand.h>
 
 void *get_binary_key(size_t length)
@@ -59,7 +12,10 @@ void *get_binary_key(size_t length)
 		return NULL;
 	}
 
-	RAND_bytes(buf, length);
+	if (RAND_bytes(buf, length) != 1)
+	{
+		return NULL;
+	}
 
 	return buf;
 }

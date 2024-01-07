@@ -11,7 +11,7 @@
 
 #ifdef PK_IS_DEBUG
 
-int resize_execution_count = 0;
+int strbuffer_resize_count = 0;
 
 #endif /* PK_IS_DEBUG */
 
@@ -32,7 +32,7 @@ string_buffer *sbmake(int capacity)
 
 string_buffer *sbresize(string_buffer *buf, int lower_bound)
 {
-	debug_execute(resize_execution_count++);
+	debug_execute(strbuffer_resize_count++);
 
 	int factor, newsize;
 

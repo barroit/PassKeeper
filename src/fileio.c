@@ -1,30 +1,11 @@
 #include "fileio.h"
 #include "strbuffer.h"
 #include "utility.h"
-#include "os.h"
 #include "rescode.h"
 
 #include <stdlib.h>
 #include <stdio.h>
-
-int prepare_file_folder(const char *pathname)
-{
-	char *dirname;
-	if ((dirname = prefix(pathname)) == NULL)
-	{
-		return PK_INVALID_PATHNAME;
-	}
-
-	int rc = PK_SUCCESS;
-	if (!is_rwx_dir(dirname))
-	{
-		rc = dirmake(dirname);
-	}
-
-	free(dirname);
-
-	return rc == PK_SUCCESS ? PK_SUCCESS : PK_MKDIR_FAILURE;
-}
+#include <stdbool.h>
 
 char *read_file_content(const char *pathname, size_t *size)
 {
@@ -56,17 +37,42 @@ char *read_file_content(const char *pathname, size_t *size)
 	return res;
 }
 
-#ifdef PK_USE_FHS
+int prepare_file_folder(const char *pathname)
+{
+	char *dirname;
+	if ((dirname = prefix(pathname)) == NULL)
+	{
+		return PK_INVALID_PATHNAME;
+	}
+
+	int rc;
+
+	rc = mkdir_p(dirname);
+	free(dirname);
+
+	return rc;
+}
+
+#ifdef __linux
 #include <sys/stat.h>
 #else
 #include <unistd.h>
 #endif
 
-int dirmake(const char *pathname)
+/* no error if existing */
+int mkdir_p(const char *pathname)
 {
-#ifdef PK_USE_FHS
-	return mkdir(pathname, 0755);
+	if (exists(pathname))
+	{
+		return PK_SUCCESS;
+	}
+
+	int rc;
+
+#ifdef __linux
+	rc = mkdir(pathname, 0755);
 #else
-	return mkdir(pathname);
+	rc = mkdir(pathname);
 #endif
+	return rc == 0 ? PK_SUCCESS : PK_MKDIR_FAILURE;
 }

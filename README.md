@@ -9,7 +9,7 @@
 
 ## Install
 
-You can build PassKeeper by running `./run_build [<build_type>]`, some of build types are available:
+You can build PassKeeper by running `./brtool [<build_type>]`, some of build types are available:
 
 + debug (default)
 + test
@@ -18,12 +18,14 @@ You can build PassKeeper by running `./run_build [<build_type>]`, some of build 
 + window
 + clean
 
-To build and install sqlite3 from source, run `./make_sqlite3`. The source code will be placed in *$HOME/Source/sqlite3*
-
-run `./coverage_report` to generate code coverage report
-
 ## Usage
 
-## license
+## License
 
 PassKeeper is licensed under the GNU General Public License v3.0 - see the COPYING file for details.
+
+## Third-Party Licenses
+
+This project uses several third-party components, each with its own licensing:
+
+- **SQLCipher**: SQLCipher is an open source extension to SQLite that provides transparent 256-bit AES encryption of database files. For the licensing details of SQLCipher, please visit their [official website](https://www.zetetic.net/sqlcipher/license/) or see the *SQLCIPHER_LICENSE* file included in this project.

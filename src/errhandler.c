@@ -7,10 +7,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <openssl/err.h>
 
 extern const char *appname;
 
 #define eprintf(format, ...) fprintf(stderr, "%s: " format "\n", appname, __VA_ARGS__)
+
 #define eputs(str) eprintf("%s", str)
 
 void handle_parse_cmdopts_error(int rc, const char *errmsg[2])
@@ -57,61 +59,42 @@ void handle_parse_cmdargs_error(int rc, const char *errmsg[3])
 	}
 }
 
+void handle_missing_operation_error(void)
+{
+	eprintf("missing database operation\n"
+		"Try '%s --help' for more information.",
+		appname);
+}
+
 void handle_validate_appopt_error(int rc, const char *errmsg[3])
 {
-	switch (rc)
+	if (is_io_error(rc))
 	{
-		case PK_FILE_INACCESSIBLE:
-			eprintf("inaccessed database pathname '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
-			break;
-		case PK_UNSATISFIED_CONDITION:
-			eprintf("database operation '%s' requires %s%s%s",
-				errmsg[ERRMSG_IK],
-				errmsg[ERRMSG_IV],
-				errmsg[ERRMSG_IE1] == NULL ? "" : " and ",
-				errmsg[ERRMSG_IE1] == NULL ? "" : errmsg[ERRMSG_IE1]);
-			break;
-		default:
-			abort();
+		handle_io_error(rc, errmsg);
+	}
+	else if (PK_UNSATISFIED_CONDITION)
+	{
+		eprintf("database operation '%s' requires %s%s%s",
+			errmsg[ERRMSG_IK],
+			errmsg[ERRMSG_IV],
+			errmsg[ERRMSG_IE1] == NULL ? "" : " and ",
+			errmsg[ERRMSG_IE1] == NULL ? "" : errmsg[ERRMSG_IE1]);
+	}
+	else
+	{
+		abort();
 	}
 }
 
 void handle_init_database_error(int rc, const char *errmsg[2])
 {
-	switch (rc)
+	if (is_io_error(rc))
 	{
-		case PK_INVALID_PATHNAME:
-			eprintf("unsupported pathname '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
-			break;
-		case PK_FILE_EXIST:
-			eprintf("db file already exists '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
-			break;
-		case PK_MKDIR_FAILURE:
-			eprintf("Unable to create directory for file '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
-			break;
-		default:
-			handle_sqlite_error(rc);
+		handle_io_error(rc, errmsg);
 	}
-}
-
-void handle_apply_key_error(int rc, const char *errmsg[2])
-{
-	switch (rc)
+	else
 	{
-		case PK_FILE_INACCESSIBLE:
-			eprintf("Unable to read file '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
-			break;
-		case PK_INVALID_KEY:
-			eprintf("invalid key found in '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
-			break;
-		case PK_MKDIR_FAILURE:
-			eprintf("Unable to create directory for file '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
-			break;
-		case PK_MKFILE_FAILURE:
-			eprintf("Unable to create file with path '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
-			break;
-		default:
-			abort();
+		handle_sqlite_error(rc);
 	}
 }
 
@@ -126,9 +109,55 @@ void handle_sqlite_error(int rc)
 	eputs(errstr);
 }
 
-void handle_missing_operation_error(void)
+void handle_io_error(int rc, const char *errmsg[2])
 {
-	eprintf("missing database operation\n"
-		"Try '%s --help' for more information.",
-		appname);
+	switch (rc)
+	{
+		case PK_MISSING_FILE:
+			eprintf("no such file or directory '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
+			break;
+		case PK_FILE_EXISTS:
+			eprintf("file already exists '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
+			break;
+		case PK_PERMISSION_DENIED:
+			eprintf("interaction with '%s' is not allowed", STRINGIFY(errmsg[ERRMSG_IV]));
+			break;
+		case PK_INVALID_PATHNAME:
+			eprintf("unsupported pathname '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
+			break;
+		case PK_MKDIR_FAILURE:
+			eprintf("cannot create directory for file '%s'", STRINGIFY(errmsg[ERRMSG_IV]));
+			break;
+		default:
+			abort();
+	}
+}
+
+void handle_db_key_error(int rc, const char *errmsg[2])
+{
+	if (is_io_error(rc))
+	{
+		handle_io_error(rc, errmsg);
+		return;
+	}
+
+	switch (rc)
+	{
+		case PK_INVALID_KEY:
+			eprintf("invalid key read from file '%s'", errmsg[ERRMSG_IV]);
+			break;
+		case PK_INCORRECT_KEY:
+			eputs("database key is incorrect");
+			break;
+		case PK_KEYGEN_FAILURE:
+			eputs(ERR_reason_error_string(ERR_get_error()));
+			break;
+		default:
+			abort();
+	}
+}
+
+bool is_io_error(int rc)
+{
+	return IN_RANGE(rc, 30, 49);
 }

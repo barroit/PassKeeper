@@ -36,7 +36,7 @@ add_library(develop_config INTERFACE)
 target_compile_options(develop_config INTERFACE -O0)
 
 add_library(release_config INTERFACE)
-target_compile_options(release_config INTERFACE -Werror -Os)
+target_compile_options(release_config INTERFACE -Werror -Os -DNDEBUG)
 
 add_library(debug_config INTERFACE)
 target_compile_options(debug_config INTERFACE -g3 -DPK_IS_DEBUG)

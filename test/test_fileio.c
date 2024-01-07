@@ -10,7 +10,7 @@
 #define DPATHNAME	"./dummydir"
 #define KEYSTR		"0x0A335A9EC0EE2AED994324AABBAC7EBAB17492D025EAEDDB5E70DAEA499D6587"
 
-void io_test_setup(void)
+void fileio_test_setup(void)
 {
 	FILE *fs;
 	
@@ -22,15 +22,15 @@ void io_test_setup(void)
 	rmdir(DPATHNAME);
 }
 
-void io_test_teardown(void)
+void fileio_test_teardown(void)
 {
 	remove(FPATHNAME);
 	rmdir(DPATHNAME);
 }
 
-START_TEST(test_mkdir)
+START_TEST(test_mkdir_p)
 {
-	dirmake(DPATHNAME);
+	mkdir_p(DPATHNAME);
 	ck_assert_int_eq(access(DPATHNAME, R_OK | W_OK | X_OK), 0);
 }
 END_TEST
@@ -59,16 +59,16 @@ START_TEST(test_read_file_content)
 }
 END_TEST
 
-Suite *io_test_suite(void)
+Suite *fileio_test_suite(void)
 {
 	Suite *s;
 	TCase *tc_component;
 
-	s = suite_create("io");
+	s = suite_create("fileio");
 	tc_component = tcase_create("component");
-	tcase_add_checked_fixture(tc_component, io_test_setup, io_test_teardown);
+	tcase_add_checked_fixture(tc_component, fileio_test_setup, fileio_test_teardown);
 
-	tcase_add_test(tc_component, test_mkdir);
+	tcase_add_test(tc_component, test_mkdir_p);
 	tcase_add_test(tc_component, test_prepare_file_folder);
 	tcase_add_test(tc_component, test_read_file_content);
 	suite_add_tcase(s, tc_component);
