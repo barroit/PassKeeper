@@ -34,6 +34,7 @@ export TARGET_PLATFORM=$([[ $target == 'window' ]] && echo "window" || echo "pen
 
 $project_root/tool/make_openssl
 $project_root/tool/make_sqlcipher
+$project_root/tool/make_freetype
 
 cmake -B $build_dir -DCMAKE_BUILD_TYPE=${target^} -DINSTALL_PREFIX=$install_prefix
 

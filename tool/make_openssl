@@ -12,20 +12,26 @@ cd $source_dir
 
 if [[ ! -d $openssl_dir ]]
 then
-	git clone https://github.com/openssl/openssl.git
+	git clone 'git://git.openssl.org/openssl.git'
 fi
 
 cd $openssl_dir
 
-feature='no-apps no-shared no-docs no-tests no-legacy'
+feature='no-apps no-shared no-docs no-tests no-legacy no-threads no-ssl no-ssl-trace no-thread-pool no-stdio no-ui-console no-engine no-sock no-uplink no-deprecated no-dynamic-engine'
 target='linux-x86_64'
 flag="--prefix=$install_prefix"
 
 if [[ $TARGET_PLATFORM == 'window' ]]
 then
-	feature+=' no-asm'
 	target=mingw64
 	flag+=' --cross-compile-prefix=x86_64-w64-mingw32-'
+fi
+
+if [[ -f 'Makefile' ]]
+then
+	process_start 'cleanup build files'
+	process_exec 'make clean'
+	process_end
 fi
 
 process_start "configuring openssl for $TARGET_PLATFORM"
@@ -33,7 +39,7 @@ process_exec "./Configure $target $feature $flag CFLAGS=-Os"
 process_end
 
 process_start 'building openssl'
-process_exec 'make'
+process_exec 'make -j25' # Cores Plus One
 process_end
 
 process_start 'installing openssl'
@@ -41,5 +47,4 @@ process_exec 'make install_sw'
 process_end
 
 process_cleanup
-
 set_depstat 'openssl'

@@ -1,0 +1,47 @@
+#!/usr/bin/bash
+
+project_root="$(cd $(dirname $0) &> /dev/null && pwd)/.."
+
+source "$project_root/tool/util"
+
+check_depstat 'freetype'
+
+cd $source_dir
+
+freetype_dir="$source_dir/freetype"
+
+if [[ ! -d $freetype_dir ]]
+then
+	git clone 'https://github.com/freetype/freetype.git'
+fi
+
+cd $freetype_dir
+
+flags="--prefix=$install_prefix --without-brotli --without-harfbuzz --without-png"
+
+if [[ $TARGET_PLATFORM == 'window' ]]
+then
+	flags+=' --build=x86_64-pc-linux-gnu --host=x86_64-w64-mingw32 --without-zlib'
+fi
+
+if [[ ! -f 'configure' ]]
+then
+	process_start "generating configure script for freetype"
+	process_exec "./autogen.sh"
+	process_end
+fi
+
+process_start "configuring freetype for $TARGET_PLATFORM"
+process_exec "./configure $flags CFLAGS=-O3"
+process_end
+
+process_start 'building freetype'
+process_exec 'make -j25'
+process_end
+
+process_start 'installing freetype'
+process_exec 'make install'
+process_end
+
+process_cleanup
+set_depstat 'freetype'

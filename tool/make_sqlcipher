@@ -12,7 +12,7 @@ sqlcipher_dir="$source_dir/sqlcipher"
 
 if [[ ! -d $sqlcipher_dir ]]
 then
-	git clone https://github.com/sqlcipher/sqlcipher.git
+	git clone 'https://github.com/sqlcipher/sqlcipher.git'
 fi
 
 cd $sqlcipher_dir
@@ -29,7 +29,7 @@ then
 	process_end
 
 	process_start 'building sqlcipher for penguin'
-	process_exec 'make'
+	process_exec 'make -j25'
 	process_end
 fi
 
@@ -46,7 +46,7 @@ then
 	make clean > /dev/null
 
 	process_start 'building sqlcipher'
-	process_exec 'make'
+	process_exec 'make -j25'
 	process_end
 fi
 
@@ -85,5 +85,4 @@ process_exec 'make pc_install'
 process_end
 
 process_cleanup
-
 set_depstat 'sqlcipher'

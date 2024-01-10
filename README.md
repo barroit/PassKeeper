@@ -29,3 +29,8 @@ PassKeeper is licensed under the GNU General Public License v3.0 - see the COPYI
 This project uses several third-party components, each with its own licensing:
 
 - **SQLCipher**: SQLCipher is an open source extension to SQLite that provides transparent 256-bit AES encryption of database files. For the licensing details of SQLCipher, please visit their [official website](https://www.zetetic.net/sqlcipher/license/) or see the *SQLCIPHER_LICENSE* file included in this project.
+
+## Troubleshooting
+
+OpenSSL assembly directives not being recognized: Ensure you have nasm installed
+
