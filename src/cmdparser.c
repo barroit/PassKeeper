@@ -1,11 +1,10 @@
 #include "cmdparser.h"
-#include "utility.h"
+#include "misc.h"
+#include "fileio.h"
+#include "strutil.h"
 #include "rescode.h"
 #include "config.h"
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
+
 #include <ctype.h>
 #include <getopt.h>
 

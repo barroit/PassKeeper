@@ -1,9 +1,0 @@
-1. update help message
-
-2. replace message in record handler parameter to a message array for large string representation
-
-3. handle full-width and half-width characters for correct padding
-
-4. stop supporting operation shortcut
-
-5. refactor command parser functionality

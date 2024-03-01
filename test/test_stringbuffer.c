@@ -1,8 +1,8 @@
-#include "strbuffer.h"
+#include "strbuf.h"
 #include <check.h>
 #include <string.h>
 
-string_buffer *buf;
+stringbuffer *buf;
 
 void stringbuffer_test_setup(void)
 {

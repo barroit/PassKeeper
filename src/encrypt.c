@@ -1,5 +1,5 @@
 #include "encrypt.h"
-#include "utility.h"
+#include "misc.h"
 #include <stdlib.h>
 #include <string.h>
 #include <openssl/rand.h>

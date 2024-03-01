@@ -1,6 +1,6 @@
 #include "appinfo.h"
 #include "config.h"
-#include "utility.h"
+#include "strutil.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -17,7 +17,7 @@ void show_version(void)
 
 void show_all_usages(void)
 {
-	char *margin = strpad(strlen(appname) + 8);
+	char *margin = mkspase(strlen(appname) + 8);
 
 	printf("usage: %s [--version] [--help] [--db_pathname=<path>]\n"
 		"%s<command> [<args>]\n"
@@ -45,7 +45,7 @@ void show_command_usage(const char *command)
 	optab['d' - 'C'] = optab['D' - 'C'] = 3;
 
 	const char *format;
-	const char * (*fmthandler[4])(void) = {
+	const char *(*fmthandler[4])(void) = {
 		get_create_usage_format,
 		get_read_usage_format,
 		get_update_usage_format,

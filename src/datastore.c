@@ -1,5 +1,6 @@
 #include "datastore.h"
-#include "utility.h"
+#include "misc.h"
+#include "strutil.h"
 #include "debug.h"
 #include "rescode.h"
 #include "fileio.h"
@@ -22,7 +23,7 @@ int init_db_file(sqlite3 **db, const char *dbpath, const char *errmsg[2])
 		return PK_FILE_EXISTS;
 	}
 
-	if ((rc = prepare_file_folder(dbpath)) != PK_SUCCESS)
+	if ((rc = prepare_folder(dbpath)) != PK_SUCCESS)
 	{
 		errmsg[ERRMSG_IV] = dbpath;
 		return rc;
@@ -92,7 +93,7 @@ int read_db_key(const char *keypath, void **__key, size_t *__ksz)
 {
 	char *keystr;
 	size_t ksz;
-	if (!is_rw_file(keypath) || (keystr = read_file_content(keypath, &ksz)) == NULL)
+	if (!is_rw_file(keypath) || (keystr = read_content(keypath, &ksz)) == NULL)
 	{
 		return PK_PERMISSION_DENIED;
 	}
@@ -104,7 +105,7 @@ int read_db_key(const char *keypath, void **__key, size_t *__ksz)
 	}
 	else
 	{
-		key = strsub(keystr, 0, ksz);
+		key = substr(keystr, 0, ksz);
 	}
 
 	free(keystr);
@@ -128,7 +129,7 @@ int read_db_key(const char *keypath, void **__key, size_t *__ksz)
 int init_db_key(const char *keypath, void **__key, size_t *__ksz)
 {
 	int rc;
-	if ((rc = prepare_file_folder(keypath)) != PK_SUCCESS)
+	if ((rc = prepare_folder(keypath)) != PK_SUCCESS)
 	{
 		return rc;
 	}
@@ -236,7 +237,7 @@ int create_record(sqlite3 *db, const app_option *appopt, char **message)
 	if (sqlite3_step(stmt) == SQLITE_DONE)
 	{
 		assert(message != NULL);
-		*message = strsub(appopt->sitename, 0, 0);
+		*message = substr(appopt->sitename, 0, 0);
 	}
 
 	return sqlite3_finalize(stmt);
@@ -260,7 +261,7 @@ int read_record(sqlite3 *db, const app_option *appopt, char __attribute__ ((unus
 	}
 	else
 	{
-		char *search_pattern = strapd(appopt->sitename, "%");
+		char *search_pattern = concat(appopt->sitename, "%");
 		rc = sqlite3_bind_text(stmt, 1, search_pattern, -1, SQLITE_TRANSIENT);
 		free(search_pattern);
 	}
@@ -311,11 +312,11 @@ int read_record(sqlite3 *db, const app_option *appopt, char __attribute__ ((unus
 
 	debug_log("size of rcque is %lu\n", record_queue_size);
 
-	string_buffer *buf;
+	stringbuffer *buf;
 	char *padstr;
 
-	buf = sbmake(200);
-	padstr = strpad(appopt->wrap_threshold);
+	buf = sballoc(200);
+	padstr = mkspase(appopt->wrap_threshold);
 
 	int is_init;
 
@@ -335,7 +336,7 @@ int read_record(sqlite3 *db, const app_option *appopt, char __attribute__ ((unus
 		{
 			fputs(buf->data, stdout);
 			sbfree(buf);
-			buf = sbmake(200);
+			buf = sballoc(200);
 		}
 
 		rcffree(data);
@@ -350,7 +351,7 @@ int read_record(sqlite3 *db, const app_option *appopt, char __attribute__ ((unus
 	sbfree(buf);
 	rcqfree(q);
 
-	debug_log("strbuffer resize executed %d times\n", strbuffer_resize_count);
+	debug_log("strbuffer resize executed %d times\n", sb_resize_count);
 
 	return sqlite3_finalize(stmt);
 }
@@ -366,7 +367,7 @@ void assign_field(sqlite3_stmt *stmt, int column, char **field, int *flen)
 		tmp_flen = 6;
 	}
 
-	*field = strsub(tmp_field, 0, 0);
+	*field = substr(tmp_field, 0, 0);
 
 	if (flen != NULL)
 	{
@@ -382,7 +383,7 @@ void assign_by_large_value(int *dest, int tar)
 	}
 }
 
-int align_and_wrap_field(string_buffer *buf, const char *field, int field_crtlen, int field_maxlen, int wrap_threshold, const char *padstr)
+int align_and_wrap_field(stringbuffer *buf, const char *field, int field_crtlen, int field_maxlen, int wrap_threshold, const char *padstr)
 {
 	if (field == NULL)
 	{
@@ -403,7 +404,7 @@ int align_and_wrap_field(string_buffer *buf, const char *field, int field_crtlen
 	if (align_amount < 0)
 	{
 		substr_length = field_crtlen + align_amount;
-		field_fragment = strsub(field, 0, substr_length);
+		field_fragment = substr(field, 0, substr_length);
 	}
 
 	const char *fmt_field, *fmt_padstr;
@@ -424,7 +425,7 @@ int align_and_wrap_field(string_buffer *buf, const char *field, int field_crtlen
 	return substr_length;
 }
 
-void print_brief_field(string_buffer *buf, record_field *data, int field_maxlen_map[3], int wrap_threshold, const char *padstr)
+void print_brief_field(stringbuffer *buf, record_field *data, int field_maxlen_map[3], int wrap_threshold, const char *padstr)
 {
 	int substr_length[3];
 
@@ -460,7 +461,7 @@ void print_brief_field(string_buffer *buf, record_field *data, int field_maxlen_
 	data->password_length = rawlen_map[2];
 }
 
-void print_verbose_field(string_buffer *buf, const record_field *data, int *is_init)
+void print_verbose_field(stringbuffer *buf, const record_field *data, int *is_init)
 {
 	sbprintf(buf,
 		"%s"
@@ -492,7 +493,7 @@ int update_record(sqlite3 *db, const app_option *appopt, char **message)
 	int rc, idx;
 	sqlite3_stmt *stmt;
 
-	string_buffer *buf;
+	stringbuffer *buf;
 
 	const entry *iter, entries[8] = {
 		{ "sitename", appopt->sitename },
@@ -505,7 +506,7 @@ int update_record(sqlite3 *db, const app_option *appopt, char **message)
 		{ NULL, NULL },
 	};
 
-	buf = sbmake(200);
+	buf = sballoc(200);
 	iter = entries;
 	while (iter->key != NULL)
 	{
@@ -517,7 +518,7 @@ int update_record(sqlite3 *db, const app_option *appopt, char **message)
 	int sql_offset;
 
 	sql_offset = buf->size;
-	update_column = strsub(buf->data, 2, buf->size - 2);
+	update_column = substr(buf->data, 2, buf->size - 2);
 	sbprintf(buf, "UPDATE account SET %s WHERE id = :id RETURNING sitename", update_column); /* skip first comma */
 	free(update_column);
 
@@ -555,7 +556,7 @@ int update_record(sqlite3 *db, const app_option *appopt, char **message)
 	if (sqlite3_step(stmt) == SQLITE_ROW)
 	{
 		assert(message != NULL);
-		*message = strsub((const char *)sqlite3_column_text(stmt, 0), 0, 0);
+		*message = substr((const char *)sqlite3_column_text(stmt, 0), 0, 0);
 	}
 
 	return sqlite3_finalize(stmt);
@@ -581,7 +582,7 @@ int delete_record(sqlite3 *db, const app_option *appopt, char **message)
 	if (sqlite3_step(stmt) == SQLITE_ROW)
 	{
 		assert(message != NULL);
-		*message = strsub((const char *)sqlite3_column_text(stmt, 0), 0, 0);
+		*message = substr((const char *)sqlite3_column_text(stmt, 0), 0, 0);
 	}
 
 	return sqlite3_finalize(stmt);

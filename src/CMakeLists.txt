@@ -7,38 +7,45 @@ find_package(OpenSSL REQUIRED)
 file(GLOB PK_SOURCES "*.c")
 list(REMOVE_ITEM PK_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/interface.c")
 
-# pkdev
-add_library(pkdev STATIC ${PK_SOURCES})
+# pk
+add_library(pk STATIC ${PK_SOURCES})
 
-target_link_directories(pkdev
+target_link_directories(pk
 	INTERFACE ${SQLCIPHER_LIBRARY_DIRS}
 	INTERFACE ${OPENSSL_LIBRARY_DIRS})
 
-target_link_libraries(pkdev
+target_link_libraries(pk
 	INTERFACE ${SQLCIPHER_LIBRARIES}
 	INTERFACE ${OPENSSL_LIBRARIES})
 
 if(CMAKE_BUILD_TYPE IN_LIST RELEASE_BUILD_TYPES)
-	target_link_libraries(pkdev PUBLIC release_config) # -Wall -Wextra -Werror -Os
+	target_link_libraries(pk PUBLIC release_config) # -Wall -Wextra -Werror -Os
 else()
-	target_link_libraries(pkdev PUBLIC develop_config) # -Wall -Wextra -O0
+	target_link_libraries(pk PUBLIC develop_config) # -Wall -Wextra -O0
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-	target_link_libraries(pkdev PUBLIC debug_config)
+	target_link_libraries(pk PUBLIC debug_config)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Coverage")
-	target_link_libraries(pkdev PRIVATE coverage_config)
+	target_link_libraries(pk PRIVATE coverage_config)
 endif()
 
-target_include_directories(pkdev
+target_include_directories(pk
 	PUBLIC ${PROJECT_BINARY_DIR}
 	INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}
 	PUBLIC ${SQLCIPHER_INCLUDE_DIRS}
 	PUBLIC ${OPENSSL_INCLUDE_DIRS})
 
-# pk
-add_executable(pk interface.c)
+target_precompile_headers(pk
+	PRIVATE <stddef.h>
+	PRIVATE <stdlib.h>
+	PRIVATE <string.h>
+	PRIVATE <stdio.h>
+	PRIVATE <stdbool.h>)
 
-target_link_libraries(pk pkdev)
+# pkcmd
+add_executable(pkcmd interface.c)
 
-set_target_properties(pk PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+target_link_libraries(pkcmd pk)
+
+set_target_properties(pkcmd PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})

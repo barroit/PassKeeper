@@ -4,7 +4,7 @@
 #include "appinfo.h"
 #include "debug.h"
 #include "datastore.h"
-#include "utility.h"
+#include "misc.h"
 
 #include <stdlib.h>
 #include <stdbool.h>

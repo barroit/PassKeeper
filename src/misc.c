@@ -20,21 +20,25 @@
 **
 ****************************************************************************/
 
-#ifndef FILEIO_H
-#define FILEIO_H
+#include "misc.h"
 
-bool exists(const char *pathname);
+#include <ctype.h>
 
-bool is_rw_file(const char *pathname);
+bool is_positive_integer(const char *str)
+{
+	do
+	{
+		if (!isdigit(*str++))
+		{
+			return false;
+		}
+	}
+	while (*str);
 
-bool is_rwx_dir(const char *dirname);
+	return true;
+}
 
-int prepare_folder(const char *pathname);
-
-char *read_content(const char *pathname, size_t *size);
-
-int mkdir_p(const char *pathname);
-
-char *prefix(const char *pathname);
-
-#endif /* FILEIO_H */
+bool is_hexchr(char c)
+{
+	return IN_RANGE(c, '0', '9') || IN_RANGE(c, 'A', 'F') || IN_RANGE(c, 'a', 'f');
+}

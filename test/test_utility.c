@@ -1,4 +1,4 @@
-#include "utility.h"
+#include "misc.h"
 #include <check.h>
 #include <stdlib.h>
 

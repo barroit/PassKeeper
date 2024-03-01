@@ -1,7 +1,7 @@
 #include "errhandler.h"
 #include "rescode.h"
-#include "utility.h"
-#include "strbuffer.h"
+#include "misc.h"
+#include "strbuf.h"
 
 #include <sqlite3.h>
 #include <stdlib.h>

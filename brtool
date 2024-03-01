@@ -23,7 +23,7 @@ fi
 
 echo "found build type: $target"
 
-cmake_build_target='pk'
+cmake_build_target='pkcmd'
 
 if [[ $target == 'test' || $target == 'coverage' ]]
 then

@@ -3,7 +3,7 @@
 
 #include "cmdparser.h"
 #include "rcque.h"
-#include "strbuffer.h"
+#include "strbuf.h"
 
 #include <stdbool.h>
 #include <sqlite3.h>
@@ -36,11 +36,11 @@ void assign_field(sqlite3_stmt *stmt, int column, char **filed, int *flen);
 
 void assign_by_large_value(int *dest, int tar);
 
-int align_and_wrap_field(string_buffer *buf, const char *field, int field_crtlen, int field_maxlen, int wrap_threshold, const char *padstr);
+int align_and_wrap_field(stringbuffer *buf, const char *field, int field_crtlen, int field_maxlen, int wrap_threshold, const char *padstr);
 
-void print_brief_field(string_buffer *buf, record_field *data, int field_maxlen_map[3], int wrap_threshold, const char *padstr);
+void print_brief_field(stringbuffer *buf, record_field *data, int field_maxlen_map[3], int wrap_threshold, const char *padstr);
 
-void print_verbose_field(string_buffer *buf, const record_field *data, int *is_init);
+void print_verbose_field(stringbuffer *buf, const record_field *data, int *is_init);
 
 int update_record(sqlite3 *db, const app_option *appopt, char **message);
 

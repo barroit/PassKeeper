@@ -20,21 +20,23 @@
 **
 ****************************************************************************/
 
-#ifndef FILEIO_H
-#define FILEIO_H
+// TODO: this file has a bunch of uncategorized functions. consider grouping them
 
-bool exists(const char *pathname);
+#ifndef MISC_H
+#define MISC_H
 
-bool is_rw_file(const char *pathname);
+#define STRINGIFY(str) ((str) == ((void *)0) ? "(null)" : (*str) == '\0' ? "(empty)" : (str))
 
-bool is_rwx_dir(const char *dirname);
+#define STRBOOL(v) ((v) ? "true" : "false")
 
-int prepare_folder(const char *pathname);
+#define MAX(x, y) ((x > y) ? x : y)
 
-char *read_content(const char *pathname, size_t *size);
+#define MIN(x, y) ((x < y) ? x : y)
 
-int mkdir_p(const char *pathname);
+#define IN_RANGE(p, x1, x2) ((p >= x1) && (p <= x2))
 
-char *prefix(const char *pathname);
+bool is_positive_integer(const char *str);
 
-#endif /* FILEIO_H */
+bool is_hexchr(char c);
+
+#endif /* MISC_H */

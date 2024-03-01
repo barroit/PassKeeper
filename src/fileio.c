@@ -1,13 +1,48 @@
+/****************************************************************************
+**
+** Copyright 2023, 2024 Jiamu Sun
+** Contact: barroit@linux.com
+**
+** This file is part of PassKeeper.
+**
+** PassKeeper is free software: you can redistribute it and/or modify it
+** under the terms of the GNU General Public License as published by the
+** Free Software Foundation, either version 3 of the License, or (at your
+** option) any later version.
+**
+** PassKeeper is distributed in the hope that it will be useful, but
+** WITHOUT ANY WARRANTY; without even the implied warranty of
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+** General Public License for more details.
+**
+** You should have received a copy of the GNU General Public License along
+** with PassKeeper. If not, see <https://www.gnu.org/licenses/>.
+**
+****************************************************************************/
+
 #include "fileio.h"
-#include "strbuffer.h"
-#include "utility.h"
+#include "strbuf.h"
+#include "strutil.h"
 #include "rescode.h"
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdbool.h>
+#include <unistd.h>
 
-char *read_file_content(const char *pathname, size_t *size)
+bool exists(const char *pathname)
+{
+	return pathname == NULL ? false : access(pathname, F_OK) == 0;
+}
+
+bool is_rw_file(const char *pathname)
+{
+	return pathname == NULL ? false : access(pathname, F_OK | R_OK | W_OK) == 0;
+}
+
+bool is_rwx_dir(const char *dirname)
+{
+	return dirname == NULL ? false : access(dirname, F_OK | R_OK | W_OK | X_OK) == 0;
+}
+
+char *read_content(const char *pathname, size_t *size)
 {
 	FILE *file;
 	if ((file = fopen(pathname, "r")) == NULL)
@@ -15,16 +50,16 @@ char *read_file_content(const char *pathname, size_t *size)
 		return NULL;
 	}
 
-	string_buffer *buf;
+	stringbuffer *buf;
 	char c, *res;
 
-	buf = sbmake(125);
+	buf = sballoc(125);
 	while ((c = fgetc(file)) != EOF)
 	{
 		sbputc(buf, c);
 	}
 
-	res = strsub(buf->data, 0, 0);
+	res = substr(buf->data, 0, 0);
 
 	if (size != NULL)
 	{
@@ -37,7 +72,7 @@ char *read_file_content(const char *pathname, size_t *size)
 	return res;
 }
 
-int prepare_file_folder(const char *pathname)
+int prepare_folder(const char *pathname)
 {
 	char *dirname;
 	if ((dirname = prefix(pathname)) == NULL)
@@ -53,10 +88,31 @@ int prepare_file_folder(const char *pathname)
 	return rc;
 }
 
+char *prefix(const char *pathname)
+{
+	const char *seperator;
+	if ((seperator = strrchr(pathname, '/')) == NULL && (seperator = strrchr(pathname, '\\')) == NULL)
+	{
+		return NULL;
+	}
+
+	char *dirname;
+	ptrdiff_t dnlen; /* directory name length */
+
+	dnlen = seperator - pathname;
+	if ((dirname = malloc(dnlen + 1)) == NULL)
+	{
+		return NULL;
+	}
+
+	memcpy(dirname, pathname, dnlen);
+	dirname[dnlen] = 0;
+
+	return dirname;
+}
+
 #ifdef __linux
 #include <sys/stat.h>
-#else
-#include <unistd.h>
 #endif
 
 /* no error if existing */
@@ -74,5 +130,6 @@ int mkdir_p(const char *pathname)
 #else
 	rc = mkdir(pathname);
 #endif
+
 	return rc == 0 ? PK_SUCCESS : PK_MKDIR_FAILURE;
 }
