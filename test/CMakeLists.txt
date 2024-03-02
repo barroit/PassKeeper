@@ -2,12 +2,19 @@ find_package(Check REQUIRED)
 
 file(GLOB PK_TEST_SOURCES *.c)
 
-add_executable(pk_test ${PK_TEST_SOURCES})
+add_executable(pktest ${PK_TEST_SOURCES})
 
-target_include_directories(pk_test PRIVATE ${CHECK_INCLUDE_DIRS})
+target_include_directories(pktest PRIVATE ${CHECK_INCLUDE_DIRS})
 
-target_link_directories(pk_test PRIVATE ${CHECK_LIBRARY_DIRS})
+target_link_directories(pktest PRIVATE ${CHECK_LIBRARY_DIRS})
 
-target_link_libraries(pk_test ${CHECK_LIBRARIES} pkdev)
+target_link_libraries(pktest ${CHECK_LIBRARIES} pk)
 
-set_target_properties(pk_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+set_target_properties(pktest PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+
+target_precompile_headers(pktest
+	PRIVATE <stddef.h>
+	PRIVATE <string.h>
+	PRIVATE <stdio.h>
+	PRIVATE <stdbool.h>
+	PRIVATE <check.h>)

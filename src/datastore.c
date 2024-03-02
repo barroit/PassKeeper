@@ -271,8 +271,8 @@ int read_record(sqlite3 *db, const app_option *appopt, char __attribute__ ((unus
 		return sqlite3_finalize(stmt);
 	}
 
-	record_queue *q;
-	record_field *data;
+	recordqueue *q;
+	recordfield *data;
 	int field_maxlen_map[3] = { 0, 0, 0 };
 
 	q = rcqmake();
@@ -310,7 +310,7 @@ int read_record(sqlite3 *db, const app_option *appopt, char __attribute__ ((unus
 		enrcque(q, data);
 	}
 
-	debug_log("size of rcque is %lu\n", record_queue_size);
+	debug_log("size of rcque is %lu\n", rcque_size);
 
 	stringbuffer *buf;
 	char *padstr;
@@ -425,7 +425,7 @@ int align_and_wrap_field(stringbuffer *buf, const char *field, int field_crtlen,
 	return substr_length;
 }
 
-void print_brief_field(stringbuffer *buf, record_field *data, int field_maxlen_map[3], int wrap_threshold, const char *padstr)
+void print_brief_field(stringbuffer *buf, recordfield *data, int field_maxlen_map[3], int wrap_threshold, const char *padstr)
 {
 	int substr_length[3];
 
@@ -461,7 +461,7 @@ void print_brief_field(stringbuffer *buf, record_field *data, int field_maxlen_m
 	data->password_length = rawlen_map[2];
 }
 
-void print_verbose_field(stringbuffer *buf, const record_field *data, int *is_init)
+void print_verbose_field(stringbuffer *buf, const recordfield *data, int *is_init)
 {
 	sbprintf(buf,
 		"%s"

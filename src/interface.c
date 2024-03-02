@@ -6,10 +6,6 @@
 #include "datastore.h"
 #include "misc.h"
 
-#include <stdlib.h>
-#include <stdbool.h>
-#include <stdio.h>
-
 extern int optind;
 
 const char *appname;

@@ -86,8 +86,6 @@ void sbprintf(stringbuffer *strbuf, const char *format, ...);
  * @param length The maximum number of characters to append, excluding the null-terminator.
  * @param format The null-terminated format string in printf-style.
  * @param ... Variable arguments to be formatted according to `format`.
- * 
- * @note  The length (excluding null-terminator) of the formatted string must be equal or greater than the `length`.
  */
 void sbnprintf(stringbuffer *strbuf, size_t length, const char *format, ...);
 

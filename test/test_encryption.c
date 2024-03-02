@@ -1,7 +1,4 @@
 #include "encrypt.h"
-#include <check.h>
-#include <string.h>
-#include <stdlib.h>
 
 #define KEYLEN 32
 

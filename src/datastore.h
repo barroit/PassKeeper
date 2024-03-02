@@ -38,9 +38,9 @@ void assign_by_large_value(int *dest, int tar);
 
 int align_and_wrap_field(stringbuffer *buf, const char *field, int field_crtlen, int field_maxlen, int wrap_threshold, const char *padstr);
 
-void print_brief_field(stringbuffer *buf, record_field *data, int field_maxlen_map[3], int wrap_threshold, const char *padstr);
+void print_brief_field(stringbuffer *buf, recordfield *data, int field_maxlen_map[3], int wrap_threshold, const char *padstr);
 
-void print_verbose_field(stringbuffer *buf, const record_field *data, int *is_init);
+void print_verbose_field(stringbuffer *buf, const recordfield *data, int *is_init);
 
 int update_record(sqlite3 *db, const app_option *appopt, char **message);
 

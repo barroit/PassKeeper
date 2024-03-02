@@ -90,3 +90,101 @@ bool is_empty_string(const char *str)
 {
 	return str == NULL ? true : *str == '\0';
 }
+
+#define U8CNAR_MASK	0xC0
+#define U8CNAR_MARKER	0x80
+
+bool is_start_byte(const char c)
+{
+	return (c & U8CNAR_MASK) != U8CNAR_MARKER;
+}
+
+size_t u8strlen(const char *iter)
+{
+	size_t length;
+
+	length = 0;
+	while (*iter)
+	{
+		if (is_start_byte(*iter++))
+		{
+			length++;
+		}
+	}
+
+	return length;
+}
+
+char *u8substr(const char *iter, size_t start_index, size_t substr_lenght)
+{
+	if (iter == NULL)
+	{
+		return NULL;
+	}
+
+	const char *head;
+	size_t char_count;
+	bool unknow_length, finish_calc;
+
+	head = NULL;
+	char_count = 0;
+	unknow_length = substr_lenght == 0;
+	finish_calc = false;
+	while (*iter)
+	{
+		if (!is_start_byte(*iter))
+		{
+			iter++;
+			continue;
+		}
+
+		if (finish_calc)
+		{
+			break;
+		}
+
+		iter++;
+		char_count++;
+
+		if (char_count - 1 < start_index) /* char_count - 1 for comparing index */
+		{
+			continue;
+		}
+
+		if (char_count - 1 == start_index) /* also index */
+		{
+			head = iter - 1;
+		}
+
+		if (unknow_length)
+		{
+			continue; /* let iter goes to the end */
+		}
+
+		substr_lenght--;
+
+		if (substr_lenght == 0)
+		{
+			finish_calc = true;
+		}
+	}
+
+	if (head == NULL) /* start_index out of size */
+	{
+		return NULL;
+	}
+ 
+	char *dest;
+	ptrdiff_t destsz;
+
+	destsz = iter - head;
+	if ((dest = malloc(destsz + 1)) == NULL)
+	{
+	    return NULL;
+	}
+
+	memcpy(dest, head, destsz);
+	dest[destsz] = 0;
+
+	return dest;
+}

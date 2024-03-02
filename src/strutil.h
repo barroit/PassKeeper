@@ -45,6 +45,8 @@ char *mkspase(size_t length);
 char *concat(const char *str1, const char *str2);
 
 /**
+ * @deprecated use `u8strlen`
+ * 
  * @brief Extracts a substring from a specified position.
  * 
  * @param src Source string.
@@ -57,6 +59,27 @@ char *concat(const char *str1, const char *str2);
  */
 char *substr(const char *src, size_t start, size_t length);
 
+// TODO: fill docs
 bool is_empty_string(const char *string);
+
+/**
+ * @brief Counts the number of UTF-8 encoded characters in a string.
+ * 
+ * @param iter Pointer to the null-terminated UTF-8 encoded string.
+ * @return The number of UTF-8 encoded characters in the string.
+ */
+size_t u8strlen(const char *iter);
+
+/**
+ * @brief Extracts a substring from a UTF-8 string starting at a given character index.
+ * 
+ * @param iter The source UTF-8 encoded string from which to extract the substring.
+ * @param start_index The zero-based index of the first character to include in the substring.
+ * @param substr_lenght The number of characters to include in the substring; if 0, extracts until the end of the string.
+ * @return A newly allocated string containing the specified substring, null-terminated. Returns NULL on failure or if `iter` is NULL.
+ * 
+ * @note The caller is responsible for freeing the returned string.
+ */
+char *u8substr(const char *src, size_t start, size_t count);
 
 #endif /* STRUTIL_H */

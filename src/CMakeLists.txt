@@ -38,7 +38,7 @@ target_include_directories(pk
 
 target_precompile_headers(pk
 	PRIVATE <stddef.h>
-	PRIVATE <stdlib.h>
+	PUBLIC <stdlib.h>
 	PRIVATE <string.h>
 	PRIVATE <stdio.h>
 	PRIVATE <stdbool.h>)

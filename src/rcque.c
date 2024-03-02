@@ -3,18 +3,14 @@
 #include "debug.h"
 #include "rescode.h"
 
-#include <stdlib.h>
-
 #ifdef PK_IS_DEBUG
+size_t rcque_size = 0;
+#endif
 
-size_t record_queue_size = 0;
-
-#endif /* PK_IS_DEBUG */
-
-record_queue *rcqmake(void)
+recordqueue *rcqmake(void)
 {
-	record_queue *q;
-	if ((q = malloc(sizeof(record_queue))) == NULL)
+	recordqueue *q;
+	if ((q = malloc(sizeof(recordqueue))) == NULL)
 	{
 		return NULL;
 	}
@@ -25,10 +21,10 @@ record_queue *rcqmake(void)
 	return q;
 }
 
-record_field *rcfmake(void)
+recordfield *rcfmake(void)
 {
-	record_field *f;
-	if ((f = malloc(sizeof(record_field))) == NULL)
+	recordfield *f;
+	if ((f = malloc(sizeof(recordfield))) == NULL)
 	{
 		return NULL;
 	}
@@ -51,10 +47,10 @@ record_field *rcfmake(void)
 	return f;
 }
 
-record_field *enrcque(record_queue *q, record_field *data)
+recordfield *enrcque(recordqueue *q, recordfield *data)
 {
-	record_node *n;
-	if ((n = malloc(sizeof(record_node))) == NULL)
+	recordnode *n;
+	if ((n = malloc(sizeof(recordnode))) == NULL)
 	{
 		return NULL;
 	}
@@ -75,20 +71,20 @@ record_field *enrcque(record_queue *q, record_field *data)
 	}
 	q->back = n;
 
-	debug_execute(record_queue_size++);
+	debug_execute(rcque_size++);
 
 	return data;
 }
 
-record_field *dercque(record_queue *q)
+recordfield *dercque(recordqueue *q)
 {
 	if (q->front == NULL)
 	{
 		return NULL;
 	}
 
-	record_node *tmp = q->front;
-	record_field *data = tmp->data;
+	recordnode *tmp = q->front;
+	recordfield *data = tmp->data;
 
 	if ((q->front = q->front->next) == NULL)
 	{
@@ -97,12 +93,12 @@ record_field *dercque(record_queue *q)
 
 	free(tmp);
 
-	debug_execute(record_queue_size--);
+	debug_execute(rcque_size--);
 
 	return data;
 }
 
-void rcffree(record_field *data)
+void rcffree(recordfield *data)
 {
 	if (data == NULL)
 		return;
@@ -120,14 +116,14 @@ void rcffree(record_field *data)
 	free(data);
 }
 
-void rcqfree(record_queue *q)
+void rcqfree(recordqueue *q)
 {
 	if (q == NULL)
 	{
 		return;
 	}
 
-	record_field *data;
+	recordfield *data;
 	while ((data = dercque(q)) != NULL)
 	{
 		rcffree(data);

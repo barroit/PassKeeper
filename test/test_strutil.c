@@ -20,27 +20,47 @@
 **
 ****************************************************************************/
 
-Suite *fileio_test_suite(void);
+#include "strutil.h"
 
-Suite *stringbuffer_test_suite(void);
-
-Suite *encrypt_test_suite(void);
-
-Suite *strutil_test_suite(void);
-
-int main()
+START_TEST(test_u8substr)
 {
-	int number_failed;
-	SRunner *sr;
+	char *res;
 
-	sr = srunner_create(fileio_test_suite());
-	srunner_add_suite(sr, stringbuffer_test_suite());
-	srunner_add_suite(sr, encrypt_test_suite());
-	srunner_add_suite(sr, strutil_test_suite());
+	res = u8substr("test", 4, 0);
+	ck_assert_ptr_null(res);
 
-	srunner_run_all(sr, CK_NORMAL);
-	number_failed = srunner_ntests_failed(sr);
-	srunner_free(sr);
+	res = u8substr("test", 0, 2);
+	ck_assert_str_eq(res, "te");
+	free(res);
 
-	return number_failed == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+	res = u8substr("test", 0, 0);
+	ck_assert_str_eq(res, "test");
+	free(res);
+
+	res = u8substr("漢字", 0, 2);
+	ck_assert_str_eq(res, "漢字");
+	free(res);
+
+	res = u8substr("漢字", 1, 1);
+	ck_assert_str_eq(res, "字");
+	free(res);
+
+	res = u8substr("漢字", 0, 0);
+	ck_assert_str_eq(res, "漢字");
+	free(res);
+}
+END_TEST
+
+Suite *strutil_test_suite(void)
+{
+	Suite *s;
+	TCase *tc_component;
+
+	s = suite_create("strutil");
+	tc_component = tcase_create("component");
+
+	tcase_add_test(tc_component, test_u8substr);
+	suite_add_tcase(s, tc_component);
+
+	return s;
 }

@@ -27,7 +27,7 @@ cmake_build_target='pkcmd'
 
 if [[ $target == 'test' || $target == 'coverage' ]]
 then
-	cmake_build_target='pk_test'
+	cmake_build_target='pktest'
 fi
 
 export TARGET_PLATFORM=$([[ $target == 'window' ]] && echo "window" || echo "penguin")

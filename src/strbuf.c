@@ -25,7 +25,6 @@
 #include "debug.h"
 #include "rescode.h"
 
-#include <math.h>
 #include <stdarg.h>
 
 #define SB_RESIZE_THRESHOLD	0.8
@@ -124,20 +123,25 @@ void sbprintf(stringbuffer *strbuf, const char *format, ...)
 
 void sbnprintf(stringbuffer *strbuf, size_t length, const char *format, ...)
 {
-	va_list args;
+	va_list args, _args;
 	va_start(args, format);
+	va_copy(_args, args);
 
-	size_t newsize;
+	size_t char_written, newsize;
 
-	newsize = strbuf->size + length;
+	char_written = vsnprintf(NULL, 0, format, _args);
+	va_end(_args);
+
+	char_written = char_written > length ? length : char_written;
+	newsize = strbuf->size + char_written;
+
 	if (sb_need_resize(strbuf->capacity, newsize))
 	{
 		sbresize(strbuf, newsize);
 	}
 
-	vsnprintf(strbuf->data + strbuf->size, length + 1, format, args); /* contains null-terminator */
+	vsnprintf(strbuf->data + strbuf->size, char_written + 1, format, args);
 	strbuf->size = newsize;
-
 	va_end(args);
 }
 
@@ -154,5 +158,5 @@ void sbfree(stringbuffer *strbuf)
 
 bool sb_need_resize(size_t prev, size_t next)
 {
-	return next > prev * SB_RESIZE_THRESHOLD;
+	return next + 1 > prev * SB_RESIZE_THRESHOLD; /* +1 for null-terminator */
 }
