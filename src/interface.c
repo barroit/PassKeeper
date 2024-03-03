@@ -16,11 +16,9 @@ int main(int argc, char **argv)
 
 	const char *errmsg[4] = { NULL, NULL, NULL, NULL };
 
-	app_option _appopt;
-	app_option *appopt;
+	app_option _appopt, *appopt;
 
 	appname = argv[0];
-
 	_appopt = make_appopt();
 	appopt = &_appopt;
 

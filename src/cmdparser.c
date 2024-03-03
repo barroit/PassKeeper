@@ -8,14 +8,15 @@
 #include <ctype.h>
 #include <getopt.h>
 
-#define OPTION_ALIAS_ID			12160
-#define OPTION_ALIAS_SITENAME		12161
-#define OPTION_ALIAS_SITEURL		12162
-#define OPTION_ALIAS_USERNAME		12163
-#define OPTION_ALIAS_PASSWORD		12164
-#define OPTION_ALIAS_AUTHTEXT		12165
-#define OPTION_ALIAS_BAKCODE		12166
-#define OPTION_ALIAS_COMMENT		12167
+/* Option Aliases */
+#define ID_ALIAS	12160
+#define SITENAME_ALIAS	12161
+#define SITEURL_ALIAS	12162
+#define USERNAME_ALIAS	12163
+#define PASSWORD_ALIAS	12164
+#define AUTHTEXT_ALIAS	12165
+#define BAKCODE_ALIAS	12166
+#define COMMENT_ALIAS	12167
 
 app_option make_appopt(void)
 {
@@ -48,21 +49,21 @@ app_option make_appopt(void)
 int parse_cmdopts(int argc, char *argv[], app_option *appopt, const char *errmsg[2])
 {
 	struct option long_options[] = {
-		{ "verbose",		no_argument, &appopt->is_verbose, 1 },
-		{ "help",		no_argument, &appopt->is_help, 1 },
-		{ "version",		no_argument, &appopt->is_version, 1 },
-		{ "init",		no_argument, &appopt->is_db_init, 1 },
-		{ "db",			required_argument, NULL, 'f' },
-		{ "key",		required_argument, NULL, 'k' },
-		{ "wrap",		required_argument, NULL, 'w' },
-		{ "id",			required_argument, NULL, OPTION_ALIAS_ID },
-		{ "sitename",		required_argument, NULL, OPTION_ALIAS_SITENAME },
-		{ "siteurl",		required_argument, NULL, OPTION_ALIAS_SITEURL },
-		{ "username",		required_argument, NULL, OPTION_ALIAS_USERNAME },
-		{ "password",		required_argument, NULL, OPTION_ALIAS_PASSWORD },
-		{ "authtext",		required_argument, NULL, OPTION_ALIAS_AUTHTEXT },
-		{ "bakcode",		required_argument, NULL, OPTION_ALIAS_BAKCODE },
-		{ "comment",		required_argument, NULL, OPTION_ALIAS_COMMENT },
+		{ "verbose",	no_argument, &appopt->is_verbose, 1 },
+		{ "help",	no_argument, &appopt->is_help, 1 },
+		{ "version",	no_argument, &appopt->is_version, 1 },
+		{ "init",	no_argument, &appopt->is_db_init, 1 },
+		{ "db",		required_argument, NULL, 'f' },
+		{ "key",	required_argument, NULL, 'k' },
+		{ "wrap",	required_argument, NULL, 'w' },
+		{ "id",		required_argument, NULL, ID_ALIAS },
+		{ "sitename",	required_argument, NULL, SITENAME_ALIAS },
+		{ "siteurl",	required_argument, NULL, SITEURL_ALIAS },
+		{ "username",	required_argument, NULL, USERNAME_ALIAS },
+		{ "password",	required_argument, NULL, PASSWORD_ALIAS },
+		{ "authtext",	required_argument, NULL, AUTHTEXT_ALIAS },
+		{ "bakcode",	required_argument, NULL, BAKCODE_ALIAS },
+		{ "comment",	required_argument, NULL, COMMENT_ALIAS },
 		{ NULL, 0, NULL, 0 }
 	};
 
@@ -70,13 +71,8 @@ int parse_cmdopts(int argc, char *argv[], app_option *appopt, const char *errmsg
 
 	int rc, alias, optidx;
 
-	while (1)
+	while ((alias = getopt_long(argc, argv, short_options, long_options, &optidx)) != -1)
 	{
-		if ((alias = getopt_long(argc, argv, short_options, long_options, &optidx)) == -1) /* no more options */
-		{
-			break;
-		}
-
 		switch (rc = handle_parse_option(appopt, alias))
 		{
 			case PK_SUCCESS:
@@ -102,36 +98,35 @@ int handle_parse_option(app_option *appopt, int alias)
 {
 	switch (alias)
 	{
-		case OPTION_ALIAS_SITENAME:
+		case SITENAME_ALIAS:
 			appopt->sitename = optarg;
 			break;
 		case 0:
-			/* flag resovled, do nothing */
+			/* flag received, do nothing */
 			break;
-		case OPTION_ALIAS_SITEURL:
+		case SITEURL_ALIAS:
 			appopt->siteurl = optarg;
 			break;
-		case OPTION_ALIAS_USERNAME:
+		case USERNAME_ALIAS:
 			appopt->username = optarg;
 			break;
-		case OPTION_ALIAS_PASSWORD:
+		case PASSWORD_ALIAS:
 			appopt->password = optarg;
 			break;
-		case OPTION_ALIAS_AUTHTEXT:
+		case AUTHTEXT_ALIAS:
 			appopt->authtext = optarg;
 			break;
-		case OPTION_ALIAS_BAKCODE:
+		case BAKCODE_ALIAS:
 			appopt->bakcode = optarg;
 			break;
-		case OPTION_ALIAS_COMMENT:
+		case COMMENT_ALIAS:
 			appopt->comment = optarg;
 			break;
-		case OPTION_ALIAS_ID:
-			if (!is_positive_integer(optarg))
+		case ID_ALIAS:
+			if (strtou(optarg, &appopt->wrap_threshold) != 0)
 			{
 				return PK_INCOMPATIBLE_TYPE;
 			}
-			appopt->record_id = atoi(optarg);
 			break;
 		case 'v':
 			appopt->is_verbose = 1;
@@ -146,11 +141,10 @@ int handle_parse_option(app_option *appopt, int alias)
 			appopt->is_db_init = 1;
 			break;
 		case 'w':
-			if (!is_positive_integer(optarg))
+			if (strtou(optarg, &appopt->wrap_threshold) != 0)
 			{
 				return PK_INCOMPATIBLE_TYPE;
 			}
-			appopt->wrap_threshold = atoi(optarg);
 			break;
 		case '?':
 			return PK_UNKNOWN_OPTION;

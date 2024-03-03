@@ -27,20 +27,20 @@
  * @brief Creates a string filled with spaces, null-terminated.
  *
  * @param length The number of spaces in the string.
- * @return A pointer to the allocated space-filled string, or NULL if allocation fails.
+ * @return A pointer to the allocated space-filled string.
  *
- * @note Result string must be freed by caller.
+ * @note The caller is responsible for freeing the returned string.
  */
 char *mkspase(size_t length);
 
 /**
  * @brief Concatenates two null-terminated strings into a new, null-terminated string.
  *
- * @param str1 First string to concatenate. Must not be NULL.
- * @param str2 Second string to concatenate. Must not be NULL.
- * @return A pointer to the concatenated string, or NULL on failure.
+ * @param str1 First null-terminated string to concatenate.
+ * @param str2 Second null-terminated string to concatenate.
+ * @return A pointer to the concatenated string.
  *
- * @note Returns NULL if `str1` or `str2` is NULL. Result string must be freed by caller.
+ * @note The caller is responsible for freeing the returned string.
  */
 char *concat(const char *str1, const char *str2);
 
@@ -52,10 +52,10 @@ char *concat(const char *str1, const char *str2);
  * @param src Source string.
  * @param start Index to start at.
  * @param length Chars to copy; 0 for full copy from `start`.
- * @return New string with specified substring, null-terminated, or NULL on failure.
+ * @return New string with specified substring, null-terminated.
  * 
  * @warning Undefined behavior if `start` or `start + length` exceeds `src` length.
- * @note Returns NULL if `src` is NULL. Result string must be freed by caller.
+ * @note Result string must be freed by caller.
  */
 char *substr(const char *src, size_t start, size_t length);
 
@@ -76,10 +76,21 @@ size_t u8strlen(const char *iter);
  * @param iter The source UTF-8 encoded string from which to extract the substring.
  * @param start_index The zero-based index of the first character to include in the substring.
  * @param substr_lenght The number of characters to include in the substring; if 0, extracts until the end of the string.
- * @return A newly allocated string containing the specified substring, null-terminated. Returns NULL on failure or if `iter` is NULL.
+ * @return A newly allocated string containing the specified substring, null-terminated.
  * 
  * @note The caller is responsible for freeing the returned string.
  */
 char *u8substr(const char *src, size_t start, size_t count);
+
+/**
+ * @brief Converts a string to an unsigned integer.
+ * 
+ * @param str Pointer to the null-terminated string to be converted.
+ * @param res Pointer to an unsigned integer where the conversion result will be stored.
+ * @return Returns 0 on successful conversion. Returns `EINVAL` if the string represents
+ * a negative number, `EILSEQ` if the string contains invalid sequences or is empty,
+ * and `ERANGE` if the number is out of range for an unsigned integer.
+ */
+int strtou(const char *str, unsigned *res);
 
 #endif /* STRUTIL_H */

@@ -59,7 +59,7 @@ char *read_content(const char *pathname, size_t *size)
 		sbputc(buf, c);
 	}
 
-	res = substr(buf->data, 0, 0);
+	res = u8substr(buf->data, 0, 0);
 
 	if (size != NULL)
 	{

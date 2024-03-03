@@ -5,14 +5,7 @@
 #include "rcque.h"
 #include "strbuf.h"
 
-#include <stdbool.h>
 #include <sqlite3.h>
-
-typedef struct
-{
-	const char *key;
-	const void *value;
-} entry;
 
 int init_db_file(sqlite3 **db, const char *dbpath, const char *errmsg[2]);
 

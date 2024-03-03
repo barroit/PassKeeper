@@ -22,6 +22,9 @@
 
 #include "strutil.h"
 
+#include <limits.h>
+#include <errno.h>
+
 char *mkspase(size_t length)
 {
 	char *dest;
@@ -38,11 +41,6 @@ char *mkspase(size_t length)
 
 char *concat(const char *str1, const char *str2)
 {
-	if (str1 == NULL || str2 == NULL)
-	{
-		return NULL;
-	}
-
 	size_t destlen, len1, len2;
 	char *dest;
 
@@ -117,11 +115,6 @@ size_t u8strlen(const char *iter)
 
 char *u8substr(const char *iter, size_t start_index, size_t substr_lenght)
 {
-	if (iter == NULL)
-	{
-		return NULL;
-	}
-
 	const char *head;
 	size_t char_count;
 	bool unknow_length, finish_calc;
@@ -187,4 +180,37 @@ char *u8substr(const char *iter, size_t start_index, size_t substr_lenght)
 	dest[destsz] = 0;
 
 	return dest;
+}
+
+int strtou(const char *str, unsigned *res)
+{
+	if (*str == '-')
+	{
+		return EINVAL;
+	}
+
+	if (*str == 0)
+	{
+		return EILSEQ;
+	}
+
+	char *end;
+	unsigned long int tmpres;
+
+	errno = 0;
+	tmpres = strtoul(str, &end, 10);
+
+	if (*end != 0)
+	{
+		return EILSEQ;
+	}
+
+	if (errno == ERANGE || tmpres > UINT_MAX)
+	{
+		return ERANGE;
+	}
+
+	*res = (unsigned)tmpres;
+
+	return 0;
 }

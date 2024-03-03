@@ -6,12 +6,16 @@
 #include "fileio.h"
 #include "encrypt.h"
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <stddef.h>
 #include <assert.h>
 
 #define BINKEY_SIZE 32
+
+typedef struct
+{
+	const char *key;
+	const void *value;
+
+} entry;
 
 int init_db_file(sqlite3 **db, const char *dbpath, const char *errmsg[2])
 {
@@ -105,7 +109,7 @@ int read_db_key(const char *keypath, void **__key, size_t *__ksz)
 	}
 	else
 	{
-		key = substr(keystr, 0, ksz);
+		key = u8substr(keystr, 0, ksz);
 	}
 
 	free(keystr);
@@ -261,7 +265,9 @@ int read_record(sqlite3 *db, const app_option *appopt, char __attribute__ ((unus
 	}
 	else
 	{
-		char *search_pattern = concat(appopt->sitename, "%");
+		char *search_pattern;
+
+		search_pattern = concat(appopt->sitename, "%");
 		rc = sqlite3_bind_text(stmt, 1, search_pattern, -1, SQLITE_TRANSIENT);
 		free(search_pattern);
 	}
@@ -271,11 +277,11 @@ int read_record(sqlite3 *db, const app_option *appopt, char __attribute__ ((unus
 		return sqlite3_finalize(stmt);
 	}
 
-	recordqueue *q;
+	recordqueue *rcque;
 	recordfield *data;
 	int field_maxlen_map[3] = { 0, 0, 0 };
 
-	q = rcqmake();
+	rcque = rcqalloc();
 	while (1)
 	{
 		rc = sqlite3_step(stmt);
@@ -285,7 +291,7 @@ int read_record(sqlite3 *db, const app_option *appopt, char __attribute__ ((unus
 			break;
 		}
 
-		data = rcfmake();
+		data = rcfalloc();
 
 		assign_field(stmt, 1, &data->sitename, &data->sitename_length);
 		assign_by_large_value(&field_maxlen_map[0], data->sitename_length);
@@ -307,7 +313,7 @@ int read_record(sqlite3 *db, const app_option *appopt, char __attribute__ ((unus
 			assign_field(stmt, 9, &data->modtime, NULL);
 		}
 
-		enrcque(q, data);
+		enrcque(rcque, data);
 	}
 
 	debug_log("size of rcque is %lu\n", rcque_size);
@@ -321,7 +327,7 @@ int read_record(sqlite3 *db, const app_option *appopt, char __attribute__ ((unus
 	int is_init;
 
 	is_init = 1;
-	while ((data = dercque(q)) != NULL)
+	while ((data = dercque(rcque)) != NULL)
 	{
 		if (appopt->is_verbose)
 		{
@@ -349,7 +355,7 @@ int read_record(sqlite3 *db, const app_option *appopt, char __attribute__ ((unus
 
 	free(padstr);
 	sbfree(buf);
-	rcqfree(q);
+	rcqfree(rcque);
 
 	debug_log("strbuffer resize executed %d times\n", sb_resize_count);
 

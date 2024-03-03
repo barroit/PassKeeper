@@ -1,3 +1,25 @@
+/****************************************************************************
+**
+** Copyright 2023, 2024 Jiamu Sun
+** Contact: barroit@linux.com
+**
+** This file is part of PassKeeper.
+**
+** PassKeeper is free software: you can redistribute it and/or modify it
+** under the terms of the GNU General Public License as published by the
+** Free Software Foundation, either version 3 of the License, or (at your
+** option) any later version.
+**
+** PassKeeper is distributed in the hope that it will be useful, but
+** WITHOUT ANY WARRANTY; without even the implied warranty of
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+** General Public License for more details.
+**
+** You should have received a copy of the GNU General Public License along
+** with PassKeeper. If not, see <https://www.gnu.org/licenses/>.
+**
+****************************************************************************/
+
 #ifndef RCQUE_H
 #define RCQUE_H
 
@@ -18,6 +40,7 @@ typedef struct
 	char *sqltime;
 	char *modtime;
 
+	// TODO: change type to size_t
 	int sitename_length;
 	int username_length;
 	int password_length;
@@ -38,16 +61,57 @@ typedef struct
 
 } recordqueue;
 
-recordqueue *rcqmake(void);
+/**
+ * @brief Allocates and initializes a new record queue.
+ *
+ * @return A pointer to the newly allocated and initialized `recordqueue`.
+ *
+ * @note Returns NULL if the memory allocation fails.
+ */
+recordqueue *rcqalloc(void);
 
-recordfield *rcfmake(void);
+/**
+ * @brief Allocates and initializes a new record field.
+ *
+ * @return A pointer to the newly allocated and initialized `recordfield`.
+ *
+ * @note  Returns NULL if the memory allocation fails.
+ */
+recordfield *rcfalloc(void);
 
-recordfield *enrcque(recordqueue *q, recordfield *data);
+/**
+ * @brief Enqueues a record field into a record queue.
+ *
+ * @param rcque Pointer to the record queue where the data will be enqueued.
+ * @param data Pointer to the `recordfield` data to be enqueued.
+ * @return Returns the provided `data` pointer on success.
+ *
+ * @note Returns NULL if memory allocation for the new `recordnode` fails.
+ */
+recordfield *enrcque(recordqueue *rcque, recordfield *data);
 
-recordfield *dercque(recordqueue *q);
+/**
+ * @brief Dequeues a record field from a record queue.
+ *
+ * @param rcque Pointer to the record queue from which the data will be dequeued.
+ * @return The `recordfield` data that was at the front of the queue.
+ *
+ * @note Returns NULL if the queue is empty or if the `rcque` is NULL.
+ */
+recordfield *dercque(recordqueue *rcque);
 
+/**
+ * @brief Frees a record field and its associated resources.
+ *
+ * @param data Pointer to the `recordfield` structure to be freed.
+ */
 void rcffree(recordfield *data);
 
-void rcqfree(recordqueue *q);
+/**
+ * @brief Frees a record queue and all its contained record fields.
+ * 
+ * @param rcque Pointer to the `recordqueue` to be freed.
+ */
+void rcqfree(recordqueue *rcque);
 
 #endif /* RCQUE_H */

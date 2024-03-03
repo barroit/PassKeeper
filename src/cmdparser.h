@@ -1,6 +1,11 @@
 #ifndef CMDPARSER_H
 #define CMDPARSER_H
 
+#define CREATE_OPERATION_INDEX	0
+#define READ_OPERATION_INDEX	1
+#define UPDATE_OPERATION_INDEX	2
+#define DELETE_OPERATION_INDEX	3
+
 typedef struct
 {
 	const char *db_pathname;
@@ -16,8 +21,10 @@ typedef struct
 	const char *bakcode;
 	const char *comment;
 
-	int record_id;
-	int wrap_threshold;
+	unsigned record_id;
+	unsigned wrap_threshold;
+
+	unsigned command_index;
 
 	int is_help;
 	int is_version;

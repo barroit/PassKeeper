@@ -1,5 +1,26 @@
+/****************************************************************************
+**
+** Copyright 2023, 2024 Jiamu Sun
+** Contact: barroit@linux.com
+**
+** This file is part of PassKeeper.
+**
+** PassKeeper is free software: you can redistribute it and/or modify it
+** under the terms of the GNU General Public License as published by the
+** Free Software Foundation, either version 3 of the License, or (at your
+** option) any later version.
+**
+** PassKeeper is distributed in the hope that it will be useful, but
+** WITHOUT ANY WARRANTY; without even the implied warranty of
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+** General Public License for more details.
+**
+** You should have received a copy of the GNU General Public License along
+** with PassKeeper. If not, see <https://www.gnu.org/licenses/>.
+**
+****************************************************************************/
+
 #include "rcque.h"
-#include "misc.h"
 #include "debug.h"
 #include "rescode.h"
 
@@ -7,88 +28,88 @@
 size_t rcque_size = 0;
 #endif
 
-recordqueue *rcqmake(void)
+recordqueue *rcqalloc(void)
 {
-	recordqueue *q;
-	if ((q = malloc(sizeof(recordqueue))) == NULL)
+	recordqueue *rcque;
+	if ((rcque = malloc(sizeof(recordqueue))) == NULL)
 	{
 		return NULL;
 	}
 
-	q->front = NULL;
-	q->back = NULL;
+	rcque->front = NULL;
+	rcque->back = NULL;
 
-	return q;
+	return rcque;
 }
 
-recordfield *rcfmake(void)
+recordfield *rcfalloc(void)
 {
-	recordfield *f;
-	if ((f = malloc(sizeof(recordfield))) == NULL)
+	recordfield *rcfld;
+	if ((rcfld = malloc(sizeof(recordfield))) == NULL)
 	{
 		return NULL;
 	}
 
-	f->id = NULL;
-	f->sitename = NULL;
-	f->siteurl = NULL;
-	f->username = NULL;
-	f->password = NULL;
-	f->authtext = NULL;
-	f->bakcode = NULL;
-	f->comment = NULL;
-	f->sqltime = NULL;
-	f->modtime = NULL;
+	rcfld->id = NULL;
+	rcfld->sitename = NULL;
+	rcfld->siteurl = NULL;
+	rcfld->username = NULL;
+	rcfld->password = NULL;
+	rcfld->authtext = NULL;
+	rcfld->bakcode = NULL;
+	rcfld->comment = NULL;
+	rcfld->sqltime = NULL;
+	rcfld->modtime = NULL;
 
-	f->sitename_length = 0;
-	f->username_length = 0;
-	f->password_length = 0;
+	rcfld->sitename_length = 0;
+	rcfld->username_length = 0;
+	rcfld->password_length = 0;
 
-	return f;
+	return rcfld;
 }
 
-recordfield *enrcque(recordqueue *q, recordfield *data)
+recordfield *enrcque(recordqueue *rcque, recordfield *data)
 {
-	recordnode *n;
-	if ((n = malloc(sizeof(recordnode))) == NULL)
+	recordnode *rcnd;
+	if ((rcnd = malloc(sizeof(recordnode))) == NULL)
 	{
 		return NULL;
 	}
 
-	n->data = data;
-	n->next = NULL;
+	rcnd->data = data;
+	rcnd->next = NULL;
 
 	// <-----|
 	//     front ----------> back
 	//                        |-----<
-	if (q->back == NULL)
+	if (rcque->back == NULL)
 	{
-		q->front = n;
+		rcque->front = rcnd;
 	}
 	else
 	{
-		q->back->next = n;
+		rcque->back->next = rcnd;
 	}
-	q->back = n;
+	rcque->back = rcnd;
 
 	debug_execute(rcque_size++);
 
 	return data;
 }
 
-recordfield *dercque(recordqueue *q)
+recordfield *dercque(recordqueue *rcque)
 {
-	if (q->front == NULL)
+	if (rcque->front == NULL)
 	{
 		return NULL;
 	}
 
-	recordnode *tmp = q->front;
+	recordnode *tmp = rcque->front;
 	recordfield *data = tmp->data;
 
-	if ((q->front = q->front->next) == NULL)
+	if ((rcque->front = rcque->front->next) == NULL)
 	{
-		q->back = NULL;
+		rcque->back = NULL;
 	}
 
 	free(tmp);
@@ -101,7 +122,9 @@ recordfield *dercque(recordqueue *q)
 void rcffree(recordfield *data)
 {
 	if (data == NULL)
+	{
 		return;
+	}
 
 	free(data->id);
 	free(data->sitename);
@@ -116,18 +139,18 @@ void rcffree(recordfield *data)
 	free(data);
 }
 
-void rcqfree(recordqueue *q)
+void rcqfree(recordqueue *rcque)
 {
-	if (q == NULL)
+	if (rcque == NULL)
 	{
 		return;
 	}
 
 	recordfield *data;
-	while ((data = dercque(q)) != NULL)
+	while ((data = dercque(rcque)) != NULL)
 	{
 		rcffree(data);
 	}
 
-	free(q);
+	free(rcque);
 }
