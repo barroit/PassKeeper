@@ -20,37 +20,44 @@
 **
 ****************************************************************************/
 
-#ifndef STRBUF_H
-#define STRBUF_H
+#include "command.h"
 
-#ifdef PK_IS_DEBUG
-extern unsigned sb_resize_count;
-#endif
+static struct command_info commands[] = {
+	{ "count",	cmd_count },
+	// { "create",	cmd_create },
+	// { "delete",	cmd_delete },
+	// { "help",	cmd_help },
+	// { "init",	cmd_init },
+	// { "read",	cmd_read },
+	// { "update",	cmd_update },
+	// { "version",	cmd_version },
+	// { "dump",	NULL }, /* reserved */
+	// { "source",	NULL }, /* reserved */
+	{ NULL },
+};
 
-typedef struct
+struct command_info *find_command(const char *cmdname)
 {
-	char *data;
-	size_t size;
-	size_t capacity;
+	struct command_info *cmditer;
 
-} stringbuffer;
+	cmditer = commands;
+	while ((*cmditer).name)
+	{
+		if (!strcmp((*cmditer++).name, cmdname))
+		{
+			return cmditer - 1;
+		}
+	}
 
-stringbuffer *sballoc(size_t capacity);
+	return NULL;
+}
 
-void sbputc(stringbuffer *strbuf, char c);
+void execute_command(struct command_info *command, int argc, const char **argv)
+{
+	if (command->handle == NULL)
+	{
+		abort();
+	}
 
-void sbprint(stringbuffer *strbuf, const char *src);
-
-void sbprintf(stringbuffer *strbuf, const char *format, ...);
-
-void sbnprintf(stringbuffer *strbuf, size_t length, const char *format, ...);
-
-void sbfree(stringbuffer *strbuf);
-
-bool starts_with(const char *str, const char *prefix);
-
-const char *trim_prefix(const char *str, const char *prefix);
-
-const char *find_char(const char *s, char c);
-
-#endif /* STRBUF_H */
+	command->handle(argc, argv);
+}

@@ -20,37 +20,23 @@
 **
 ****************************************************************************/
 
-#ifndef STRBUF_H
-#define STRBUF_H
+#ifndef ENVIRONMENT_H
+#define ENVIRONMENT_H
 
-#ifdef PK_IS_DEBUG
-extern unsigned sb_resize_count;
-#endif
+extern const char *credential_path;
+extern const char *credential_key_path;
 
-typedef struct
+extern bool is_encrypt;
+
+struct project_info
 {
-	char *data;
-	size_t size;
-	size_t capacity;
+	const char *name;
+	const char *author;
+	const char *contact;
+};
 
-} stringbuffer;
+extern struct project_info projinfo;
 
-stringbuffer *sballoc(size_t capacity);
+void initialize_environment(void);
 
-void sbputc(stringbuffer *strbuf, char c);
-
-void sbprint(stringbuffer *strbuf, const char *src);
-
-void sbprintf(stringbuffer *strbuf, const char *format, ...);
-
-void sbnprintf(stringbuffer *strbuf, size_t length, const char *format, ...);
-
-void sbfree(stringbuffer *strbuf);
-
-bool starts_with(const char *str, const char *prefix);
-
-const char *trim_prefix(const char *str, const char *prefix);
-
-const char *find_char(const char *s, char c);
-
-#endif /* STRBUF_H */
+#endif /* ENVIRONMENT_H */

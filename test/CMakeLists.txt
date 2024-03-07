@@ -8,13 +8,8 @@ target_include_directories(pktest PRIVATE ${CHECK_INCLUDE_DIRS})
 
 target_link_directories(pktest PRIVATE ${CHECK_LIBRARY_DIRS})
 
-target_link_libraries(pktest ${CHECK_LIBRARIES} pk)
+target_link_libraries(pktest ${CHECK_LIBRARIES} pklib)
 
 set_target_properties(pktest PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
-target_precompile_headers(pktest
-	PRIVATE <stddef.h>
-	PRIVATE <string.h>
-	PRIVATE <stdio.h>
-	PRIVATE <stdbool.h>
-	PRIVATE <check.h>)
+target_precompile_headers(pktest PRIVATE <check.h>)

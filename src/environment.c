@@ -20,37 +20,24 @@
 **
 ****************************************************************************/
 
-#ifndef STRBUF_H
-#define STRBUF_H
+#include "environment.h"
+#include "projcfg.h"
 
-#ifdef PK_IS_DEBUG
-extern unsigned sb_resize_count;
-#endif
+const char *credential_path;
+const char *credential_key_path;
 
-typedef struct
+bool is_encrypt;
+
+struct project_info projinfo;
+
+void initialize_environment(void)
 {
-	char *data;
-	size_t size;
-	size_t capacity;
+	credential_path = getenv(CREDENTIAL_ENVNAME);
+	credential_key_path = getenv(CREDENTIAL_KEY_ENVNAME);
 
-} stringbuffer;
+	is_encrypt = credential_key_path != NULL;
 
-stringbuffer *sballoc(size_t capacity);
-
-void sbputc(stringbuffer *strbuf, char c);
-
-void sbprint(stringbuffer *strbuf, const char *src);
-
-void sbprintf(stringbuffer *strbuf, const char *format, ...);
-
-void sbnprintf(stringbuffer *strbuf, size_t length, const char *format, ...);
-
-void sbfree(stringbuffer *strbuf);
-
-bool starts_with(const char *str, const char *prefix);
-
-const char *trim_prefix(const char *str, const char *prefix);
-
-const char *find_char(const char *s, char c);
-
-#endif /* STRBUF_H */
+	projinfo.name = PROJECT_NAME;
+	projinfo.author = AUTHOR_NAME;
+	projinfo.contact = CONTACT_ADDRESS;
+}

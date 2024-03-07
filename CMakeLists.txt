@@ -20,13 +20,14 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # define release build
 list(APPEND RELEASE_BUILD_TYPES "Penguin" "Window")
 
-# used by config.h
-set(PROJECT_NAME PassKeeper)
-set(AUTHOR barroit)
-set(DEFAULT_DB_PATHNAME $CREDENTIALS)
-set(DEFAULT_DB_KEY_PATHNAME $CREDENTIALS_KEY)
+# used by config.h.in
+set(AUTHOR_NAME "Jiamu Sun")
+set(CONTACT_ADDRESS barroit@linux.com)
+set(PROJECT_NAME passkeeper)
+set(CREDENTIAL_ENVNAME CREDENTIAL_PATH)
+set(CREDENTIAL_KEY_ENVNAME CREDENTIAL_KEY_PATH)
 
-configure_file(cmake/config.h.in config.h)
+configure_file(cmake/config.h.in projcfg.h)
 
 # common flags
 set(CMAKE_C_FLAGS "-DSQLITE_HAS_CODEC -Wall -Wextra")

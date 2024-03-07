@@ -20,37 +20,45 @@
 **
 ****************************************************************************/
 
-#ifndef STRBUF_H
-#define STRBUF_H
+#include "environment.h"
+#include "command.h"
 
-#ifdef PK_IS_DEBUG
-extern unsigned sb_resize_count;
-#endif
-
-typedef struct
+static void preprocess_argv(int argc, const char **argv)
 {
-	char *data;
-	size_t size;
-	size_t capacity;
+	/* like git, turn "pk <command> --help" into "pk help <command>" */
+	if (argc > 1 && !strcmp("--help", argv[1]))
+	{
+		argv[1] = argv[0];
+		argv[0] = "help";
+	}
+}
 
-} stringbuffer;
+int main(int argc, const char **argv)
+{
+	initialize_environment();
 
-stringbuffer *sballoc(size_t capacity);
+	argc--;
+	argv++;
 
-void sbputc(stringbuffer *strbuf, char c);
+	if (argc == 0)
+	{
+		const char *default_argv[] = { "help" };
 
-void sbprint(stringbuffer *strbuf, const char *src);
+		argc = 1;
+		argv = default_argv;
+	}
 
-void sbprintf(stringbuffer *strbuf, const char *format, ...);
+	struct command_info *command;
 
-void sbnprintf(stringbuffer *strbuf, size_t length, const char *format, ...);
+	preprocess_argv(argc, argv);
 
-void sbfree(stringbuffer *strbuf);
+	if ((command = find_command(argv[0])) == NULL)
+	{
+		// no command founded
+		return EXIT_FAILURE;
+	}
 
-bool starts_with(const char *str, const char *prefix);
+	execute_command(command, --argc, ++argv);
 
-const char *trim_prefix(const char *str, const char *prefix);
-
-const char *find_char(const char *s, char c);
-
-#endif /* STRBUF_H */
+	return EXIT_SUCCESS;
+}

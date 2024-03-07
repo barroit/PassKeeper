@@ -4,7 +4,7 @@ project_root="$(cd $(dirname $0) &> /dev/null && pwd)"
 
 targets=('debug' 'test' 'coverage' 'penguin' 'window')
 target="${1:-debug}"
-build_dir='/dummydir' # for safety reason
+build_dir='/dummydir'
 
 source "$project_root/tool/util"
 
@@ -14,7 +14,14 @@ then
 	exit 0
 fi
 
-if printf '%s\0' "${targets[@]}" | grep -Fxqz -- $target; then
+if [[ $1 == 'ssh' ]]
+then
+	ssh $(grep_rdcred username)@$(grep_rdcred address) "pwsh -NoExit -Command cd $(grep_rdcred userhome)"
+	exit 0
+fi
+
+if printf '%s\0' "${targets[@]}" | grep -Fxqz -- $target
+then
 	build_dir+="/$target"
 else
 	echo "not a valid build type: $target"
@@ -23,11 +30,17 @@ fi
 
 echo "found build type: $target"
 
-cmake_build_target='pkcmd'
+cmake_build_target='pk'
 
 if [[ $target == 'test' || $target == 'coverage' ]]
 then
 	cmake_build_target='pktest'
+fi
+
+if [[ $2 == 'scp' ]]
+then
+	scp $build_dir/$cmake_build_target $(grep_rdcred username)@$(grep_rdcred address):$(grep_rdcred userhome)
+	exit 0
 fi
 
 export TARGET_PLATFORM=$([[ $target == 'window' ]] && echo "window" || echo "penguin")

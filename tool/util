@@ -73,3 +73,8 @@ process_cleanup()
 {
 	rm $temp_stderr
 }
+
+grep_rdcred()
+{
+	grep "^$1=" $project_root/remote.info | cut -d '=' -f2
+}

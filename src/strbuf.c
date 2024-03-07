@@ -34,22 +34,12 @@
 unsigned sb_resize_count = 0;
 #endif
 
-stringbuffer *sballoc(size_t capacity)
+static bool sb_need_resize(size_t prev, size_t next)
 {
-	stringbuffer *strbuf;
-	if ((strbuf = malloc(sizeof(stringbuffer))) == NULL)
-	{
-		return NULL;
-	}
-
-	strbuf->data = malloc(capacity);
-	strbuf->size = 0;
-	strbuf->capacity = capacity;
-
-	return strbuf;
+	return next + 1 > prev * SB_RESIZE_THRESHOLD; /* +1 for null-terminator */
 }
 
-stringbuffer *sbresize(stringbuffer *strbuf, size_t lower_bound)
+static stringbuffer *sbresize(stringbuffer *strbuf, size_t lower_bound)
 {
 	debug_execute(sb_resize_count++);
 
@@ -64,6 +54,21 @@ stringbuffer *sbresize(stringbuffer *strbuf, size_t lower_bound)
 
 	strbuf->data = newdata;
 	strbuf->capacity = newsize;
+
+	return strbuf;
+}
+
+stringbuffer *sballoc(size_t capacity)
+{
+	stringbuffer *strbuf;
+	if ((strbuf = malloc(sizeof(stringbuffer))) == NULL)
+	{
+		return NULL;
+	}
+
+	strbuf->data = malloc(capacity);
+	strbuf->size = 0;
+	strbuf->capacity = capacity;
 
 	return strbuf;
 }
@@ -156,7 +161,39 @@ void sbfree(stringbuffer *strbuf)
 	free(strbuf);
 }
 
-bool sb_need_resize(size_t prev, size_t next)
+bool starts_with(const char *str, const char *prefix)
 {
-	return next + 1 > prev * SB_RESIZE_THRESHOLD; /* +1 for null-terminator */
+	while (*prefix)
+	{
+		if (*str++ != *prefix++)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+const char *trim_prefix(const char *str, const char *prefix)
+{
+	do
+	{
+		if (!*prefix)
+		{
+			return str;
+		}
+	}
+	while (*str++ == *prefix++);
+
+	return NULL;
+}
+
+const char *find_char(const char *s, char c)
+{
+	while (*s && *s != c)
+	{
+		s++;
+	}
+		
+	return s;
 }

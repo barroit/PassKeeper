@@ -20,37 +20,26 @@
 **
 ****************************************************************************/
 
-#ifndef STRBUF_H
-#define STRBUF_H
+#ifndef COMMAND_H
+#define COMMAND_H
 
-#ifdef PK_IS_DEBUG
-extern unsigned sb_resize_count;
-#endif
-
-typedef struct
+struct command_info
 {
-	char *data;
-	size_t size;
-	size_t capacity;
+	const char *name;
+	int (*handle)(int argc, const char **argv);
+};
 
-} stringbuffer;
+struct command_info *find_command(const char *cmdname);
 
-stringbuffer *sballoc(size_t capacity);
+void execute_command(struct command_info *command, int argc, const char **argv);
 
-void sbputc(stringbuffer *strbuf, char c);
+int cmd_count(int argc, const char **argv);
+int cmd_create(int argc, const char **argv);
+int cmd_delete(int argc, const char **argv);
+int cmd_help(int argc, const char **argv);
+int cmd_init(int argc, const char **argv);
+int cmd_read(int argc, const char **argv);
+int cmd_update(int argc, const char **argv);
+int cmd_version(int argc, const char **argv);
 
-void sbprint(stringbuffer *strbuf, const char *src);
-
-void sbprintf(stringbuffer *strbuf, const char *format, ...);
-
-void sbnprintf(stringbuffer *strbuf, size_t length, const char *format, ...);
-
-void sbfree(stringbuffer *strbuf);
-
-bool starts_with(const char *str, const char *prefix);
-
-const char *trim_prefix(const char *str, const char *prefix);
-
-const char *find_char(const char *s, char c);
-
-#endif /* STRBUF_H */
+#endif /* COMMAND_H */
