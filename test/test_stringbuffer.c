@@ -22,7 +22,7 @@
 
 #include "strbuf.h"
 
-stringbuffer *strbuf;
+struct strbuf *sb;
 
 void stringbuffer_test_setup(void)
 {

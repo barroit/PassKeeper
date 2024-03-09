@@ -22,7 +22,6 @@
 
 #include "fileio.h"
 #include "strbuf.h"
-#include "strutil.h"
 #include "rescode.h"
 
 #include <unistd.h>
@@ -42,35 +41,35 @@ bool is_rwx_dir(const char *dirname)
 	return dirname == NULL ? false : access(dirname, F_OK | R_OK | W_OK | X_OK) == 0;
 }
 
-char *read_content(const char *pathname, size_t *size)
-{
-	FILE *file;
-	if ((file = fopen(pathname, "r")) == NULL)
-	{
-		return NULL;
-	}
+// char *read_content(const char *pathname, size_t *size)
+// {
+// 	FILE *file;
+// 	if ((file = fopen(pathname, "r")) == NULL)
+// 	{
+// 		return NULL;
+// 	}
 
-	stringbuffer *buf;
-	char c, *res;
+// 	stringbuffer *buf;
+// 	char c, *res;
 
-	buf = sballoc(125);
-	while ((c = fgetc(file)) != EOF)
-	{
-		sbputc(buf, c);
-	}
+// 	buf = sballoc(125);
+// 	while ((c = fgetc(file)) != EOF)
+// 	{
+// 		sbputc(buf, c);
+// 	}
 
-	res = u8substr(buf->data, 0, 0);
+// 	res = u8substr(buf->data, 0, 0);
 
-	if (size != NULL)
-	{
-		*size = buf->size;
-	}
+// 	if (size != NULL)
+// 	{
+// 		*size = buf->size;
+// 	}
 
-	sbfree(buf);
-	fclose(file);
+// 	sbfree(buf);
+// 	fclose(file);
 
-	return res;
-}
+// 	return res;
+// }
 
 int prepare_folder(const char *pathname)
 {

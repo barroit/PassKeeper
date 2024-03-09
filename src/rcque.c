@@ -21,12 +21,7 @@
 ****************************************************************************/
 
 #include "rcque.h"
-#include "debug.h"
 #include "rescode.h"
-
-#ifdef PK_IS_DEBUG
-size_t rcque_size = 0;
-#endif
 
 recordqueue *rcqalloc(void)
 {
@@ -92,8 +87,6 @@ recordfield *enrcque(recordqueue *rcque, recordfield *data)
 	}
 	rcque->back = rcnd;
 
-	debug_execute(rcque_size++);
-
 	return data;
 }
 
@@ -113,8 +106,6 @@ recordfield *dercque(recordqueue *rcque)
 	}
 
 	free(tmp);
-
-	debug_execute(rcque_size--);
 
 	return data;
 }

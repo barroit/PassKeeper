@@ -14,6 +14,12 @@ then
 	exit 0
 fi
 
+if [[ $target == 'cord' ]]
+then
+	echo 'core' | sudo tee /proc/sys/kernel/core_pattern
+	exit 0
+fi
+
 if [[ $1 == 'ssh' ]]
 then
 	ssh $(grep_rdcred username)@$(grep_rdcred address) "pwsh -NoExit -Command cd $(grep_rdcred userhome)"

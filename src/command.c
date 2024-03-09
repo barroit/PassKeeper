@@ -31,8 +31,8 @@ static struct command_info commands[] = {
 	// { "read",	cmd_read },
 	// { "update",	cmd_update },
 	// { "version",	cmd_version },
-	// { "dump",	NULL }, /* reserved */
-	// { "source",	NULL }, /* reserved */
+	{ "dump",	NULL }, /* reserved */
+	{ "source",	NULL }, /* reserved */
 	{ NULL },
 };
 
@@ -56,7 +56,7 @@ void execute_command(struct command_info *command, int argc, const char **argv)
 {
 	if (command->handle == NULL)
 	{
-		abort();
+		bug("command '%s' does not have a handle", command->name);
 	}
 
 	command->handle(argc, argv);

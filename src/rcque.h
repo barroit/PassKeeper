@@ -23,10 +23,6 @@
 #ifndef RCQUE_H
 #define RCQUE_H
 
-#ifdef PK_IS_DEBUG
-extern size_t rcque_size;
-#endif
-
 typedef struct
 {
 	char *id;

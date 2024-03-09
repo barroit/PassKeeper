@@ -1,8 +1,13 @@
 #include "encrypt.h"
-#include "misc.h"
-#include <stdlib.h>
-#include <string.h>
+#include <ctype.h>
 #include <openssl/rand.h>
+
+#define IN_RANGE(p, x1, x2) ((p >= x1) && (p <= x2))
+
+static bool is_hexchr(char c)
+{
+	return IN_RANGE(c, '0', '9') || IN_RANGE(c, 'A', 'F') || IN_RANGE(c, 'a', 'f');
+}
 
 void *get_binary_key(size_t length)
 {

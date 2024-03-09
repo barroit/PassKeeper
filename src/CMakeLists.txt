@@ -28,7 +28,7 @@ endif()
 
 target_include_directories(pklib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_BINARY_DIR} ${SQLCIPHER_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS})
 
-target_precompile_headers(pklib PUBLIC <stddef.h> <stdlib.h> <string.h> <stdio.h> <stdbool.h> <stdint.h>)
+target_precompile_headers(pklib PUBLIC <stdbool.h> <stdlib.h> <string.h> PRIVATE <stddef.h> <limits.h> <stdint.h> <inttypes.h> <errno.h> <stdarg.h> <stdio.h> "compact.h")
 
 # pk
 add_executable(pk passkeeper.c)

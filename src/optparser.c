@@ -25,7 +25,8 @@
 
 enum parse_option_result
 {
-	PARSING_HELP = -1,
+	PARSING_HELP = -2,
+	PARSING_ERROR = -1,
 	PARSING_DONE = 0,
 	PARSING_NON_OPTION,
 	PARSING_UNKNOWN,
@@ -45,14 +46,39 @@ struct parser_context
 	const char *optstr;
 };
 
-// enum option_parsed
-// {
-// 	LONG_OPTION  = 1 << 0,
-// 	SHORT_OPTION = 1 << 1,
-// 	UNSET_OPTION = 1 << 2,
-// };
+enum option_parsed
+{
+	LONG_OPTION  = 1 << 0,
+	SHORT_OPTION = 1 << 1,
+	UNSET_OPTION = 1 << 2,
+};
 
-static enum parse_option_result assign_string_value(struct parser_context *ctx, const char **out)
+static const char *detailed_option(const struct option *opt, enum option_parsed flags)
+{
+	static struct strbuf sb = STRBUF_INIT;
+
+	strbuf_reset(&sb);
+	if (flags & SHORT_OPTION)
+	{
+		strbuf_printf(&sb, "switch `%c'", opt->alias);
+	}
+	else if (flags & UNSET_OPTION)
+	{
+		strbuf_printf(&sb, "option `no-%s'", opt->name);
+	}
+	else if (flags == LONG_OPTION)
+	{
+		strbuf_printf(&sb, "option `%s'", opt->name);
+	}
+	else
+	{
+		bug("detailed_option() got unknown flags %d", flags);
+	}
+
+	return sb.buf;
+}
+
+static enum parse_option_result assign_string_value(struct parser_context *ctx, const struct option *opt, enum option_parsed flags, const char **out)
 {
 	if (ctx->optstr)
 	{
@@ -66,20 +92,20 @@ static enum parse_option_result assign_string_value(struct parser_context *ctx, 
 	}
 	else
 	{
-		// return error(_("%s requires a value"), optname(opt, flags));
+		return error("%s requires a value", detailed_option(opt, flags));
 	}
 
 	return 0;
 }
 
-static enum parse_option_result assign_value(struct parser_context *ctx, const struct option *opt)
+static enum parse_option_result assign_value(struct parser_context *ctx, const struct option *opt, enum option_parsed flags)
 {
 	switch (opt->type)
 	{
-		case OPTION_END:
-			abort();
 		case OPTION_STRING:
-			return assign_string_value(ctx, (const char **)opt->value);
+			return assign_string_value(ctx, opt, flags, (const char **)opt->value);
+		case OPTION_END:
+			bug("assign_value() cannot return these");
 	}
 
 	return 0;
@@ -89,9 +115,12 @@ static enum parse_option_result parse_long_option(struct parser_context *ctx, co
 {
 	while (options->type != OPTION_END)
 	{
+		const struct option *opt;
 		const char *val_rest;
 
-		val_rest = trim_prefix(val, options->name);
+		opt = options++;
+		val_rest = trim_prefix(val, opt->name);
+
 		if (val_rest == NULL)
 		{
 			continue;
@@ -107,7 +136,7 @@ static enum parse_option_result parse_long_option(struct parser_context *ctx, co
 			ctx->optstr = val_rest + 1;
 		}
 
-		return assign_value(ctx, options);
+		return assign_value(ctx, opt, LONG_OPTION);
 	}
 
 	return PARSING_UNKNOWN;
@@ -119,7 +148,7 @@ static enum parse_option_result parse_short_option(struct parser_context *ctx, c
 	{
 		if (options->alias == *ctx->optstr)
 		{
-			return assign_value(ctx, options);
+			return assign_value(ctx, options, SHORT_OPTION);
 		}
 
 		options++;
@@ -169,9 +198,11 @@ static enum parse_option_result parse_option_step(struct parser_context *ctx, co
 					}
 
 					goto unknown;
+				case PARSING_ERROR:
+					return PARSING_ERROR;
 				case PARSING_HELP:
 				case PARSING_NON_OPTION:
-					abort();
+					bug("parse_short_option() cannot return these");
 			}
 		}
 
@@ -192,12 +223,14 @@ static enum parse_option_result parse_option_step(struct parser_context *ctx, co
 	{
 		case PARSING_DONE:
 			break;
+		case PARSING_ERROR:
+			return PARSING_ERROR;
 		case PARSING_HELP:
 			goto show_usage;
 		case PARSING_UNKNOWN:
 			goto unknown;
 		case PARSING_NON_OPTION:
-			abort();
+			break;
 	}
 
 	return PARSING_DONE;
@@ -235,7 +268,11 @@ int parse_option(int argc, const char **argv, const struct option *options, cons
 				puts(*usagestr);
 				break;
 			case PARSING_DONE:
+				break;
 			case PARSING_NON_OPTION:
+				break;
+			case PARSING_ERROR:
+				exit(129);
 			case PARSING_UNKNOWN:
 				break;
 		}

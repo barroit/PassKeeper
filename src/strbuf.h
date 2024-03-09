@@ -23,34 +23,42 @@
 #ifndef STRBUF_H
 #define STRBUF_H
 
-#ifdef PK_IS_DEBUG
-extern unsigned sb_resize_count;
-#endif
-
-typedef struct
+struct strbuf
 {
-	char *data;
-	size_t size;
+	char *buf;
+	size_t length;
 	size_t capacity;
+};
 
-} stringbuffer;
+extern char strbuf_defbuf[];
 
-stringbuffer *sballoc(size_t capacity);
+#define STRBUF_INIT { .buf = strbuf_defbuf }
 
-void sbputc(stringbuffer *strbuf, char c);
+void strbuf_alloc(struct strbuf *sb, size_t capacity);
 
-void sbprint(stringbuffer *strbuf, const char *src);
+void strbuf_dealloc(struct strbuf *sb);
 
-void sbprintf(stringbuffer *strbuf, const char *format, ...);
+void strbuf_release(struct strbuf *sb);
 
-void sbnprintf(stringbuffer *strbuf, size_t length, const char *format, ...);
+void strbuf_reset(struct strbuf *sb);
 
-void sbfree(stringbuffer *strbuf);
+void strbuf_printf(struct strbuf *sb, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
 bool starts_with(const char *str, const char *prefix);
 
 const char *trim_prefix(const char *str, const char *prefix);
 
 const char *find_char(const char *s, char c);
+
+size_t u8strlen(const char *iter);
+
+char *u8substr(const char *src, size_t start, size_t count);
+
+int strtou(const char *str, unsigned *res);
+
+static inline bool empty_string(const char *str)
+{
+	return str == NULL || *str == 0;
+}
 
 #endif /* STRBUF_H */

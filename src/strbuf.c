@@ -21,144 +21,114 @@
 ****************************************************************************/
 
 #include "strbuf.h"
-#include "misc.h"
-#include "debug.h"
-#include "rescode.h"
 
-#include <stdarg.h>
-
-#define SB_RESIZE_THRESHOLD	0.8
-#define SB_RESIZE_FACTOR	2
-
-#ifdef PK_IS_DEBUG
-unsigned sb_resize_count = 0;
-#endif
-
-static bool sb_need_resize(size_t prev, size_t next)
+static void strbuf_grow(struct strbuf *sb, size_t request_size)
 {
-	return next + 1 > prev * SB_RESIZE_THRESHOLD; /* +1 for null-terminator */
-}
+	bool factory_new;
+	factory_new = sb->capacity == 0;
 
-static stringbuffer *sbresize(stringbuffer *strbuf, size_t lower_bound)
-{
-	debug_execute(sb_resize_count++);
-
-	size_t newsize;
-	char *newdata;
-
-	newsize = MAX(strbuf->capacity, lower_bound) * SB_RESIZE_FACTOR;
-	if ((newdata = realloc(strbuf->data, newsize)) == NULL)
+	if (factory_new)
 	{
-		return NULL;
+		sb->buf = NULL;
 	}
 
-	strbuf->data = newdata;
-	strbuf->capacity = newsize;
+	CAPACITY_GROW(sb->buf, sb->length + request_size + 1, sb->capacity);
 
-	return strbuf;
+	if (factory_new)
+	{
+		*sb->buf = 0;
+	}
 }
 
-stringbuffer *sballoc(size_t capacity)
+char strbuf_defbuf[1];
+
+static inline void strbuf_setlen(struct strbuf *sb, size_t length)
 {
-	stringbuffer *strbuf;
-	if ((strbuf = malloc(sizeof(stringbuffer))) == NULL)
+	if (sb->buf != strbuf_defbuf)
 	{
-		return NULL;
+		sb->buf[length] = 0;
 	}
 
-	strbuf->data = malloc(capacity);
-	strbuf->size = 0;
-	strbuf->capacity = capacity;
-
-	return strbuf;
+	sb->length = length;
 }
 
-void sbputc(stringbuffer *strbuf, char c)
+static inline void strbuf_addlen(struct strbuf *sb, size_t newlen)
 {
-	size_t newsize;
-
-	newsize = strbuf->size + 1;
-	if (sb_need_resize(strbuf->capacity, newsize))
-	{
-		sbresize(strbuf, newsize);
-	}
-
-	strbuf->data[strbuf->size++] = c;
-	strbuf->data[strbuf->size] = 0;
+	strbuf_setlen(sb, sb->length + newlen);
 }
 
-void sbprint(stringbuffer *strbuf, const char *src)
+void strbuf_alloc(struct strbuf *sb, size_t capacity)
 {
-	size_t srclen, newsize;
+	struct strbuf defsb = STRBUF_INIT;
 
-	srclen = strlen(src);
-	newsize = strbuf->size + srclen;
+	memcpy(sb, &defsb, sizeof(struct strbuf));
 
-	if (sb_need_resize(strbuf->capacity, newsize))
+	if (capacity)
 	{
-		sbresize(strbuf, newsize);
+		strbuf_grow(sb, capacity);
 	}
-
-	memcpy(strbuf->data + strbuf->size, src, srclen + 1); /* contains null-terminator */
-	strbuf->size = newsize;
 }
 
-void sbprintf(stringbuffer *strbuf, const char *format, ...)
+void strbuf_dealloc(struct strbuf *sb)
 {
-	va_list args, _args;
-	va_start(args, format);
-	va_copy(_args, args);
-
-	size_t srclen, newsize;
-
-	srclen = vsnprintf(NULL, 0, format, _args);
-	va_end(_args);
-
-	newsize = strbuf->size + srclen;
-	if (sb_need_resize(strbuf->capacity, newsize))
+	if (sb->capacity)
 	{
-		sbresize(strbuf, newsize);
+		free(sb->buf);
 	}
-
-	vsnprintf(strbuf->data + strbuf->size, srclen + 1, format, args); /* contains null-terminator */
-	strbuf->size = newsize;
-
-	va_end(args);
 }
 
-void sbnprintf(stringbuffer *strbuf, size_t length, const char *format, ...)
+void strbuf_release(struct strbuf *sb)
 {
-	va_list args, _args;
-	va_start(args, format);
-	va_copy(_args, args);
-
-	size_t char_written, newsize;
-
-	char_written = vsnprintf(NULL, 0, format, _args);
-	va_end(_args);
-
-	char_written = char_written > length ? length : char_written;
-	newsize = strbuf->size + char_written;
-
-	if (sb_need_resize(strbuf->capacity, newsize))
-	{
-		sbresize(strbuf, newsize);
-	}
-
-	vsnprintf(strbuf->data + strbuf->size, char_written + 1, format, args);
-	strbuf->size = newsize;
-	va_end(args);
+	strbuf_dealloc(sb);
+	strbuf_alloc(sb, 0);
 }
 
-void sbfree(stringbuffer *strbuf)
+void strbuf_reset(struct strbuf *sb)
 {
-	if (strbuf == NULL)
+	strbuf_setlen(sb, 0);
+}
+
+static inline size_t strbuf_size_avail(const struct strbuf *sb)
+{
+	return sb->capacity == 0 ? 0 : sb->capacity - sb->length - 1;
+}
+
+static void strbuf_vprintf(struct strbuf *sb, const char *fmt, va_list ap)
+{
+	va_list cp;
+	int length_written;
+
+	if (!strbuf_size_avail(sb))
 	{
-		return;
+		strbuf_grow(sb, 64);
 	}
 
-	free(strbuf->data);
-	free(strbuf);
+	va_copy(cp, ap);
+	length_written = vsnprintf(sb->buf + sb->length, sb->capacity - sb->length, fmt, cp);
+	va_end(cp);
+
+	if (length_written < 0)
+	{
+		bug("your vsnprintf is broken (returned %d)", length_written);
+	}
+
+	if ((unsigned)length_written > strbuf_size_avail(sb))
+	{
+		strbuf_grow(sb, length_written);
+		length_written = vsnprintf(sb->buf + sb->length, sb->capacity - sb->length, fmt, ap);
+	}
+
+	strbuf_addlen(sb, length_written);
+}
+
+void strbuf_printf(struct strbuf *sb, const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	strbuf_vprintf(sb, fmt, ap);
+
+	va_end(ap);
 }
 
 bool starts_with(const char *str, const char *prefix)
@@ -196,4 +166,149 @@ const char *find_char(const char *s, char c)
 	}
 		
 	return s;
+}
+
+char *concat(const char *str1, const char *str2)
+{
+	size_t destlen, len1, len2;
+	char *dest;
+
+	len1 = strlen(str1);
+	len2 = strlen(str2);
+	destlen = len1 + len2;
+
+	dest = xmalloc(destlen + 1);
+
+	memcpy(dest, str1, len1);
+	memcpy(dest + len1, str2, len2);
+	dest[destlen] = 0;
+
+	return dest;
+}
+
+static inline bool is_start_byte(const char c)
+{
+	return (c & 0xC0) != 0x80;
+}
+
+size_t u8strlen(const char *iter)
+{
+	size_t length;
+
+	length = 0;
+	while (*iter)
+	{
+		if (is_start_byte(*iter++))
+		{
+			length++;
+		}
+	}
+
+	return length;
+}
+
+char *u8substr(const char *iter, size_t start_index, size_t substr_length)
+{
+	const char *head;
+	size_t char_count;
+	bool unknow_length, finish_calc;
+
+	head = NULL;
+	char_count = 0;
+	unknow_length = substr_length == 0;
+	finish_calc = false;
+
+	while (*iter)
+	{
+		if (!is_start_byte(*iter))
+		{
+			iter++;
+			continue;
+		}
+
+		if (finish_calc)
+		{
+			break;
+		}
+
+		iter++;
+		char_count++;
+
+		/*
+		 * skip to next char until the current 'character'
+		 * index reaches the start_index
+		 * due to the flow, we need char_count - 1 for
+		 * the current 'character' index
+		 */
+		if (char_count - 1 < start_index)
+		{
+			continue;
+		}
+
+		if (char_count - 1 == start_index)
+		{
+			head = iter - 1;
+		}
+
+		if (unknow_length)
+		{
+			continue; /* let iter goes to the end */
+		}
+
+		substr_length--;
+
+		if (substr_length == 0)
+		{
+			finish_calc = true;
+		}
+	}
+
+	if (head == NULL)
+	{
+		bug("u8substr() has an out-of-size start_index");
+	}
+ 
+	char *dest;
+	ptrdiff_t destsz;
+
+	destsz = iter - head;
+	dest = xmalloc(destsz + 1);
+
+	memcpy(dest, head, destsz);
+	dest[destsz] = 0;
+
+	return dest;
+}
+
+int strtou(const char *str, unsigned *res)
+{
+	if (*str == '-')
+	{
+		return EINVAL;
+	}
+
+	if (*str == 0)
+	{
+		return EILSEQ;
+	}
+
+	char *end;
+	unsigned long int tmpres;
+
+	errno = 0;
+	tmpres = strtoul(str, &end, 10);
+
+	if (*end != 0)
+	{
+		return EILSEQ;
+	}
+
+	if (errno == ERANGE || tmpres > UINT_MAX)
+	{
+		return ERANGE;
+	}
+
+	*res = (unsigned)tmpres;
+
+	return 0;
 }
