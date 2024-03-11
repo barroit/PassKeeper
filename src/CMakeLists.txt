@@ -4,35 +4,18 @@ find_package(SqlCipher REQUIRED)
 # provides OPENSSL_INCLUDE_DIRS OPENSSL_LIBRARIES OPENSSL_LIBRARY_DIRS
 find_package(OpenSSL REQUIRED)
 
-file(GLOB_RECURSE PK_SOURCES "*.c")
-list(REMOVE_ITEM PK_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/passkeeper.c")
+file(GLOB_RECURSE SOURCES_FILES "*.c")
 
-# pk
-add_library(pklib STATIC ${PK_SOURCES})
+add_compile_definitions(SQLITE_HAS_CODEC $<$<STREQUAL:${CMAKE_TARGET_PLATFORM},Penguin>:_GNU_SOURCE>)
 
-target_link_directories(pklib INTERFACE ${SQLCIPHER_LIBRARY_DIRS} ${OPENSSL_LIBRARY_DIRS})
+add_executable(pk ${SOURCES_FILES})
 
-target_link_libraries(pklib INTERFACE ${SQLCIPHER_LIBRARIES} ${OPENSSL_LIBRARIES})
+target_link_directories(pk PRIVATE ${SQLCIPHER_LIBRARY_DIRS} ${OPENSSL_LIBRARY_DIRS})
 
-if(CMAKE_BUILD_TYPE IN_LIST RELEASE_BUILD_TYPES)
-	target_link_libraries(pklib PUBLIC release_config) # -Wall -Wextra -Werror -Os
-else()
-	target_link_libraries(pklib PUBLIC develop_config) # -Wall -Wextra -O0
-endif()
+target_link_libraries(pk PRIVATE ${SQLCIPHER_LIBRARIES} ${OPENSSL_LIBRARIES})
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-	target_link_libraries(pklib PUBLIC debug_config)
-elseif(CMAKE_BUILD_TYPE STREQUAL "Coverage")
-	target_link_libraries(pklib PRIVATE coverage_config)
-endif()
+target_include_directories(pk PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} PRIVATE ${PROJECT_BINARY_DIR} ${SQLCIPHER_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS})
 
-target_include_directories(pklib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_BINARY_DIR} ${SQLCIPHER_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS})
-
-target_precompile_headers(pklib PUBLIC <stdbool.h> <stdlib.h> <string.h> PRIVATE <stddef.h> <limits.h> <stdint.h> <inttypes.h> <errno.h> <stdarg.h> <stdio.h> "compact.h")
-
-# pk
-add_executable(pk passkeeper.c)
-
-target_link_libraries(pk pklib)
+target_precompile_headers(pk PUBLIC "compat-util.h" PRIVATE [["project-config.h"]])
 
 set_target_properties(pk PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})

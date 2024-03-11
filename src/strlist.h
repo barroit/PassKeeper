@@ -20,23 +20,32 @@
 **
 ****************************************************************************/
 
-#ifndef ENVIRONMENT_H
-#define ENVIRONMENT_H
+#ifndef STRLIST_H
+#define STRLIST_H
 
-extern const char *credential_path;
-extern const char *credential_key_path;
-
-extern bool is_encrypt;
-
-struct project_info
+struct strlist_elem
 {
-	const char *name;
-	const char *author;
-	const char *contact;
+	char *str;
+	void *ext;
 };
 
-extern struct project_info projinfo;
+struct strlist
+{
+	struct strlist_elem *items;
+	size_t size;
+	size_t capacity;
+	bool   dupstr;
+};
 
-void initialize_environment(void);
+#define STRLIST_INIT_NODUP { 0 }
+#define STRLIST_INIT_DUP   { .dupstr = true }
 
-#endif /* ENVIRONMENT_H */
+struct strlist_elem *strlist_append(struct strlist *sl, const char *str);
+
+struct strlist_elem *strlist_append_nodup(struct strlist *sl, char *str);
+
+void string_list_clear(struct strlist *sl, bool free_ext);
+
+size_t string_list_split(struct strlist *sl, const char *str, char delim, int maxsplit);
+
+#endif /* STRLIST_H */

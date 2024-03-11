@@ -2,19 +2,16 @@
 
 project_root="$(cd $(dirname $0) &> /dev/null && pwd)"
 
-targets=('debug' 'test' 'coverage' 'penguin' 'window')
-target="${1:-debug}"
-build_dir='/dummydir'
+target_platforms=('penguin' 'window')
+build_types=('debug' 'release')
 
+build_type="${1:-debug}"
+target_platform="${2:-penguin}"
+
+build_dir='/dummydir'
 source "$project_root/tool/util"
 
-if [[ $target == 'clean' ]]
-then
-	rm -rf $(printf "$build_dir/%s " "${targets[@]}")
-	exit 0
-fi
-
-if [[ $target == 'cord' ]]
+if [[ $1 == 'cord' ]]
 then
 	echo 'core' | sudo tee /proc/sys/kernel/core_pattern
 	exit 0
@@ -26,34 +23,56 @@ then
 	exit 0
 fi
 
-if printf '%s\0' "${targets[@]}" | grep -Fxqz -- $target
+if [[ $1 == 'clean' ]]
 then
-	build_dir+="/$target"
-else
-	echo "not a valid build type: $target"
-	exit 1
-fi
-
-echo "found build type: $target"
-
-cmake_build_target='pk'
-
-if [[ $target == 'test' || $target == 'coverage' ]]
-then
-	cmake_build_target='pktest'
-fi
-
-if [[ $2 == 'scp' ]]
-then
-	scp $build_dir/$cmake_build_target $(grep_rdcred username)@$(grep_rdcred address):$(grep_rdcred userhome)
+	for __build_type in "${build_types[@]}"
+	do
+		__build_dir="$build_dir/$__build_type"
+		if [[ -s "$__build_dir/Makefile" ]]
+		then
+			cmake --build $__build_dir --target clean
+		fi
+	done
 	exit 0
 fi
 
-export TARGET_PLATFORM=$([[ $target == 'window' ]] && echo "window" || echo "penguin")
+if printf '%s\0' "${build_types[@]}" | grep -Fxqz -- $build_type
+then
+	build_dir+="/$build_type"
+else
+	echo "not a valid build type: $build_type"
+	exit 1
+fi
+
+echo "-- Found build type: $build_type"
+
+build_target='pk'
+
+# if [[ $build_type == 'test' || $build_type == 'coverage' ]]
+# then
+# 	build_target='pktest'
+# fi
+
+if [[ $2 == 'scp' ]]
+then
+	scp $build_dir/$build_target $(grep_rdcred username)@$(grep_rdcred address):$(grep_rdcred userhome)
+	exit 0
+fi
+
+export target_platform=$target_platform
 
 $project_root/tool/make_openssl
 $project_root/tool/make_sqlcipher
 
-cmake -B $build_dir -DCMAKE_BUILD_TYPE=${target^} -DINSTALL_PREFIX=$install_prefix
+if ! match_depstat 'cmake'
+then
+	rm -rf $build_dir
+fi
 
-cmake --build $build_dir --target $cmake_build_target --parallel 31
+cmake -B $build_dir \
+-DCMAKE_TARGET_PLATFORM=${target_platform^} \
+-DCMAKE_BUILD_TYPE=${build_type^} -DLIB_INSTALL_PREFIX=$install_prefix
+
+cmake --build $build_dir --target $build_target --parallel 25
+
+set_depstat 'cmake'

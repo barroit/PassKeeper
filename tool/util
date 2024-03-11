@@ -11,9 +11,19 @@ install_prefix="$HOME/.local"
 build_dir="$project_root/build"
 cache_file="$build_dir/dependency_stat"
 
+match_depstat()
+{
+	if [[ -s $cache_file && "$1=$target_platform" == "$(grep -s "$1" $cache_file)" ]]
+	then
+		return 0
+	else
+		return 1
+	fi
+}
+
 check_depstat()
 {
-	if [[ -s $cache_file && "$1=$TARGET_PLATFORM" == "$(grep -s "$1" $cache_file)" ]]
+	if match_depstat $1
 	then
 		exit 0
 	fi
@@ -23,10 +33,10 @@ set_depstat()
 {
 	if grep -qs "^$1=" $cache_file
 	then
-		sed -i "s/^$1=.*/$1=$TARGET_PLATFORM/" $cache_file
+		sed -i "s/^$1=.*/$1=$target_platform/" $cache_file
 	else
 		mkdir -p $build_dir
-		echo "$1=$TARGET_PLATFORM" >> $cache_file
+		echo "$1=$target_platform" >> $cache_file
 	fi
 }
 
@@ -50,7 +60,7 @@ spinner()
 
 process_start()
 {
-	printf '%s... ' "$1"
+	printf -- '-- %s... ' "$1"
 }
 
 process_exec() {

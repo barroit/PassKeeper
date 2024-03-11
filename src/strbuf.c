@@ -96,7 +96,7 @@ static inline size_t strbuf_size_avail(const struct strbuf *sb)
 static void strbuf_vprintf(struct strbuf *sb, const char *fmt, va_list ap)
 {
 	va_list cp;
-	int length_written;
+	int wch;
 
 	if (!strbuf_size_avail(sb))
 	{
@@ -104,21 +104,21 @@ static void strbuf_vprintf(struct strbuf *sb, const char *fmt, va_list ap)
 	}
 
 	va_copy(cp, ap);
-	length_written = vsnprintf(sb->buf + sb->length, sb->capacity - sb->length, fmt, cp);
+	wch = vsnprintf(sb->buf + sb->length, sb->capacity - sb->length, fmt, cp);
 	va_end(cp);
 
-	if (length_written < 0)
+	if (wch < 0)
 	{
-		bug("your vsnprintf is broken (returned %d)", length_written);
+		bug("your vsnprintf is broken (returned %d)", wch);
 	}
 
-	if ((unsigned)length_written > strbuf_size_avail(sb))
+	if ((unsigned)wch > strbuf_size_avail(sb))
 	{
-		strbuf_grow(sb, length_written);
-		length_written = vsnprintf(sb->buf + sb->length, sb->capacity - sb->length, fmt, ap);
+		strbuf_grow(sb, wch);
+		wch = vsnprintf(sb->buf + sb->length, sb->capacity - sb->length, fmt, ap);
 	}
 
-	strbuf_addlen(sb, length_written);
+	strbuf_addlen(sb, wch);
 }
 
 void strbuf_printf(struct strbuf *sb, const char *fmt, ...)
@@ -156,16 +156,6 @@ const char *trim_prefix(const char *str, const char *prefix)
 	while (*str++ == *prefix++);
 
 	return NULL;
-}
-
-const char *find_char(const char *s, char c)
-{
-	while (*s && *s != c)
-	{
-		s++;
-	}
-		
-	return s;
 }
 
 char *concat(const char *str1, const char *str2)
@@ -311,4 +301,22 @@ int strtou(const char *str, unsigned *res)
 	*res = (unsigned)tmpres;
 
 	return 0;
+}
+
+int fprintf_ln(FILE *stream, const char *fmt, ...)
+{
+	int wch;
+	va_list ap;
+
+	va_start(ap, fmt);
+	wch = vfprintf(stream, fmt, ap);
+	if (wch < 0)
+	{
+		bug("your vfprintf is broken (returned %d)", wch);
+	}
+
+	putc('\n', stream);
+	va_end(ap);
+
+	return wch;
 }

@@ -21,7 +21,6 @@
 ****************************************************************************/
 
 #include "rcque.h"
-#include "rescode.h"
 
 recordqueue *rcqalloc(void)
 {

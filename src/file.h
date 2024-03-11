@@ -20,24 +20,22 @@
 **
 ****************************************************************************/
 
-#include "environment.h"
-#include "projcfg.h"
+#ifndef FILE_H
+#define FILE_H
 
-const char *credential_path;
-const char *credential_key_path;
-
-bool is_encrypt;
-
-struct project_info projinfo;
-
-void initialize_environment(void)
+static inline bool exists(const char *pathname)
 {
-	credential_path = getenv(CREDENTIAL_ENVNAME);
-	credential_key_path = getenv(CREDENTIAL_KEY_ENVNAME);
-
-	is_encrypt = credential_key_path != NULL;
-
-	projinfo.name = PROJECT_NAME;
-	projinfo.author = AUTHOR_NAME;
-	projinfo.contact = CONTACT_ADDRESS;
+	return pathname != NULL && !access(pathname, F_OK);
 }
+
+static inline bool file_avail(const char *pathname)
+{
+	return pathname != NULL && !access(pathname, F_OK | R_OK | W_OK);
+}
+
+static inline bool dir_avail(const char *dirname)
+{
+	return dirname != NULL && !access(dirname, F_OK | R_OK | W_OK | X_OK);
+}
+
+#endif /* FILE_H */

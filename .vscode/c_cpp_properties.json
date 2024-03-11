@@ -1,0 +1,15 @@
+{
+    "configurations": [
+        {
+            "name": "linux",
+            "defines": [
+                "${default}",
+                "SQLITE_HAS_CODEC"
+            ],
+            "forcedInclude": [
+                "${workspaceFolder}/src/compat-util.h"
+            ]
+        }
+    ],
+    "version": 4
+}

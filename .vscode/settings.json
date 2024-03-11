@@ -1,0 +1,8 @@
+{
+	"files.associations": {
+		"command.h": "c",
+		"stddef.h": "c",
+		"strlist.h": "c",
+		"typeinfo": "c"
+	}
+}

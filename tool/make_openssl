@@ -17,11 +17,14 @@ fi
 
 cd $openssl_dir
 
-feature='no-apps no-shared no-docs no-tests no-legacy no-threads no-ssl no-ssl-trace no-thread-pool no-stdio no-ui-console no-engine no-sock no-uplink no-deprecated no-dynamic-engine'
 target='linux-x86_64'
 flag="--prefix=$install_prefix"
+feature='no-apps no-shared no-docs no-tests no-legacy '\
+'no-threads no-ssl no-ssl-trace no-thread-pool no-stdio '\
+'no-ui-console no-engine no-sock no-uplink no-deprecated '\
+'no-dynamic-engine'
 
-if [[ $TARGET_PLATFORM == 'window' ]]
+if [[ $target_platform == 'window' ]]
 then
 	target=mingw64
 	flag+=' --cross-compile-prefix=x86_64-w64-mingw32-'
@@ -34,7 +37,7 @@ then
 	process_end
 fi
 
-process_start "configuring openssl for $TARGET_PLATFORM"
+process_start "configuring openssl for $target_platform"
 process_exec "./Configure $target $feature $flag CFLAGS=-Os"
 process_end
 

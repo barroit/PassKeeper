@@ -48,17 +48,12 @@ bool starts_with(const char *str, const char *prefix);
 
 const char *trim_prefix(const char *str, const char *prefix);
 
-const char *find_char(const char *s, char c);
-
 size_t u8strlen(const char *iter);
 
 char *u8substr(const char *src, size_t start, size_t count);
 
 int strtou(const char *str, unsigned *res);
 
-static inline bool empty_string(const char *str)
-{
-	return str == NULL || *str == 0;
-}
+int fprintf_ln(FILE *stream, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
 #endif /* STRBUF_H */

@@ -20,37 +20,33 @@
 **
 ****************************************************************************/
 
-#include "environment.h"
 #include "command.h"
 
-static void preprocess_argv(int argc, const char **argv)
+static void calibrate_argv(int argc, const char **argv)
 {
 	/* like git, turn "pk <command> --help" into "pk help <command>" */
-	if (argc > 1 && !strcmp("--help", argv[1]))
+	if (argc > 1 && !strcmp(argv[1], "--help"))
 	{
 		argv[1] = argv[0];
 		argv[0] = "help";
 	}
-}
-
-int main(int argc, const char **argv)
-{
-	initialize_environment();
-
-	argc--;
-	argv++;
-
-	if (argc == 0)
+	else if (argc == 0)
 	{
 		const char *default_argv[] = { "help" };
 
 		argc = 1;
 		argv = default_argv;
 	}
+}
 
+int main(int argc, const char **argv)
+{
 	struct command_info *command;
 
-	preprocess_argv(argc, argv);
+	argc--;
+	argv++;
+
+	calibrate_argv(argc, argv);
 
 	if ((command = find_command(argv[0])) == NULL)
 	{

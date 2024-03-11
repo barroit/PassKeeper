@@ -20,14 +20,14 @@
 **
 ****************************************************************************/
 
-#ifndef OPTPARSER_H
-#define OPTPARSER_H
+#ifndef PARSE_OPTIONS_H
+#define PARSE_OPTIONS_H
 
 enum option_type
 {
 	/* special types */
 	OPTION_END,
-	// OPTION_GROUP,
+	OPTION_GROUP,
 	/* options with no arguments */
 	// OPTION_SWITCH,
 	/* options with arguments */
@@ -36,13 +36,13 @@ enum option_type
 	// OPTION_FILENAME,
 };
 
-// enum option_flag
-// {
-// 	OPTION_OPTARG = 1 << 0,
-// 	OPTION_NOARG = 1 << 1,
-// 	OPTION_NONEG = 1 << 2,
-// 	OPTION_RAWARGH = 1 << 3,
-// };
+enum option_flag
+{
+	OPTION_OPTARG = 1 << 0,
+	OPTION_NOARG = 1 << 1,
+	OPTION_NONEG = 1 << 2,
+	OPTION_RAWARGH = 1 << 3,
+};
 
 struct option
 {
@@ -58,6 +58,7 @@ struct option
 	const char *argh;
 
 	unsigned count;
+	unsigned flags;
 };
 
 enum option_parser_flag
@@ -87,6 +88,6 @@ enum option_parser_flag
 	.help = (h),			\
 }
 
-int parse_option(int argc, const char **argv, const struct option *options, const char **usagestr, enum option_parser_flag flags);
+int parse_option(int argc, const char **argv, const struct option *options, const char *const *usages, enum option_parser_flag flags);
 
-#endif /* OPTPARSER_H */
+#endif /* PARSE_OPTIONS_H */

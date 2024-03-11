@@ -20,11 +20,24 @@
 **
 ****************************************************************************/
 
-#ifndef COMPACT_H
-#define COMPACT_H
+#ifndef COMPACT_UTIL_H
+#define COMPACT_UTIL_H
 
-int error(const char *err, ...);
-void die(const char *reason, ...);
+#include <stddef.h>
+#include <stdbool.h>
+#include <ctype.h>
+#include <limits.h>
+#include <inttypes.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+#include <unistd.h>
+#include <stdarg.h>
+
+int error(const char *err, ...) __attribute__((format(printf, 2, 3)));
+void die(const char *reason, ...) __attribute__((format(printf, 2, 3)));
 
 void bug_fl(const char *file, int line, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
 #define bug(...) bug_fl(__FILE__, __LINE__, __VA_ARGS__)
@@ -55,6 +68,21 @@ static inline void *xrealloc(void *ptr, size_t size)
 	return ptr;
 }
 
+static inline void *xmallocs(size_t size)
+{
+	char *ptr;
+
+	ptr = xmalloc(size + 1);
+	ptr[size] = 0;
+
+	return ptr;
+}
+
+static inline void *xmemdups(const void *ptr, size_t size)
+{
+	return memcpy(xmallocs(size), ptr, size);
+}
+
 static inline size_t __attribute__((const)) safe_mult(size_t x, size_t y)
 {
 	if ((SIZE_MAX / x) < y)
@@ -67,17 +95,28 @@ static inline size_t __attribute__((const)) safe_mult(size_t x, size_t y)
 
 #define REALLOC_ARRAY(ptr, size) xrealloc(ptr, safe_mult(sizeof(*ptr), size))
 
-#define CAPACITY_GROW(ptr, lb, cap)			\
+#define CAPACITY_GROW(ptr, size, cap)			\
 	do						\
 	{						\
-		if (lb > cap)				\
+		if (size > cap)				\
 		{					\
 			cap = fixed_growth(cap);	\
-			cap = cap < lb ? lb : cap;	\
+			cap = cap < size ? size : cap;	\
 			ptr = REALLOC_ARRAY(ptr, cap);	\
 		}					\
 	}						\
 	while (0)
 
+#ifdef __WIN64__
+static inline char *strchrnul(const char *s, int c)
+{
+	while (*s && *s != c);
+	{
+		s++;
+	}
 
-#endif /* COMPACT_H */
+	return (char *)s;
+}
+#endif
+
+#endif /* COMPACT_UTIL_H */

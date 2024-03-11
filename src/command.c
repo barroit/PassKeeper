@@ -41,15 +41,14 @@ struct command_info *find_command(const char *cmdname)
 	struct command_info *cmditer;
 
 	cmditer = commands;
-	while ((*cmditer).name)
-	{
-		if (!strcmp((*cmditer++).name, cmdname))
-		{
-			return cmditer - 1;
-		}
-	}
+	while (cmditer->name && strcmp(cmdname, cmditer++->name));
 
-	return NULL;
+	return cmditer->name ? cmditer : NULL;
+}
+
+bool is_command(const char *cmdname)
+{
+	return find_command(cmdname);
 }
 
 void execute_command(struct command_info *command, int argc, const char **argv)

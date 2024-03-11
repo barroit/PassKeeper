@@ -22,7 +22,7 @@ cflags="-I$install_prefix/include -DSQLITE_HAS_CODEC -DSQLCIPHER_CRYPTO_OPENSSL 
 ldflags="-L$install_prefix/lib64 -lcrypto"
 
 # we need mksourceid
-if [[ ! -f mksourceid || $TARGET_PLATFORM != 'window' ]]
+if [[ ! -f mksourceid || $target_platform != 'window' ]]
 then
 	process_start 'configuring sqlcipher for penguin'
 	process_exec "./configure $flags CFLAGS=\"$cflags\" LDFLAGS=\"$ldflags\""
@@ -33,7 +33,7 @@ then
 	process_end
 fi
 
-if [[ $TARGET_PLATFORM == 'window' ]]
+if [[ $target_platform == 'window' ]]
 then
 	flags+=" --host=x86_64-w64-mingw32 --with-crypto-lib=none config_TARGET_EXEEXT=.exe"
 	ldflags+=" -lcrypt32 -lws2_32"

@@ -20,26 +20,7 @@
 **
 ****************************************************************************/
 
-#include "fileio.h"
-#include "strbuf.h"
-#include "rescode.h"
-
-#include <unistd.h>
-
-bool exists(const char *pathname)
-{
-	return pathname == NULL ? false : access(pathname, F_OK) == 0;
-}
-
-bool is_rw_file(const char *pathname)
-{
-	return pathname == NULL ? false : access(pathname, F_OK | R_OK | W_OK) == 0;
-}
-
-bool is_rwx_dir(const char *dirname)
-{
-	return dirname == NULL ? false : access(dirname, F_OK | R_OK | W_OK | X_OK) == 0;
-}
+#include "file.h"
 
 // char *read_content(const char *pathname, size_t *size)
 // {
@@ -71,64 +52,64 @@ bool is_rwx_dir(const char *dirname)
 // 	return res;
 // }
 
-int prepare_folder(const char *pathname)
-{
-	char *dirname;
-	if ((dirname = prefix(pathname)) == NULL)
-	{
-		return PK_INVALID_PATHNAME;
-	}
+// int prepare_folder(const char *pathname)
+// {
+// 	char *dirname;
+// 	if ((dirname = prefix(pathname)) == NULL)
+// 	{
+// 		return PK_INVALID_PATHNAME;
+// 	}
 
-	int rc;
+// 	int rc;
 
-	rc = mkdir_p(dirname);
-	free(dirname);
+// 	rc = mkdir_p(dirname);
+// 	free(dirname);
 
-	return rc;
-}
+// 	return rc;
+// }
 
-char *prefix(const char *pathname)
-{
-	const char *seperator;
-	if ((seperator = strrchr(pathname, '/')) == NULL && (seperator = strrchr(pathname, '\\')) == NULL)
-	{
-		return NULL;
-	}
+// char *prefix(const char *pathname)
+// {
+// 	const char *seperator;
+// 	if ((seperator = strrchr(pathname, '/')) == NULL && (seperator = strrchr(pathname, '\\')) == NULL)
+// 	{
+// 		return NULL;
+// 	}
 
-	char *dirname;
-	ptrdiff_t dnlen; /* directory name length */
+// 	char *dirname;
+// 	ptrdiff_t dnlen; /* directory name length */
 
-	dnlen = seperator - pathname;
-	if ((dirname = malloc(dnlen + 1)) == NULL)
-	{
-		return NULL;
-	}
+// 	dnlen = seperator - pathname;
+// 	if ((dirname = malloc(dnlen + 1)) == NULL)
+// 	{
+// 		return NULL;
+// 	}
 
-	memcpy(dirname, pathname, dnlen);
-	dirname[dnlen] = 0;
+// 	memcpy(dirname, pathname, dnlen);
+// 	dirname[dnlen] = 0;
 
-	return dirname;
-}
+// 	return dirname;
+// }
 
-#ifdef __linux
-#include <sys/stat.h>
-#endif
+// #ifdef __linux
+// #include <sys/stat.h>
+// #endif
 
-/* no error if existing */
-int mkdir_p(const char *pathname)
-{
-	if (exists(pathname))
-	{
-		return PK_SUCCESS;
-	}
+// /* no error if existing */
+// int mkdir_p(const char *pathname)
+// {
+// 	if (exists(pathname))
+// 	{
+// 		return PK_SUCCESS;
+// 	}
 
-	int rc;
+// 	int rc;
 
-#ifdef __linux
-	rc = mkdir(pathname, 0755);
-#else
-	rc = mkdir(pathname);
-#endif
+// #ifdef __linux
+// 	rc = mkdir(pathname, 0755);
+// #else
+// 	rc = mkdir(pathname);
+// #endif
 
-	return rc == 0 ? PK_SUCCESS : PK_MKDIR_FAILURE;
-}
+// 	return rc == 0 ? PK_SUCCESS : PK_MKDIR_FAILURE;
+// }

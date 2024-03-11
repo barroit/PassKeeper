@@ -20,20 +20,32 @@
 **
 ****************************************************************************/
 
-#include "optparser.h"
+#include "parse-options.h"
 
-static char *search_pattern;
+static const char *search_pattern = "%";
 
-static const char *usagestr[] = { "t" };
+static const char *usagestr[] = {
+	"pk count [--search <pattern>]",
+	NULL,
+};
+
+// static char const * const archive_usage[] = {
+// 	N_("git archive [<options>] <tree-ish> [<path>...]"),
+// 	"git archive --list",
+// 	N_("git archive --remote <repo> [--exec <cmd>] [<options>] <tree-ish> [<path>...]"),
+// 	N_("git archive --remote <repo> [--exec <cmd>] --list"),
+// 	NULL
+// };
 
 int cmd_count(int argc, const char **argv)
 {
 	struct option cmd_count_option[] = {
-		OPTION_STRING(0, "search", &search_pattern, "pattern", "count for a particular site"),
+		OPTION_STRING(0, "search", &search_pattern, "pattern", "count record for a particular site"),
 		OPTION_END(),
 	};
 
 	argc = parse_option(argc, argv, cmd_count_option, usagestr, PARSER_STOP_AT_NON_OPTION);
+	printf("s: %s, a: %d\n", search_pattern, argc);
 
 	return 0;
 }

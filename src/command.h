@@ -31,6 +31,8 @@ struct command_info
 
 struct command_info *find_command(const char *cmdname);
 
+bool is_command(const char *cmdname);
+
 void execute_command(struct command_info *command, int argc, const char **argv);
 
 int cmd_count(int argc, const char **argv);

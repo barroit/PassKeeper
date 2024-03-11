@@ -13,4 +13,4 @@ char byte_to_hexchar(unsigned char c);
 
 unsigned char hexchar_to_byte(char c);
 
-#endif
+#endif /* ENCRYPT_H */
