@@ -26,6 +26,7 @@
 
 enum parse_option_result
 {
+	PARSING_COMPLETE = -3,
 	PARSING_HELP = -2,
 	PARSING_ERROR = -1,
 	PARSING_DONE = 0,
@@ -49,9 +50,9 @@ struct parser_context
 
 enum option_parsed
 {
-	LONG_OPTION  = 1 << 0,
-	SHORT_OPTION = 1 << 1,
-	UNSET_OPTION = 1 << 2,
+	LONG_OPTION  = 0, /* use 0 for abbrev detection */
+	SHORT_OPTION = 1 << 0,
+	UNSET_OPTION = 1 << 1,
 };
 
 static const char *detailed_option(const struct option *opt, enum option_parsed flags)
@@ -108,10 +109,42 @@ static enum parse_option_result assign_value(
 	const struct option *opt,
 	enum option_parsed flags)
 {
+	bool unset = flags & UNSET_OPTION;
+
+	if (unset && ctx->optstr)
+	{
+		return error("%s takes no value", detailed_option(opt, flags));
+	}
+	if (unset && (opt->flags & OPTION_NONEG))
+	{
+		return error("%s isn't available", detailed_option(opt, flags));
+	}
+	if (!(flags & SHORT_OPTION) && ctx->optstr && (opt->flags & OPTION_NOARG))
+	{
+		return error("%s takes no value", detailed_option(opt, flags));
+	}
+
 	switch (opt->type)
 	{
+		case OPTION_SWITCH:
+			*(int *)opt->value = unset ? 0 : opt->defval;
+
+			break;
 		case OPTION_STRING:
-			return assign_string_value(ctx, opt, flags, (const char **)opt->value);
+			if (unset)
+			{
+				*(const char **)opt->value = NULL;
+			}
+			else if (opt->flags & OPTION_OPTARG && ctx->optstr == NULL)
+			{
+				*(const char **)opt->value = (const char *)opt->defval;
+			}
+			else
+			{
+				return assign_string_value(ctx, opt, flags, (const char **)opt->value);
+			}
+
+			break;
 		default:
 			bug("opt->type %d should not happen", opt->type);
 	}
@@ -121,36 +154,128 @@ static enum parse_option_result assign_value(
 
 static enum parse_option_result parse_long_option(
 	struct parser_context *ctx,
-	const char *arg,
+	const char *argstr,
 	const struct option *options)
 {
+	const struct option *abbrev_option, *ambiguous_option;
+	enum option_parsed abbrev_flags, ambiguous_flags;
+	const char *argstr_end;
+
+	abbrev_option = NULL;
+	ambiguous_option = NULL;
+	abbrev_flags = LONG_OPTION;
+	ambiguous_flags = LONG_OPTION;
+	argstr_end = strchrnul(argstr, '=');
+
 	while (options->type != OPTION_END)
 	{
 		const struct option *opt;
-		const char *arg_rest;
+		enum option_parsed flags, opt_flags;
+		const char *argstr_rest, *opt_name;
 
 		opt = options++;
-		arg_rest = trim_prefix(arg, opt->name);
+		opt_name = opt->name;
+		flags = LONG_OPTION;
+		opt_flags = LONG_OPTION;
 
-		if (arg_rest == NULL)
+		if (!starts_with(argstr, "no-") && !(opt->flags & OPTION_NONEG) && skip_prefix(opt_name, "no-", &opt_name))
 		{
-			continue;
+			opt_flags |= UNSET_OPTION;
 		}
 
-		if (*arg_rest) /* option written in form xxx=xxx? */
+		if (!skip_prefix(argstr, opt_name, &argstr_rest))
 		{
-			if (*arg_rest != '=')
+			argstr_rest = NULL;
+		}
+
+		if (argstr_rest == NULL)
+		{
+			/* abbreviated? */
+			if (!strncmp(opt_name, argstr, argstr_end - argstr))
+			{
+is_abbreviated:
+				if (abbrev_option != NULL)
+				{
+					ambiguous_option = abbrev_option;
+					ambiguous_flags = abbrev_flags;
+				}
+
+				if (!(flags & UNSET_OPTION) && *argstr_end)
+				{
+					ctx->optstr = argstr_end + 1;
+				}
+
+				abbrev_option = opt;
+				abbrev_flags = flags ^ opt_flags;
+
+				continue;
+			}
+
+			/* negation allowed? */
+			if (options->flags & OPTION_NONEG)
 			{
 				continue;
 			}
 
-			ctx->optstr = arg_rest + 1;
+			/* negated and abbreviated very much? */
+			if (starts_with("no-", argstr))
+			{
+				flags |= UNSET_OPTION;
+				goto is_abbreviated;
+			}
+
+			/* negated? */
+			if (!starts_with(argstr, "no-"))
+			{
+				continue;
+			}
+
+			flags |= UNSET_OPTION;
+			if (!skip_prefix(argstr + 3, opt_name, &argstr_rest))
+			{
+				/* abbreviated and negated? */
+				if (starts_with(opt_name, argstr + 3))
+				{
+					goto is_abbreviated;
+				}
+				else
+				{
+					continue;
+				}
+			}
 		}
 
-		return assign_value(ctx, opt, LONG_OPTION);
+		if (*argstr_rest) /* option written in form xxx=xxx? */
+		{
+			if (*argstr_rest != '=')
+			{
+				continue;
+			}
+
+			ctx->optstr = argstr_rest + 1;
+		}
+
+		return assign_value(ctx, opt, flags ^ opt_flags);
 	}
 
-	ctx->optstr = arg;
+	if (ambiguous_option)
+	{
+		error("ambiguous option: %s (could be --%s%s or --%s%s)",
+			argstr,
+			(ambiguous_flags & UNSET_OPTION) ?  "no-" : "",
+			ambiguous_option->name,
+			(abbrev_flags & UNSET_OPTION) ?  "no-" : "",
+			abbrev_option->name);
+
+		return PARSING_HELP;
+	}
+
+	if (abbrev_option)
+	{
+		return assign_value(ctx, abbrev_option, abbrev_flags);
+	}
+
+	ctx->optstr = argstr;
 	return PARSING_UNKNOWN;
 }
 
@@ -188,6 +313,7 @@ static enum parse_option_result parse_option_step(
 		}
 
 		ctx->argov[ctx->argoc++] = ctx->argv[0];
+		return PARSING_DONE;
 	}
 
 	/* lone -h asks for help */
@@ -226,7 +352,7 @@ static enum parse_option_result parse_option_step(
 		ctx->argc--;
 		ctx->argv++;
 
-		return PARSING_DONE;
+		return PARSING_COMPLETE;
 	}
 
 	if (!strcmp(argstr + 2, "help"))
@@ -245,7 +371,7 @@ static enum parse_option_result parse_option_step(
 			return PARSING_HELP;
 		case PARSING_UNKNOWN:
 			return PARSING_UNKNOWN;
-		case PARSING_NON_OPTION:
+		default:
 			bug("parse_long_option() cannot return status %d", rescode);
 	}
 
@@ -350,16 +476,8 @@ static inline bool has_option(const struct option *options, const char *name)
 	return options->type != OPTION_END;
 }
 
-static enum parse_option_result usage_with_options(
-	const char *const *usages,
-	const struct option *options,
-	bool is_error)
+static enum parse_option_result usage_with_options(const char *const *usages,const struct option *options,bool is_error)
 {
-	if (usages == NULL)
-	{
-		bug("usage_with_options() called without usages");
-	}
-
 	FILE *stream;
 	const char *next_prefix, *usage_prefix, *or_prefix;
 	struct strlist sl = STRLIST_INIT_DUP;
@@ -408,6 +526,7 @@ static enum parse_option_result usage_with_options(
 		size_t prev_pos;
 		const char *negpos_name;
 
+		negpos_name = NULL;
 		if (iter->type == OPTION_GROUP)
 		{
 			print_newline(stream);
@@ -441,14 +560,17 @@ static enum parse_option_result usage_with_options(
 
 		if (iter->name)
 		{
-			bool is_noneg_name;
-	
-			negpos_name = trim_prefix(iter->name, "no-");
-			is_noneg_name = (iter->flags & OPTION_NONEG) || negpos_name == NULL;
-			prev_pos += fprintf(stream, is_noneg_name ? "--%s" : "--[no-]%s", iter->name);
+			if ((iter->flags & OPTION_NONEG) || skip_prefix(iter->name, "no-", &negpos_name))
+			{
+				prev_pos += fprintf(stream, "--%s", iter->name);
+			}
+			else
+			{
+				prev_pos += fprintf(stream, "--[no-]%s", iter->name);
+			}
 		}
 
-		if ((iter->flags & OPTION_RAWARGH) || !(iter->flags & OPTION_NONEG))
+		if ((iter->flags & OPTION_RAWARGH) || !(iter->flags & OPTION_NOARG))
 		{
 			prev_pos += print_option_argh(iter, stream);
 		}
@@ -491,6 +613,7 @@ int parse_option(
 		{
 			case PARSING_DONE:
 				break;
+			case PARSING_COMPLETE:
 			case PARSING_NON_OPTION:
 				return ctx->argc;
 			case PARSING_HELP:

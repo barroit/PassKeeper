@@ -16,6 +16,6 @@ target_link_libraries(pk PRIVATE ${SQLCIPHER_LIBRARIES} ${OPENSSL_LIBRARIES})
 
 target_include_directories(pk PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} PRIVATE ${PROJECT_BINARY_DIR} ${SQLCIPHER_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS})
 
-target_precompile_headers(pk PUBLIC "compat-util.h" PRIVATE [["project-config.h"]])
+target_precompile_headers(pk PUBLIC "compat-util.h" PRIVATE [["projcfg.h"]])
 
 set_target_properties(pk PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})

@@ -3,6 +3,10 @@
 		"command.h": "c",
 		"stddef.h": "c",
 		"strlist.h": "c",
-		"typeinfo": "c"
+		"typeinfo": "c",
+		"type_traits": "c",
+		"stdbool.h": "c",
+		"parse-options.h": "c",
+		"*.in": "c"
 	}
 }

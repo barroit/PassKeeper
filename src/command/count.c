@@ -24,7 +24,7 @@
 
 static const char *search_pattern = "%";
 
-static const char *usagestr[] = {
+static const char *usages[] = {
 	"pk count [--search <pattern>]",
 	NULL,
 };
@@ -36,7 +36,7 @@ int cmd_count(int argc, const char **argv)
 		OPTION_END(),
 	};
 
-	argc = parse_option(argc, argv, cmd_count_option, usagestr, PARSER_STOP_AT_NON_OPTION);
+	argc = parse_option(argc, argv, cmd_count_option, usages, PARSER_STOP_AT_NON_OPTION);
 	printf("s: %s, a: %d\n", search_pattern, argc);
 
 	return 0;

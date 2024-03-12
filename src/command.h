@@ -23,17 +23,7 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
-struct command_info
-{
-	const char *name;
-	int (*handle)(int argc, const char **argv);
-};
-
-struct command_info *find_command(const char *cmdname);
-
 bool is_command(const char *cmdname);
-
-void execute_command(struct command_info *command, int argc, const char **argv);
 
 int cmd_count(int argc, const char **argv);
 int cmd_create(int argc, const char **argv);

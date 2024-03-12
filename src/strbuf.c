@@ -144,18 +144,19 @@ bool starts_with(const char *str, const char *prefix)
 	return true;
 }
 
-const char *trim_prefix(const char *str, const char *prefix)
+bool skip_prefix(const char *str, const char *prefix, const char **out)
 {
 	do
 	{
 		if (!*prefix)
 		{
-			return str;
+			*out = str;
+			return true;
 		}
 	}
 	while (*str++ == *prefix++);
 
-	return NULL;
+	return false;
 }
 
 char *concat(const char *str1, const char *str2)

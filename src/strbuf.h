@@ -46,7 +46,7 @@ void strbuf_printf(struct strbuf *sb, const char *fmt, ...) __attribute__((forma
 
 bool starts_with(const char *str, const char *prefix);
 
-const char *trim_prefix(const char *str, const char *prefix);
+bool skip_prefix(const char *str, const char *prefix, const char **out);
 
 size_t u8strlen(const char *iter);
 
@@ -55,5 +55,7 @@ char *u8substr(const char *src, size_t start, size_t count);
 int strtou(const char *str, unsigned *res);
 
 int fprintf_ln(FILE *stream, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+
+#define printf_ln(...) fprintf_ln(stdout, __VA_ARGS__)
 
 #endif /* STRBUF_H */

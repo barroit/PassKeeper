@@ -39,8 +39,8 @@ static void vreportf(const char *prefix, const char *fmt, va_list ap)
 	*content_tail++ = '\n';
 	*content_tail = 0;
 
-	fputs(buf_head, stderr);
 	fflush(stderr);
+	fputs(buf_head, stderr);
 }
 
 int error(const char *fmt, ...)

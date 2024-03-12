@@ -22,6 +22,57 @@
 
 #include "command.h"
 
+struct command_info
+{
+	const char *name;
+	int (*handle)(int argc, const char **argv);
+};
+
+static struct command_info commands[] = {
+	{ "count",	cmd_count },
+	// { "create",	cmd_create },
+	// { "delete",	cmd_delete },
+	// { "help",	cmd_help },
+	// { "init",	cmd_init },
+	// { "read",	cmd_read },
+	// { "update",	cmd_update },
+	{ "version",	cmd_version },
+	{ "dump",	NULL }, /* reserved */
+	{ "source",	NULL }, /* reserved */
+	{ NULL },
+};
+
+static struct command_info *find_command(const char *cmdname)
+{
+	struct command_info *cmditer;
+
+	cmditer = commands;
+	while (cmditer->name != NULL)
+	{
+		if (!strcmp(cmdname, cmditer++->name))
+		{
+			return cmditer - 1;
+		}
+	}
+
+	return NULL;
+}
+
+bool is_command(const char *cmdname)
+{
+	return find_command(cmdname);
+}
+
+static void execute_command(struct command_info *command, int argc, const char **argv)
+{
+	if (command->handle == NULL)
+	{
+		bug("command '%s' has no handler", command->name);
+	}
+
+	command->handle(argc, argv);
+}
+
 /* do not use '__' as parameter prefix */
 static void calibrate_argv(int *argc0, const char ***argv0)
 {
