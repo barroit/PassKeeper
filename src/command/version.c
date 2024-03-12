@@ -26,10 +26,9 @@
 static bool show_build_options;
 
 static const char *usages[] = {
-	"pk count [--search <pattern>]",
+	"pk version [--build-options]",
 	NULL,
 };
-
 
 int cmd_version(int argc, const char **argv)
 {
@@ -39,13 +38,25 @@ int cmd_version(int argc, const char **argv)
 	};
 
 	argc = parse_option(argc, argv, cmd_version_option, usages, 0);
-	
+
+	struct strbuf sb = STRBUF_INIT;
+	strbuf_print(&sb, "pk version "PROJECT_VERSION);
+
 	if (show_build_options)
 	{
-		// ...
+		strbuf_putc(&sb, '\n');
+		strbuf_puts(&sb, "architecture: "ARCHITECTURE);
+		strbuf_puts(&sb, "built from commit: "BUILD_COMMIT);
+	}
+	else
+	{
+		strbuf_printf(&sb, ".%.11s\n", BUILD_COMMIT);
 	}
 
-	printf_ln("pk version %s.%s", PROJECT_VERSION, GIT_COMMIT_HASH);
+	strbuf_printf(&sb, "written by %s <%s>", AUTHOR, CONTACT);
+
+	puts(sb.buf);
+	strbuf_destroy(&sb);
 
 	return 0;
 }

@@ -57,7 +57,7 @@ static inline void strbuf_addlen(struct strbuf *sb, size_t newlen)
 	strbuf_setlen(sb, sb->length + newlen);
 }
 
-void strbuf_alloc(struct strbuf *sb, size_t capacity)
+void strbuf_allocate(struct strbuf *sb, size_t capacity)
 {
 	struct strbuf defsb = STRBUF_INIT;
 
@@ -69,7 +69,7 @@ void strbuf_alloc(struct strbuf *sb, size_t capacity)
 	}
 }
 
-void strbuf_dealloc(struct strbuf *sb)
+void strbuf_destroy(struct strbuf *sb)
 {
 	if (sb->capacity)
 	{
@@ -79,8 +79,8 @@ void strbuf_dealloc(struct strbuf *sb)
 
 void strbuf_release(struct strbuf *sb)
 {
-	strbuf_dealloc(sb);
-	strbuf_alloc(sb, 0);
+	strbuf_destroy(sb);
+	strbuf_allocate(sb, 0);
 }
 
 void strbuf_reset(struct strbuf *sb)
@@ -129,6 +129,29 @@ void strbuf_printf(struct strbuf *sb, const char *fmt, ...)
 	strbuf_vprintf(sb, fmt, ap);
 
 	va_end(ap);
+}
+
+void strbuf_nprint(struct strbuf *sb, const char *str, size_t sz)
+{
+	if (sz > strbuf_size_avail(sb))
+	{
+		strbuf_grow(sb, sz);
+	}
+
+	memcpy(sb->buf + sb->length, str, sz);
+
+	strbuf_addlen(sb, sz);
+}
+
+void strbuf_putc(struct strbuf *sb, char c)
+{
+	if (!strbuf_size_avail(sb))
+	{
+		strbuf_grow(sb, 1);
+	}
+
+	sb->buf[sb->length++] = c;
+	sb->buf[sb->length] = 0;
 }
 
 bool starts_with(const char *str, const char *prefix)

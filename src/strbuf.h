@@ -34,15 +34,30 @@ extern char strbuf_defbuf[];
 
 #define STRBUF_INIT { .buf = strbuf_defbuf }
 
-void strbuf_alloc(struct strbuf *sb, size_t capacity);
+void strbuf_allocate(struct strbuf *sb, size_t capacity);
 
-void strbuf_dealloc(struct strbuf *sb);
+void strbuf_destroy(struct strbuf *sb);
 
 void strbuf_release(struct strbuf *sb);
 
 void strbuf_reset(struct strbuf *sb);
 
 void strbuf_printf(struct strbuf *sb, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+
+void strbuf_putc(struct strbuf *sb, char c);
+
+void strbuf_nprint(struct strbuf *sb, const char *str, size_t sz);
+
+static inline void strbuf_print(struct strbuf *sb, const char *str)
+{
+	strbuf_nprint(sb, str, strlen(str));
+}
+
+static inline void strbuf_puts(struct strbuf *sb, const char *str)
+{
+	strbuf_print(sb, str);
+	strbuf_putc(sb, '\n');
+}
 
 bool starts_with(const char *str, const char *prefix);
 
