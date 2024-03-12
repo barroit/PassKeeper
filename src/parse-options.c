@@ -176,6 +176,7 @@ static enum parse_option_result parse_option_step(
 	const struct option *options)
 {
 	const char *argstr;
+	enum parse_option_result rescode;
 
 	argstr = *ctx->argv;
 	/* check non options */
@@ -202,7 +203,7 @@ static enum parse_option_result parse_option_step(
 
 		while (ctx->optstr != 0)
 		{
-			switch (parse_short_option(ctx, options))
+			switch ((rescode = parse_short_option(ctx, options)))
 			{
 				case PARSING_DONE:
 					ctx->optstr++;
@@ -211,9 +212,8 @@ static enum parse_option_result parse_option_step(
 					return *ctx->optstr == 'h' ? PARSING_HELP : PARSING_UNKNOWN;
 				case PARSING_ERROR:
 					return PARSING_ERROR;
-				case PARSING_HELP:
-				case PARSING_NON_OPTION:
-					bug("parse_short_option() cannot return these");
+				default:
+					bug("parse_short_option() cannot return status %d", rescode);
 			}
 		}
 
@@ -229,8 +229,13 @@ static enum parse_option_result parse_option_step(
 		return PARSING_DONE;
 	}
 
+	if (!strcmp(argstr + 2, "help"))
+	{
+		return PARSING_HELP;
+	}
+
 	/* check long options */
-	switch (parse_long_option(ctx, argstr + 2, options))
+	switch ((rescode = parse_long_option(ctx, argstr + 2, options)))
 	{
 		case PARSING_DONE:
 			break;
@@ -241,7 +246,7 @@ static enum parse_option_result parse_option_step(
 		case PARSING_UNKNOWN:
 			return PARSING_UNKNOWN;
 		case PARSING_NON_OPTION:
-			bug("parse_long_option() cannot return these");
+			bug("parse_long_option() cannot return status %d", rescode);
 	}
 
 	return PARSING_DONE;
@@ -337,7 +342,11 @@ static int print_option_help(const struct option *opt, size_t pos, FILE *stream)
 
 static inline bool has_option(const struct option *options, const char *name)
 {
-	while (options->type != OPTION_END && strcmp(name, options++->name));
+	while (options->type != OPTION_END && strcmp(name, options->name))
+	{
+		options++;
+	}
+
 	return options->type != OPTION_END;
 }
 
@@ -397,7 +406,7 @@ static enum parse_option_result usage_with_options(
 	while (iter->type != OPTION_END)
 	{
 		size_t prev_pos;
-		const char *nn_name;
+		const char *negpos_name;
 
 		if (iter->type == OPTION_GROUP)
 		{
@@ -432,8 +441,11 @@ static enum parse_option_result usage_with_options(
 
 		if (iter->name)
 		{
-			bool is_nn_name = (iter->flags & OPTION_NONEG) || (nn_name = trim_prefix(iter->name, "no-")) != NULL;
-			prev_pos += fprintf(stream, is_nn_name ? "--%s" : "--[no-]%s", iter->name);
+			bool is_noneg_name;
+	
+			negpos_name = trim_prefix(iter->name, "no-");
+			is_noneg_name = (iter->flags & OPTION_NONEG) || negpos_name == NULL;
+			prev_pos += fprintf(stream, is_noneg_name ? "--%s" : "--[no-]%s", iter->name);
 		}
 
 		if ((iter->flags & OPTION_RAWARGH) || !(iter->flags & OPTION_NONEG))
@@ -446,13 +458,13 @@ static enum parse_option_result usage_with_options(
 
 		fputc('\n', stream);
 
-		if (nn_name && !has_option(options, nn_name))
+		if (negpos_name && !has_option(options, negpos_name))
 		{
 			prev_pos = indent_usage(stream);
-			prev_pos += fprintf(stream, "--%s", nn_name);
+			prev_pos += fprintf(stream, "--%s", negpos_name);
 
 			pad_usage(stream, prev_pos);
-			fprintf_ln(stream, "opposite of --no-%s", nn_name);
+			fprintf_ln(stream, "opposite of --no-%s", negpos_name);
 		}
 
 		iter++;
@@ -482,7 +494,8 @@ int parse_option(
 			case PARSING_NON_OPTION:
 				return ctx->argc;
 			case PARSING_HELP:
-				// fallthrough
+				usage_with_options(usages, options, false);
+				/* FALLTHRU */
 			case PARSING_ERROR:
 				exit(129);
 			case PARSING_UNKNOWN:
@@ -499,7 +512,7 @@ int parse_option(
 					error("unknown non-ascii option in string: `%s'", *ctx->argv);
 				}
 
-				usage_with_options(usages, options, false);
+				usage_with_options(usages, options, true);
 				exit(129);
 		}
 

@@ -91,7 +91,7 @@
 // 	return dirname;
 // }
 
-// #ifdef __linux
+// #ifdef __linux__
 // #include <sys/stat.h>
 // #endif
 
@@ -105,7 +105,7 @@
 
 // 	int rc;
 
-// #ifdef __linux
+// #ifdef __linux__
 // 	rc = mkdir(pathname, 0755);
 // #else
 // 	rc = mkdir(pathname);

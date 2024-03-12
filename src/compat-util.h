@@ -110,7 +110,7 @@ static inline size_t __attribute__((const)) safe_mult(size_t x, size_t y)
 #ifdef __WIN64__
 static inline char *strchrnul(const char *s, int c)
 {
-	while (*s && *s != c);
+	while (*s && *s != c)
 	{
 		s++;
 	}

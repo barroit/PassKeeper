@@ -29,14 +29,6 @@ static const char *usagestr[] = {
 	NULL,
 };
 
-// static char const * const archive_usage[] = {
-// 	N_("git archive [<options>] <tree-ish> [<path>...]"),
-// 	"git archive --list",
-// 	N_("git archive --remote <repo> [--exec <cmd>] [<options>] <tree-ish> [<path>...]"),
-// 	N_("git archive --remote <repo> [--exec <cmd>] --list"),
-// 	NULL
-// };
-
 int cmd_count(int argc, const char **argv)
 {
 	struct option cmd_count_option[] = {

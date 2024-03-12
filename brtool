@@ -11,7 +11,57 @@ target_platform="${2:-penguin}"
 build_dir='/dummydir'
 source "$project_root/tool/util"
 
-if [[ $1 == 'cord' ]]
+if [[ $1 == 'help' ]]
+then
+	cat << EOF
+usage: ./brtool [<build_type>]
+   or: ./brtool <build_type> [<target_platform>]
+   or: ./brtool clean [<args>...]
+   or: ./brtool [<op>]
+   or: ./brtool <build_type> [<op>]
+
+build type affects cmake build behaviors, the compiler common flags is -Wall -Wextra
+    debug	with extra flags -O0 -g3
+    release	with extra flags -Werror -O3 -DNDEBUG
+
+target platform indicates which platform the executable will run on
+    penguin	unix-like system
+    window	windows system
+
+clean target is used to specify which files will be removed
+    core_dump	remove all core dump files
+    draft	remove all files whose names start with draft
+
+op is used to specify which operation will be taken
+    s_core_dump	setup core dump file generation
+    ssh		communicate with remote server by ssh
+    rdc		open the remote desktop connection
+    scp		primarily used for transferring executable to windows
+EOF
+	exit 0
+fi
+
+if [[ $1 == 'clean' ]]
+then
+	if [[ $2 == 'core_dump' ]]
+	then
+		rm $project_root/core.*
+		done_clean=0
+	fi
+
+	if [[ $2 == 'draft' ]]
+	then
+		rm -f $project_root/core.*
+		done_clean=0
+	fi
+
+	if [[ $done_clean ]]
+	then
+		exit 0
+	fi
+fi
+
+if [[ $1 == 's_core_dump' ]]
 then
 	echo 'core' | sudo tee /proc/sys/kernel/core_pattern
 	exit 0
@@ -20,6 +70,13 @@ fi
 if [[ $1 == 'ssh' ]]
 then
 	ssh $(grep_rdcred username)@$(grep_rdcred address) "pwsh -NoExit -Command cd $(grep_rdcred userhome)"
+	exit 0
+fi
+
+if [[ $1 == 'rdc' ]]
+then
+	xfreerdp /u:$(grep_rdcred username) /p:$(grep_rdcred password) \
+	/v:$(grep_rdcred address) /w:1920 /h:1080
 	exit 0
 fi
 
@@ -44,8 +101,6 @@ else
 	exit 1
 fi
 
-echo "-- Found build type: $build_type"
-
 build_target='pk'
 
 # if [[ $build_type == 'test' || $build_type == 'coverage' ]]
@@ -55,9 +110,12 @@ build_target='pk'
 
 if [[ $2 == 'scp' ]]
 then
-	scp $build_dir/$build_target $(grep_rdcred username)@$(grep_rdcred address):$(grep_rdcred userhome)
+	scp $build_dir/$build_target.exe $(grep_rdcred username)@$(grep_rdcred address):$(grep_rdcred userhome)
 	exit 0
 fi
+
+echo "-- Found build type: $build_type"
+echo "-- Found target platform: $target_platform"
 
 export target_platform=$target_platform
 

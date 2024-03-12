@@ -22,9 +22,19 @@
 
 #include "command.h"
 
-static void calibrate_argv(int argc, const char **argv)
+/* do not use '__' as parameter prefix */
+static void calibrate_argv(int *argc0, const char ***argv0)
 {
-	/* like git, turn "pk <command> --help" into "pk help <command>" */
+	int argc;
+	const char **argv;
+
+	(*argc0)--;
+	(*argv0)++;
+
+	argc = *argc0;
+	argv = *argv0;
+
+	/* turn "pk cmd --help" into "pk help cmd" */
 	if (argc > 1 && !strcmp(argv[1], "--help"))
 	{
 		argv[1] = argv[0];
@@ -32,10 +42,8 @@ static void calibrate_argv(int argc, const char **argv)
 	}
 	else if (argc == 0)
 	{
-		const char *default_argv[] = { "help" };
-
-		argc = 1;
-		argv = default_argv;
+		*argc0 = 1;
+		**argv0 = "help";
 	}
 }
 
@@ -43,10 +51,7 @@ int main(int argc, const char **argv)
 {
 	struct command_info *command;
 
-	argc--;
-	argv++;
-
-	calibrate_argv(argc, argv);
+	calibrate_argv(&argc, &argv);
 
 	if ((command = find_command(argv[0])) == NULL)
 	{
