@@ -1,0 +1,4 @@
+author=Jiamu Sun
+contact=barroit@linux.com
+credential_envname=CREDENTIAL_PATH
+credential_key_envname=CREDENTIAL_KEY_PATH

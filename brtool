@@ -127,6 +127,13 @@ then
 	rm -rf $build_dir
 fi
 
+export ARCHITECTURE=$(uname -m)
+export BUILD_COMMIT=$(git rev-parse HEAD)
+export AUTHOR=$(grep_projcfg author)
+export CONTACT=$(grep_projcfg contact)
+export CREDENTIAL_ENVNAME=$(grep_projcfg credential_envname)
+export CREDENTIAL_KEY_ENVNAME=$(grep_projcfg credential_key_envname)
+
 cmake -B $build_dir \
 -DCMAKE_TARGET_PLATFORM=${target_platform^} \
 -DCMAKE_BUILD_TYPE=${build_type^} -DLIB_INSTALL_PREFIX=$install_prefix

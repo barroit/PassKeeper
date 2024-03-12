@@ -84,7 +84,17 @@ process_cleanup()
 	rm $temp_stderr
 }
 
+get_value_f()
+{
+	grep "^$2=" "$1" | cut -d '=' -f2
+}
+
 grep_rdcred()
 {
-	grep "^$1=" $project_root/remote.info | cut -d '=' -f2
+	get_value_f $project_root/remote.info $1
+}
+
+grep_projcfg()
+{
+	get_value_f $project_root/project.info $1
 }
