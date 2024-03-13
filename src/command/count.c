@@ -24,19 +24,20 @@
 
 static const char *search_pattern = "%";
 
-static const char *usages[] = {
+const char *const cmd_count_usages[] = {
 	"pk count [--search <pattern>]",
 	NULL,
 };
 
+const struct option cmd_count_options[] = {
+	OPTION_STRING(0, "search", &search_pattern, "pattern", "count record for a particular site"),
+	OPTION_END(),
+};
+
 int cmd_count(int argc, const char **argv)
 {
-	struct option cmd_count_option[] = {
-		OPTION_STRING(0, "search", &search_pattern, "pattern", "count record for a particular site"),
-		OPTION_END(),
-	};
 
-	argc = parse_option(argc, argv, cmd_count_option, usages, PARSER_STOP_AT_NON_OPTION);
+	argc = parse_option(argc, argv, cmd_count_options, cmd_count_usages, PARSER_STOP_AT_NON_OPTION);
 	printf("s: %s, a: %d\n", search_pattern, argc);
 
 	return 0;

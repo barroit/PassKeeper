@@ -25,19 +25,19 @@
 
 static bool show_build_options;
 
-static const char *usages[] = {
+const char *const cmd_version_usages[] = {
 	"pk version [--build-options]",
 	NULL,
 };
 
+const struct option cmd_version_options[] = {
+	OPTION_BOOL(0, "build-options", &show_build_options, "also print build information"),
+	OPTION_END(),
+};
+
 int cmd_version(int argc, const char **argv)
 {
-	struct option cmd_version_option[] = {
-		OPTION_BOOL(0, "build-options", &show_build_options, "also print build information"),
-		OPTION_END(),
-	};
-
-	argc = parse_option(argc, argv, cmd_version_option, usages, 0);
+	argc = parse_option(argc, argv, cmd_version_options, cmd_version_usages, 0);
 
 	struct strbuf sb = STRBUF_INIT;
 	strbuf_print(&sb, "pk version "PROJECT_VERSION);

@@ -57,27 +57,26 @@ enum option_parsed
 
 static const char *detailed_option(const struct option *opt, enum option_parsed flags)
 {
-	static struct strbuf sb = STRBUF_INIT;
+	static char ret[64];
 
-	strbuf_reset(&sb);
 	if (flags & SHORT_OPTION)
 	{
-		strbuf_printf(&sb, "switch `%c'", opt->alias);
+		snprintf(ret, sizeof(ret), "switch `%c'", opt->alias);
 	}
 	else if (flags & UNSET_OPTION)
 	{
-		strbuf_printf(&sb, "option `no-%s'", opt->name);
+		snprintf(ret, sizeof(ret), "option `no-%s'", opt->name);
 	}
 	else if (flags == LONG_OPTION)
 	{
-		strbuf_printf(&sb, "option `%s'", opt->name);
+		snprintf(ret, sizeof(ret), "option `%s'", opt->name);
 	}
 	else
 	{
 		bug("detailed_option() got unknown flags %d", flags);
 	}
 
-	return sb.buf;
+	return ret;
 }
 
 static enum parse_option_result assign_string_value(
@@ -427,27 +426,29 @@ static int print_option_argh(const struct option *opt, FILE *stream)
 	return fprintf(stream, fmt, opt->argh ? opt->argh : "...");
 }
 
-#ifndef OPTION_USAGE_WIDTH
-#define OPTION_USAGE_WIDTH 26
+#ifndef DEFAULT_OPTION_USAGE_WIDTH
+#define DEFAULT_OPTION_USAGE_WIDTH 26
 #endif
 
-static inline void pad_usage(FILE *stream, int pos)
+int option_usage_width = DEFAULT_OPTION_USAGE_WIDTH;
+
+void pad_usage(FILE *stream, int pos)
 {
-	if (pos < OPTION_USAGE_WIDTH)
+	if (pos < option_usage_width)
 	{
-		fprintf(stream, "%*s", OPTION_USAGE_WIDTH - pos, "");
+		fprintf(stream, "%*s", option_usage_width - pos, "");
 	}
 	else
 	{
-		fprintf(stream, "\n%*s", OPTION_USAGE_WIDTH, "");
+		fprintf(stream, "\n%*s", option_usage_width, "");
 	}
 }
 
-static int print_option_help(const struct option *opt, size_t pos, FILE *stream)
+int print_help(const char *help, size_t pos, FILE *stream)
 {
 	const char *prev_line, *next_line;
 
-	prev_line = opt->help ? opt->help : "";
+	prev_line = help;
 	while (*prev_line)
 	{
 		next_line = strchrnul(prev_line, '\n');
@@ -464,6 +465,11 @@ static int print_option_help(const struct option *opt, size_t pos, FILE *stream)
 	}
 
 	return pos;
+}
+
+static int print_option_help(const struct option *opt, size_t pos, FILE *stream)
+{
+	return print_help(opt->help ? opt->help : "", pos, stream);
 }
 
 static inline bool has_option(const struct option *options, const char *name)

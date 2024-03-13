@@ -102,6 +102,18 @@ enum option_parser_flag
 
 #define OPTION_STRING(s, l, v, a, h) OPTION_STRING_F(s, l, v, a, h, OPTION_NONEG)
 
+extern int option_usage_width;
+
+void pad_usage(FILE *stream, int pos);
+
+int print_help(const char *help, size_t pos, FILE *stream);
+
 int parse_option(int argc, const char **argv, const struct option *options, const char *const *usages, enum option_parser_flag flags);
+
+extern const char *const cmd_count_usages[];
+extern const char *const cmd_version_usages[];
+
+extern const struct option cmd_count_options[];
+extern const struct option cmd_version_options[];
 
 #endif /* PARSE_OPTIONS_H */

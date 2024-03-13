@@ -20,25 +20,38 @@
 **
 ****************************************************************************/
 
-#include "command.h"
+#include "parse-options.h"
+#include "strbuf.h"
+
+int cmd_count(int argc, const char **argv);
+int cmd_create(int argc, const char **argv);
+int cmd_delete(int argc, const char **argv);
+int cmd_help(int argc, const char **argv);
+int cmd_init(int argc, const char **argv);
+int cmd_read(int argc, const char **argv);
+int cmd_update(int argc, const char **argv);
+int cmd_version(int argc, const char **argv);
+
+const char pk_usages[] = "pk <command> [<args>]";
 
 struct command_info
 {
 	const char *name;
 	int (*handle)(int argc, const char **argv);
+	const char *help;
 };
 
 static struct command_info commands[] = {
-	{ "count",	cmd_count },
-	// { "create",	cmd_create },
-	// { "delete",	cmd_delete },
-	// { "help",	cmd_help },
-	// { "init",	cmd_init },
-	// { "read",	cmd_read },
-	// { "update",	cmd_update },
-	{ "version",	cmd_version },
-	{ "dump",	NULL }, /* reserved */
-	{ "source",	NULL }, /* reserved */
+	{ "count",	cmd_count,	"Count the number of records" },
+	// { "create",	cmd_create,	"" },
+	// { "delete",	cmd_delete,	"" },
+	{ "help",	cmd_help,	"Display help information about PassKeeper" },
+	// { "init",	cmd_init,	"" },
+	// { "read",	cmd_read,	"" },
+	// { "update",	cmd_update,	"" },
+	{ "version",	cmd_version,	"Display version information about PassKeeper" },
+	// { "dump",	NULL,		"" }, /* reserved */
+	// { "source",	NULL,		"" }, /* reserved */
 	{ NULL },
 };
 
@@ -70,7 +83,7 @@ static void execute_command(struct command_info *command, int argc, const char *
 		bug("command '%s' has no handler", command->name);
 	}
 
-	command->handle(argc, argv);
+	exit(command->handle(argc, argv));
 }
 
 /* do not use '__' as parameter prefix */
@@ -98,15 +111,52 @@ static void calibrate_argv(int *argc0, const char ***argv0)
 	}
 }
 
+static void list_command_help(void)
+{
+	const struct command_info *iter;
+
+	iter = commands;
+	while (iter->name)
+	{
+		size_t pos;
+
+		pos = printf("   %s", iter->name);
+		print_help(iter->help, pos, stdout);
+		putchar('\n');
+
+		iter++;
+	}
+
+}
+
+extern int option_usage_width;
+
+void show_pk_help(void)
+{
+	printf_ln("usage: %s", pk_usages);
+	putchar('\n');
+	puts("These are common PassKeeper commands used in various situations:");
+
+	option_usage_width = 13;
+	list_command_help();
+}
+
+void show_unknow_usage(const char *name)
+{
+	fprintf_ln(stderr, "pk: '%s' is not a passkeeper command. See 'pk help'", name);
+}
+
 int main(int argc, const char **argv)
 {
 	struct command_info *command;
+	const char *cmdname;
 
 	calibrate_argv(&argc, &argv);
 
-	if ((command = find_command(argv[0])) == NULL)
+	cmdname = argv[0];
+	if ((command = find_command(cmdname)) == NULL)
 	{
-		// no command founded
+		show_unknow_usage(cmdname);
 		return EXIT_FAILURE;
 	}
 

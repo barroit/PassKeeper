@@ -8,6 +8,9 @@
 		"stdbool.h": "c",
 		"parse-options.h": "c",
 		"*.in": "c",
-		"strbuf.h": "c"
+		"strbuf.h": "c",
+		"unistd.h": "c",
+		"limits.h": "c",
+		"usage.h": "c"
 	}
 }
