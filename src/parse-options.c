@@ -114,7 +114,7 @@ static enum parse_option_result assign_value(
 	{
 		return error("%s takes no value", detailed_option(opt, flags));
 	}
-	if (unset && (opt->flags & OPTION_NONEG))
+	if (unset && !(opt->flags & OPTION_ALLONEG))
 	{
 		return error("%s isn't available", detailed_option(opt, flags));
 	}
@@ -143,6 +143,9 @@ static enum parse_option_result assign_value(
 				return assign_string_value(ctx, opt, flags, (const char **)opt->value);
 			}
 
+			break;
+		case OPTION_FILENAME:
+			//
 			break;
 		default:
 			bug("opt->type %d should not happen", opt->type);
@@ -177,7 +180,7 @@ static enum parse_option_result parse_long_option(
 		flags = LONG_OPTION;
 		opt_flags = LONG_OPTION;
 
-		if (!starts_with(argstr, "no-") && !(opt->flags & OPTION_NONEG) && skip_prefix(opt_name, "no-", &opt_name))
+		if (!starts_with(argstr, "no-") && (opt->flags & OPTION_ALLONEG) && skip_prefix(opt_name, "no-", &opt_name))
 		{
 			opt_flags |= UNSET_OPTION;
 		}
@@ -211,7 +214,7 @@ is_abbreviated:
 			}
 
 			/* negation allowed? */
-			if (options->flags & OPTION_NONEG)
+			if (!(opt->flags & OPTION_ALLONEG))
 			{
 				continue;
 			}
@@ -516,7 +519,7 @@ static enum parse_option_result usage_with_options(const char *const *usages,con
 			}
 			else
 			{
-				fprintf_ln(stream, "%*s", (int)usage_length, line);
+				fprintf_ln(stream, "%*s%s", (int)usage_length, "", line);
 			}
 		}
 
@@ -566,7 +569,7 @@ static enum parse_option_result usage_with_options(const char *const *usages,con
 
 		if (iter->name)
 		{
-			if ((iter->flags & OPTION_NONEG) || skip_prefix(iter->name, "no-", &negpos_name))
+			if (!(iter->flags & OPTION_ALLONEG) || skip_prefix(iter->name, "no-", &negpos_name))
 			{
 				prev_pos += fprintf(stream, "--%s", iter->name);
 			}

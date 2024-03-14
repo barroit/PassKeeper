@@ -46,7 +46,7 @@ static struct command_info commands[] = {
 	// { "create",	cmd_create,	"" },
 	// { "delete",	cmd_delete,	"" },
 	{ "help",	cmd_help,	"Display help information about PassKeeper" },
-	// { "init",	cmd_init,	"" },
+	{ "init",	cmd_init,	"Initialize database files for storing credentials" },
 	// { "read",	cmd_read,	"" },
 	// { "update",	cmd_update,	"" },
 	{ "version",	cmd_version,	"Display version information about PassKeeper" },

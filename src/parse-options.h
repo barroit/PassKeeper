@@ -33,14 +33,14 @@ enum option_type
 	/* options with arguments */
 	OPTION_STRING,
 	// OPTION_INTEGER,
-	// OPTION_FILENAME,
+	OPTION_FILENAME,
 };
 
 enum option_flag
 {
 	OPTION_OPTARG = 1 << 0,
 	OPTION_NOARG = 1 << 1,
-	OPTION_NONEG = 1 << 2,
+	OPTION_ALLONEG = 1 << 2,
 	OPTION_RAWARGH = 1 << 3,
 };
 
@@ -67,40 +67,47 @@ enum option_parser_flag
 	PARSER_STOP_AT_NON_OPTION = 1 << 1,
 };
 
-#define OPTION_END()				\
-{						\
-	.type = OPTION_END,			\
+#define OPTION_END()					\
+{							\
+	.type = OPTION_END,				\
 }
 
-#define OPTION_GROUP(h)				\
-{						\
-	.type = OPTION_TYPE_GROUP,		\
-	.help = (h),				\
+#define OPTION_GROUP(h)					\
+{							\
+	.type = OPTION_TYPE_GROUP,			\
+	.help = (h),					\
 }
 
-#define OPTION_BOOL(s, l, v, h)			\
-{						\
-	.type = OPTION_SWITCH,			\
-	.alias = (s),				\
-	.name = (l),				\
-	.value = (v),				\
-	.help = (h),				\
-	.defval = 1,				\
-	.flags = OPTION_NOARG,			\
+#define OPTION_BOOL(s, l, v, h)				\
+{							\
+	.type = OPTION_SWITCH,				\
+	.alias = (s),					\
+	.name = (l),					\
+	.value = (v),					\
+	.help = (h),					\
+	.defval = 1,					\
+	.flags = OPTION_NOARG | OPTION_FILENAME,	\
 }
 
-#define OPTION_STRING_F(s, l, v, a, h, f)	\
-{						\
-	.type = OPTION_STRING,			\
-	.alias = (s),				\
-	.name = (l),				\
-	.value = (v),				\
-	.argh = (a),				\
-	.help = (h),				\
-	.flags = (f),				\
+#define OPTION_STRING(s, l, v, a, h)			\
+{							\
+	.type = OPTION_STRING,				\
+	.alias = (s),					\
+	.name = (l),					\
+	.value = (v),					\
+	.argh = (a),					\
+	.help = (h),					\
 }
 
-#define OPTION_STRING(s, l, v, a, h) OPTION_STRING_F(s, l, v, a, h, OPTION_NONEG)
+#define OPTION_FILENAME(s, l, v, h)			\
+{							\
+	.type = OPTION_FILENAME,			\
+	.alias = (s),					\
+	.name = (l),					\
+	.value = (v),					\
+	.help = (h),					\
+	.argh = ("path"),				\
+}
 
 extern int option_usage_width;
 
