@@ -109,6 +109,7 @@ static enum parse_option_result assign_value(
 	enum option_parsed flags)
 {
 	bool unset = flags & UNSET_OPTION;
+	enum parse_option_result errcode;
 
 	if (unset && ctx->optstr)
 	{
@@ -127,25 +128,15 @@ static enum parse_option_result assign_value(
 	{
 		case OPTION_SWITCH:
 			*(int *)opt->value = unset ? 0 : opt->defval;
-
 			break;
 		case OPTION_STRING:
-			if (unset)
-			{
-				*(const char **)opt->value = NULL;
-			}
-			else if (opt->flags & OPTION_OPTARG && ctx->optstr == NULL)
-			{
-				*(const char **)opt->value = (const char *)opt->defval;
-			}
-			else
-			{
-				return assign_string_value(ctx, opt, flags, (const char **)opt->value);
-			}
-
-			break;
+			return assign_string_value(ctx, opt, flags, (const char **)opt->value);
 		case OPTION_FILENAME:
-			//
+			errcode = assign_string_value(ctx, opt, flags, (const char **)opt->value);
+			if (errcode)
+			{
+				return errcode;
+			}
 			break;
 		default:
 			bug("opt->type %d should not happen", opt->type);
@@ -606,7 +597,7 @@ static enum parse_option_result usage_with_options(const char *const *usages,con
 	return PARSING_HELP;
 }
 
-int parse_option(
+int parse_options(
 	int argc, const char **argv,
 	const struct option *options,
 	const char *const *usages,

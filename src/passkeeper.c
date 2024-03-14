@@ -23,21 +23,21 @@
 #include "parse-options.h"
 #include "strbuf.h"
 
-int cmd_count(int argc, const char **argv);
-int cmd_create(int argc, const char **argv);
-int cmd_delete(int argc, const char **argv);
-int cmd_help(int argc, const char **argv);
-int cmd_init(int argc, const char **argv);
-int cmd_read(int argc, const char **argv);
-int cmd_update(int argc, const char **argv);
-int cmd_version(int argc, const char **argv);
+int cmd_count(int argc, const char **argv, const char *prefix);
+int cmd_create(int argc, const char **argv, const char *prefix);
+int cmd_delete(int argc, const char **argv, const char *prefix);
+int cmd_help(int argc, const char **argv, const char *prefix);
+int cmd_init(int argc, const char **argv, const char *prefix);
+int cmd_read(int argc, const char **argv, const char *prefix);
+int cmd_update(int argc, const char **argv, const char *prefix);
+int cmd_version(int argc, const char **argv, const char *prefix);
 
 const char pk_usages[] = "pk <command> [<args>]";
 
 struct command_info
 {
 	const char *name;
-	int (*handle)(int argc, const char **argv);
+	int (*handle)(int argc, const char **argv, const char *prefix);
 	const char *help;
 };
 
@@ -76,24 +76,62 @@ bool is_command(const char *cmdname)
 	return find_command(cmdname);
 }
 
-static void execute_command(struct command_info *command, int argc, const char **argv)
+static void execute_command(struct command_info *command, const char *prefix, int argc, const char **argv)
 {
 	if (command->handle == NULL)
 	{
 		bug("command '%s' has no handler", command->name);
 	}
 
-	exit(command->handle(argc, argv));
+	exit(command->handle(argc, argv, prefix));
 }
 
-/* do not use '__' as parameter prefix */
+static char *resolve_executable_prefix(const char *execpath)
+{
+	static char *ret;
+	const char *rtsep;
+	ptrdiff_t sz;
+
+	/**
+	 * Linux:
+	 * pk
+	 * ./pk
+	 * ./build/debug/pk
+	 * /home/barroit/Workspace/PassKeeper/.local/bin/pk
+	 *
+	 * Windows:
+	 * pk.exe
+	 * .\Desktop\pk.exe
+	 * C:\Users\Administrator\Desktop\pk.exe
+	 */
+
+	rtsep = strrchr(execpath, '/');
+
+	if (rtsep == NULL)
+	{
+		rtsep = strrchr(execpath, '\\');
+
+		if (rtsep == NULL)
+		{
+			execpath = get_user_home();
+			rtsep = execpath + strlen(execpath);
+		}
+	}
+
+	ret = replace_char(execpath, '\\', '/');
+
+	sz = (rtsep + 1) - execpath;
+	ret = xrealloc(ret, sz + 1);
+
+	ret[sz] = 0;
+	return ret;
+}
+
+/* do not use '__' as parameter prefix, program name should NOT be in the argv */
 static void calibrate_argv(int *argc0, const char ***argv0)
 {
 	int argc;
 	const char **argv;
-
-	(*argc0)--;
-	(*argv0)++;
 
 	argc = *argc0;
 	argv = *argv0;
@@ -126,7 +164,6 @@ static void list_command_help(void)
 
 		iter++;
 	}
-
 }
 
 extern int option_usage_width;
@@ -148,8 +185,14 @@ void show_unknow_usage(const char *name)
 
 int main(int argc, const char **argv)
 {
+	char *prefix;
 	struct command_info *command;
 	const char *cmdname;
+
+	prefix = resolve_executable_prefix(*argv);
+
+	argc--;
+	argv++;
 
 	calibrate_argv(&argc, &argv);
 
@@ -160,7 +203,7 @@ int main(int argc, const char **argv)
 		return EXIT_FAILURE;
 	}
 
-	execute_command(command, --argc, ++argv);
+	execute_command(command, prefix, --argc, ++argv);
 
 	return EXIT_SUCCESS;
 }

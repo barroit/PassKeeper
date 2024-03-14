@@ -344,3 +344,19 @@ int fprintf_ln(FILE *stream, const char *fmt, ...)
 
 	return wch;
 }
+
+char *replace_char(const char *str, char c1, char c2)
+{
+	char *ret, *iter;
+
+	ret = xmallocs(strlen(str));
+	iter = ret;
+
+	do
+	{
+		*iter++ = *str == c1 ? c2 : *str;
+	}
+	while (*str++);
+
+	return ret;
+}

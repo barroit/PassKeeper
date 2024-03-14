@@ -36,12 +36,13 @@ const struct option cmd_init_options[] = {
 	OPTION_FILENAME(0, "db-path", &db_path, "specify a file to store your credentials"),
 	OPTION_FILENAME(0, "key-path", &key_path, "specify a file to store your credential encryption key"),
 	OPTION_BOOL(0, "encrypt", &with_cipher, "encrypt database with key"),
+	/* consider adding some sqlcipher configure options like cipher type */
 	OPTION_END(),
 };
 
-int cmd_init(int argc, const char **argv)
+int cmd_init(int argc, const char **argv, UNUSED const char *prefix)
 {
-	argc = parse_option(argc, argv, cmd_init_options, cmd_init_usages, 0);
+	argc = parse_options(argc, argv, cmd_init_options, cmd_init_usages, 0);
 	printf("db_path: %s\nkey_path: %s\nargc: %d", db_path, key_path, argc);
 
 	return 0;

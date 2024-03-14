@@ -86,7 +86,7 @@ enum option_parser_flag
 	.value = (v),					\
 	.help = (h),					\
 	.defval = 1,					\
-	.flags = OPTION_NOARG | OPTION_FILENAME,	\
+	.flags = OPTION_NOARG | OPTION_ALLONEG,		\
 }
 
 #define OPTION_STRING(s, l, v, a, h)			\
@@ -115,7 +115,7 @@ void pad_usage(FILE *stream, int pos);
 
 int print_help(const char *help, size_t pos, FILE *stream);
 
-int parse_option(int argc, const char **argv, const struct option *options, const char *const *usages, enum option_parser_flag flags);
+int parse_options(int argc, const char **argv, const struct option *options, const char *const *usages, enum option_parser_flag flags);
 
 extern const char *const cmd_count_usages[];
 extern const char *const cmd_version_usages[];

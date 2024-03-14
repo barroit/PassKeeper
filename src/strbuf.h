@@ -73,4 +73,10 @@ int fprintf_ln(FILE *stream, const char *fmt, ...) __attribute__((format(printf,
 
 #define printf_ln(...) fprintf_ln(stdout, __VA_ARGS__)
 
+/**
+ * Replace `c1` with `c2` in `str`. Caller is responsible for freeing
+ * the returned string.
+ */
+char *replace_char(const char *str, char c1, char c2);
+
 #endif /* STRBUF_H */

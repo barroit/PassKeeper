@@ -36,6 +36,14 @@
 #include <unistd.h>
 #include <stdarg.h>
 
+#ifdef __linux__
+#define ENV_USERHOME "HOME"
+#else
+#define ENV_USERHOME "USERPROFILE"
+#endif
+
+#define UNUSED __attribute__((unused))
+
 int error(const char *err, ...) __attribute__((format(printf, 2, 3)));
 void die(const char *reason, ...) __attribute__((format(printf, 2, 3)));
 
@@ -68,6 +76,7 @@ static inline void *xrealloc(void *ptr, size_t size)
 	return ptr;
 }
 
+/* allocate size + 1 bytes, end with null-terminator */
 static inline void *xmallocs(size_t size)
 {
 	char *ptr;
@@ -118,5 +127,10 @@ static inline char *strchrnul(const char *s, int c)
 	return (char *)s;
 }
 #endif
+
+static inline const char *get_user_home(void)
+{
+	return getenv(ENV_USERHOME);
+}
 
 #endif /* COMPACT_UTIL_H */

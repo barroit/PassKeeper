@@ -74,7 +74,7 @@ void show_pk_help(void);
 void show_unknow_usage(const char *name);
 bool is_command(const char *cmdname);
 
-int cmd_help(int argc, const char **argv)
+int cmd_help(int argc, const char **argv, UNUSED const char *prefix)
 {
 	if (argc == 0)
 	{
@@ -98,7 +98,7 @@ int cmd_help(int argc, const char **argv)
 		bug("you definitely forgot to add %s to cmdhelps", cmdname);
 	}
 
-	parse_option(1, (const char *[]){ "-h" }, helper->options, helper->usages, 0);
+	parse_options(1, (const char *[]){ "-h" }, helper->options, helper->usages, 0);
 
 	return 0;
 }
