@@ -22,7 +22,7 @@ set(CONTACT $ENV{CONTACT})
 set(CREDENTIAL_ENVNAME $ENV{CREDENTIAL_ENVNAME})
 set(CREDENTIAL_KEY_ENVNAME $ENV{CREDENTIAL_KEY_ENVNAME})
 
-configure_file(project-config.h project-config.h)
+configure_file(cmake/project-config.h project-config.h)
 
 # common flags
 set(CMAKE_C_FLAGS "-Wall -Wextra")

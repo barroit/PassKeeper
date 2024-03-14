@@ -103,11 +103,6 @@ fi
 
 build_target='pk'
 
-# if [[ $build_type == 'test' || $build_type == 'coverage' ]]
-# then
-# 	build_target='pktest'
-# fi
-
 if [[ $2 == 'scp' ]]
 then
 	scp $build_dir/$build_target.exe $(grep_rdcred username)@$(grep_rdcred address):$(grep_rdcred userhome)
