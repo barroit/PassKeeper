@@ -76,55 +76,43 @@ bool is_command(const char *cmdname)
 	return find_command(cmdname);
 }
 
-static void execute_command(struct command_info *command, const char *prefix, int argc, const char **argv)
+static char *resolve_working_dir(void)
 {
+	size_t size = 96;
+	char *buf;
+
+	while (39)
+	{
+		buf = xmalloc(size);
+
+		if (getcwd(buf, size) == buf)
+		{
+			return buf;
+		}
+
+		if (errno != ERANGE)
+		{
+			die("permission denied while getting working directory");
+		}
+
+		free(buf);
+		size = fixed_growth(size);
+	}
+
+	return buf;
+}
+
+static void execute_command(struct command_info *command, int argc, const char **argv)
+{
+	char *prefix;
+
 	if (command->handle == NULL)
 	{
 		bug("command '%s' has no handler", command->name);
 	}
 
+	prefix = resolve_working_dir();
 	exit(command->handle(argc, argv, prefix));
-}
-
-static char *resolve_executable_prefix(const char *execpath)
-{
-	static char *ret;
-	const char *rtsep;
-	ptrdiff_t sz;
-
-	/**
-	 * Linux:
-	 * pk
-	 * ./pk
-	 * ./build/debug/pk
-	 * /home/barroit/Workspace/PassKeeper/.local/bin/pk
-	 *
-	 * Windows:
-	 * pk.exe
-	 * .\Desktop\pk.exe
-	 * C:\Users\Administrator\Desktop\pk.exe
-	 */
-
-	rtsep = strrchr(execpath, '/');
-
-	if (rtsep == NULL)
-	{
-		rtsep = strrchr(execpath, '\\');
-
-		if (rtsep == NULL)
-		{
-			execpath = get_user_home();
-			rtsep = execpath + strlen(execpath);
-		}
-	}
-
-	ret = replace_char(execpath, '\\', '/');
-
-	sz = (rtsep + 1) - execpath;
-	ret = xrealloc(ret, sz + 1);
-
-	ret[sz] = 0;
-	return ret;
 }
 
 /* do not use '__' as parameter prefix, program name should NOT be in the argv */
@@ -132,6 +120,9 @@ static void calibrate_argv(int *argc0, const char ***argv0)
 {
 	int argc;
 	const char **argv;
+
+	(*argc0)--;
+	(*argv0)++;
 
 	argc = *argc0;
 	argv = *argv0;
@@ -185,14 +176,8 @@ void show_unknow_usage(const char *name)
 
 int main(int argc, const char **argv)
 {
-	char *prefix;
 	struct command_info *command;
 	const char *cmdname;
-
-	prefix = resolve_executable_prefix(*argv);
-
-	argc--;
-	argv++;
 
 	calibrate_argv(&argc, &argv);
 
@@ -203,7 +188,7 @@ int main(int argc, const char **argv)
 		return EXIT_FAILURE;
 	}
 
-	execute_command(command, prefix, --argc, ++argv);
+	execute_command(command, --argc, ++argv);
 
 	return EXIT_SUCCESS;
 }

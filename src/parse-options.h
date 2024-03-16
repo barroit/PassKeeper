@@ -65,6 +65,7 @@ enum option_parser_flag
 {
 	PARSER_KEEP_ARGV0 = 1 << 0,
 	PARSER_STOP_AT_NON_OPTION = 1 << 1,
+	PARSER_ABORT_NON_OPTION = 1 << 0,
 };
 
 #define OPTION_END()					\
@@ -115,7 +116,7 @@ void pad_usage(FILE *stream, int pos);
 
 int print_help(const char *help, size_t pos, FILE *stream);
 
-int parse_options(int argc, const char **argv, const struct option *options, const char *const *usages, enum option_parser_flag flags);
+int parse_options(int argc, const char **argv, const char *prefix, const struct option *options, const char *const *usages, enum option_parser_flag flags);
 
 extern const char *const cmd_count_usages[];
 extern const char *const cmd_version_usages[];

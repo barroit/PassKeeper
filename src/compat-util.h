@@ -50,6 +50,15 @@ void die(const char *reason, ...) __attribute__((format(printf, 2, 3)));
 void bug_fl(const char *file, int line, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
 #define bug(...) bug_fl(__FILE__, __LINE__, __VA_ARGS__)
 
+/**
+ * Check if `x` is greater than (or equal to) `r1` and less
+ * than (or equal to) `r2`
+*/
+static inline bool in_range(int x, int r1, int r2, bool inclusive)
+{
+	return x > r1 - inclusive && x < r2 + inclusive;
+}
+
 static inline size_t __attribute__((const)) fixed_growth(size_t sz)
 {
 	return (sz + 16) * 3 / 2;
@@ -76,23 +85,18 @@ static inline void *xrealloc(void *ptr, size_t size)
 	return ptr;
 }
 
-/* allocate size + 1 bytes, end with null-terminator */
-static inline void *xmallocs(size_t size)
+/* similar to strncpy, except omit the first parameter and null-terminated */
+static inline void *xmemdup_str(const void *ptr, size_t size)
 {
-	char *ptr;
+	char *buf;
 
-	ptr = xmalloc(size + 1);
-	ptr[size] = 0;
+	buf = memcpy(xmalloc(size + 1), ptr, size);
+	buf[size] = 0;
 
-	return ptr;
+	return buf;
 }
 
-static inline void *xmemdups(const void *ptr, size_t size)
-{
-	return memcpy(xmallocs(size), ptr, size);
-}
-
-static inline size_t __attribute__((const)) safe_mult(size_t x, size_t y)
+static inline size_t __attribute__((const)) st_mult(size_t x, size_t y)
 {
 	if ((SIZE_MAX / x) < y)
 	{
@@ -102,7 +106,9 @@ static inline size_t __attribute__((const)) safe_mult(size_t x, size_t y)
 	return x * y;
 }
 
-#define REALLOC_ARRAY(ptr, size) xrealloc(ptr, safe_mult(sizeof(*ptr), size))
+#define MOVE_ARRAY(dest, src, size) memmove(dest, src, st_mult(sizeof(*src), size))
+
+#define REALLOC_ARRAY(ptr, size) xrealloc(ptr, st_mult(sizeof(*ptr), size))
 
 #define CAPACITY_GROW(ptr, size, cap)			\
 	do						\
@@ -130,7 +136,12 @@ static inline char *strchrnul(const char *s, int c)
 
 static inline const char *get_user_home(void)
 {
-	return getenv(ENV_USERHOME);
+	const char *home;
+	if ((home = getenv(ENV_USERHOME)) == NULL)
+	{
+		die("your user home corrupted in env");
+	}
+	return home;
 }
 
 #endif /* COMPACT_UTIL_H */

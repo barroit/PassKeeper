@@ -90,7 +90,7 @@ size_t string_list_split(struct strlist *sl, const char *str, char delim, int ma
 
 		if(delim_pos)
 		{
-			strlist_append_nodup(sl, xmemdups(str, delim_pos - str));
+			strlist_append_nodup(sl, xmemdup_str(str, delim_pos - str));
 			str = delim_pos + 1;
 		}
 		else

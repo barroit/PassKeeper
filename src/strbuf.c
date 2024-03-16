@@ -57,35 +57,12 @@ static inline void strbuf_addlen(struct strbuf *sb, size_t newlen)
 	strbuf_setlen(sb, sb->length + newlen);
 }
 
-void strbuf_allocate(struct strbuf *sb, size_t capacity)
-{
-	struct strbuf defsb = STRBUF_INIT;
-
-	memcpy(sb, &defsb, sizeof(struct strbuf));
-
-	if (capacity)
-	{
-		strbuf_grow(sb, capacity);
-	}
-}
-
 void strbuf_destroy(struct strbuf *sb)
 {
 	if (sb->capacity)
 	{
 		free(sb->buf);
 	}
-}
-
-void strbuf_release(struct strbuf *sb)
-{
-	strbuf_destroy(sb);
-	strbuf_allocate(sb, 0);
-}
-
-void strbuf_reset(struct strbuf *sb)
-{
-	strbuf_setlen(sb, 0);
 }
 
 static inline size_t strbuf_size_avail(const struct strbuf *sb)
@@ -345,18 +322,15 @@ int fprintf_ln(FILE *stream, const char *fmt, ...)
 	return wch;
 }
 
-char *replace_char(const char *str, char c1, char c2)
+void replace_char(char *str, char c1, char c2)
 {
-	char *ret, *iter;
-
-	ret = xmallocs(strlen(str));
-	iter = ret;
-
-	do
+	while (*str)
 	{
-		*iter++ = *str == c1 ? c2 : *str;
-	}
-	while (*str++);
+		if (*str == c1)
+		{
+			*str = c2;
+		}
 
-	return ret;
+		str++;
+	}
 }

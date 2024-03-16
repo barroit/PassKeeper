@@ -20,22 +20,39 @@
 **
 ****************************************************************************/
 
-#ifndef FILE_H
-#define FILE_H
+#include "filesys.h"
+#include "strbuf.h"
 
-static inline bool exists(const char *pathname)
+bool is_absolute_path(const char *path)
 {
-	return pathname != NULL && !access(pathname, F_OK);
+#ifdef __linux__
+	return *path && *path == '/';
+#else
+	return *path && in_range(*path, 'A', 'Z', true) && path[1] == ':';
+#endif
 }
 
-static inline bool file_avail(const char *pathname)
+char *prefix_filename(const char *prefix, const char *filename)
 {
-	return pathname != NULL && !access(pathname, F_OK | R_OK | W_OK);
-}
+	if (is_absolute_path(filename))
+	{
+		return xmemdup_str(filename, sizeof(filename));
+	}
 
-static inline bool dir_avail(const char *dirname)
-{
-	return dirname != NULL && !access(dirname, F_OK | R_OK | W_OK | X_OK);
-}
+	struct strbuf *sb = STRBUF_INIT_P;
 
-#endif /* FILE_H */
+	strbuf_print(sb, prefix);
+
+	/**
+	 * ./xxx
+	 * .\xxx
+	 */
+	if (*filename && *filename == '.' && (filename[1] == '/' || filename[1] == '\\'))
+	{
+		filename += 2;
+	}
+
+	strbuf_printf(sb, "/%s", filename);
+
+	return sb->buf;
+}

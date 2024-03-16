@@ -37,7 +37,7 @@ const struct option cmd_version_options[] = {
 
 int cmd_version(int argc, const char **argv, UNUSED const char *prefix)
 {
-	argc = parse_options(argc, argv, cmd_version_options, cmd_version_usages, 0);
+	argc = parse_options(argc, argv, prefix, cmd_version_options, cmd_version_usages, 0);
 
 	struct strbuf sb = STRBUF_INIT;
 	strbuf_print(&sb, "pk version "PROJECT_VERSION);

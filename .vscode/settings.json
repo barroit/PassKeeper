@@ -11,6 +11,7 @@
 		"strbuf.h": "c",
 		"unistd.h": "c",
 		"limits.h": "c",
-		"usage.h": "c"
+		"usage.h": "c",
+		"filesys.h": "c"
 	}
 }

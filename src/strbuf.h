@@ -32,15 +32,10 @@ struct strbuf
 
 extern char strbuf_defbuf[];
 
-#define STRBUF_INIT { .buf = strbuf_defbuf }
-
-void strbuf_allocate(struct strbuf *sb, size_t capacity);
+#define STRBUF_INIT   { .buf = strbuf_defbuf }
+#define STRBUF_INIT_P &(struct strbuf){ .buf = strbuf_defbuf }
 
 void strbuf_destroy(struct strbuf *sb);
-
-void strbuf_release(struct strbuf *sb);
-
-void strbuf_reset(struct strbuf *sb);
 
 void strbuf_printf(struct strbuf *sb, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
@@ -74,9 +69,8 @@ int fprintf_ln(FILE *stream, const char *fmt, ...) __attribute__((format(printf,
 #define printf_ln(...) fprintf_ln(stdout, __VA_ARGS__)
 
 /**
- * Replace `c1` with `c2` in `str`. Caller is responsible for freeing
- * the returned string.
+ * Replace `c1` with `c2` in `str` inplace.
  */
-char *replace_char(const char *str, char c1, char c2);
+void replace_char(char *str, char c1, char c2);
 
 #endif /* STRBUF_H */

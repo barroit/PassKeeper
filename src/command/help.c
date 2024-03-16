@@ -98,7 +98,7 @@ int cmd_help(int argc, const char **argv, UNUSED const char *prefix)
 		bug("you definitely forgot to add %s to cmdhelps", cmdname);
 	}
 
-	parse_options(1, (const char *[]){ "-h" }, helper->options, helper->usages, 0);
+	parse_options(1, (const char *[]){ "-h" }, prefix, helper->options, helper->usages, 0);
 
 	return 0;
 }

@@ -20,29 +20,24 @@
 **
 ****************************************************************************/
 
-#include "parse-options.h"
+#ifndef FILESYS_H
+#define FILESYS_H
 
-static bool with_cipher;
-static const char *db_path;
-static const char *key_path;
-
-const char *const cmd_init_usages[] = {
-	"pk init [--db-path <path>] [--key-path <path>]\n"
-	"        [--encrypt | --no-encrypt]",
-	NULL,
-};
-
-const struct option cmd_init_options[] = {
-	OPTION_FILENAME(0, "db-path", &db_path, "specify a file to store your credentials"),
-	OPTION_FILENAME(0, "key-path", &key_path, "specify a file to store your credential encryption key"),
-	OPTION_BOOL(0, "encrypt", &with_cipher, "encrypt database with key"),
-	/* consider adding some sqlcipher configure options like cipher type */
-	OPTION_END(),
-};
-
-int cmd_init(int argc, const char **argv, UNUSED const char *prefix)
+static inline bool exists(const char *pathname)
 {
-	argc = parse_options(argc, argv, prefix, cmd_init_options, cmd_init_usages, PARSER_ABORT_NON_OPTION);
-
-	return 0;
+	return pathname != NULL && !access(pathname, F_OK);
 }
+
+static inline bool file_avail(const char *pathname)
+{
+	return pathname != NULL && !access(pathname, F_OK | R_OK | W_OK);
+}
+
+static inline bool dir_avail(const char *dirname)
+{
+	return dirname != NULL && !access(dirname, F_OK | R_OK | W_OK | X_OK);
+}
+
+char *prefix_filename(const char *prefix, const char *filename);
+
+#endif /* FILESYS_H */

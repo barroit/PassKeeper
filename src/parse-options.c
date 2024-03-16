@@ -22,6 +22,7 @@
 
 #include "parse-options.h"
 #include "strbuf.h"
+#include "filesys.h"
 #include "strlist.h"
 
 enum parse_option_result
@@ -36,14 +37,15 @@ enum parse_option_result
 
 struct parser_context
 {
-	int raw_argc;
 	int argc;
 	const char **argv;
 
-	unsigned parser_flags;
+	const char *prefix;
+	enum option_parser_flag parser_flags;
 
-	unsigned argoc;
-	const char **argov;
+	int argc0;
+	unsigned idx;
+	const char **out;
 
 	const char *optstr;
 };
@@ -61,15 +63,15 @@ static const char *detailed_option(const struct option *opt, enum option_parsed 
 
 	if (flags & SHORT_OPTION)
 	{
-		snprintf(ret, sizeof(ret), "switch `%c'", opt->alias);
+		snprintf(ret, sizeof(ret), "switch '%c'", opt->alias);
 	}
 	else if (flags & UNSET_OPTION)
 	{
-		snprintf(ret, sizeof(ret), "option `no-%s'", opt->name);
+		snprintf(ret, sizeof(ret), "option 'no-%s'", opt->name);
 	}
 	else if (flags == LONG_OPTION)
 	{
-		snprintf(ret, sizeof(ret), "option `%s'", opt->name);
+		snprintf(ret, sizeof(ret), "option '%s'", opt->name);
 	}
 	else
 	{
@@ -101,6 +103,11 @@ static enum parse_option_result assign_string_value(
 	}
 
 	return 0;
+}
+
+static void assign_filename(const char *prefix, const char **out)
+{
+	*out = prefix_filename(prefix, *out);
 }
 
 static enum parse_option_result assign_value(
@@ -137,6 +144,8 @@ static enum parse_option_result assign_value(
 			{
 				return errcode;
 			}
+
+			assign_filename(ctx->prefix, (const char **)opt->value);
 			break;
 		default:
 			bug("opt->type %d should not happen", opt->type);
@@ -300,17 +309,17 @@ static enum parse_option_result parse_option_step(
 	/* check non options */
 	if (*argstr != '-')
 	{
-		if (ctx->parser_flags & PARSER_STOP_AT_NON_OPTION)
+		if (ctx->parser_flags & (PARSER_STOP_AT_NON_OPTION | PARSER_ABORT_NON_OPTION))
 		{
 			return PARSING_NON_OPTION;
 		}
 
-		ctx->argov[ctx->argoc++] = ctx->argv[0];
+		ctx->out[ctx->idx++] = *ctx->argv;
 		return PARSING_DONE;
 	}
 
 	/* lone -h asks for help */
-	if (ctx->raw_argc == 1 && !strcmp(argstr + 1, "h"))
+	if (ctx->argc0 == 1 && !strcmp(argstr + 1, "h"))
 	{
 		return PARSING_HELP;
 	}
@@ -374,16 +383,18 @@ static enum parse_option_result parse_option_step(
 static void prepare_context(
 	struct parser_context *ctx,
 	int argc, const char **argv,
+	const char *prefix,
 	enum option_parser_flag flags)
 {
-	ctx->raw_argc = argc;
+	ctx->argc0 = argc;
 	ctx->argc = argc;
 	ctx->argv = argv;
+	ctx->prefix = prefix;
 
 	ctx->parser_flags = flags;
 
-	ctx->argoc = flags & PARSER_KEEP_ARGV0;
-	ctx->argov = argv;
+	ctx->idx = flags & PARSER_KEEP_ARGV0;
+	ctx->out = argv;
 }
 
 static inline void print_newline(FILE *stream)
@@ -476,7 +487,10 @@ static inline bool has_option(const struct option *options, const char *name)
 	return options->type != OPTION_END;
 }
 
-static enum parse_option_result usage_with_options(const char *const *usages,const struct option *options,bool is_error)
+static enum parse_option_result usage_with_options(
+	const char *const *usages,
+	const struct option *options,
+	bool is_error)
 {
 	FILE *stream;
 	const char *next_prefix, *usage_prefix, *or_prefix;
@@ -599,13 +613,14 @@ static enum parse_option_result usage_with_options(const char *const *usages,con
 
 int parse_options(
 	int argc, const char **argv,
+	const char *prefix,
 	const struct option *options,
 	const char *const *usages,
 	enum option_parser_flag flags)
 {
 	struct parser_context *ctx = &(struct parser_context){ 0 };
 
-	prepare_context(ctx, argc, argv, flags);
+	prepare_context(ctx, argc, argv, prefix, flags);
 
 	while (ctx->argc)
 	{
@@ -615,7 +630,13 @@ int parse_options(
 				break;
 			case PARSING_COMPLETE:
 			case PARSING_NON_OPTION:
-				return ctx->argc;
+				if (ctx->parser_flags & PARSER_ABORT_NON_OPTION)
+				{
+					error("unknown argument '%s'", *ctx->argv);
+					exit(129);
+				}
+
+				goto finish;
 			case PARSING_HELP:
 				usage_with_options(usages, options, false);
 				/* FALLTHRU */
@@ -624,15 +645,15 @@ int parse_options(
 			case PARSING_UNKNOWN:
 				if (ctx->argv[0][1] == '-')
 				{
-					error("unknown option `%s'", ctx->argv[0] + 2);
+					error("unknown option '%s'", ctx->argv[0] + 2);
 				}
 				else if (isascii(*ctx->optstr))
 				{
-					error("unknown switch `%c'", *ctx->optstr);
+					error("unknown switch '%c'", *ctx->optstr);
 				}
 				else
 				{
-					error("unknown non-ascii option in string: `%s'", *ctx->argv);
+					error("unknown non-ascii option in string: '%s'", *ctx->argv);
 				}
 
 				usage_with_options(usages, options, true);
@@ -643,5 +664,12 @@ int parse_options(
 		ctx->argv++;
 	}
 
-	return ctx->argc;
+finish:
+	if (ctx->argc)
+	{
+		MOVE_ARRAY(ctx->out + ctx->idx, ctx->argv, ctx->argc);
+		ctx->out[ctx->idx + ctx->argc] = NULL;
+	}
+
+	return ctx->idx + ctx->argc;
 }
