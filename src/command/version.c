@@ -39,24 +39,20 @@ int cmd_version(int argc, const char **argv, UNUSED const char *prefix)
 {
 	argc = parse_options(argc, argv, prefix, cmd_version_options, cmd_version_usages, 0);
 
-	struct strbuf sb = STRBUF_INIT;
-	strbuf_print(&sb, "pk version "PROJECT_VERSION);
+	struct strbuf *sb = STRBUF_INIT_P;
+	strbuf_puts(sb, "pk ("PROJNAME") "PROJECT_VERSION);
+	strbuf_puts(sb, LICENSE_NOTIES);
 
 	if (show_build_options)
 	{
-		strbuf_putc(&sb, '\n');
-		strbuf_puts(&sb, "architecture: "ARCHITECTURE);
-		strbuf_puts(&sb, "built from commit: "BUILD_COMMIT);
-	}
-	else
-	{
-		strbuf_printf(&sb, ".%.11s\n", BUILD_COMMIT);
+		strbuf_puts(sb, "architecture: "ARCHITECTURE);
+		strbuf_puts(sb, "built from commit: "BUILD_COMMIT);
 	}
 
-	strbuf_printf(&sb, "written by %s <%s>", AUTHOR, CONTACT);
+	strbuf_printf(sb, "written by %s <%s>", AUTHOR, CONTACT);
 
-	puts(sb.buf);
-	strbuf_destroy(&sb);
+	puts(sb->buf);
+	strbuf_destroy(sb);
 
 	return 0;
 }

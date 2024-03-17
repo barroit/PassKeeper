@@ -33,8 +33,8 @@ const char *const cmd_init_usages[] = {
 };
 
 const struct option cmd_init_options[] = {
-	OPTION_FILENAME(0, "db-path", &db_path, "specify a file to store your credentials"),
-	OPTION_FILENAME(0, "key-path", &key_path, "specify a file to store your credential encryption key"),
+	OPTION_PATHNAME(0, "db-path", &db_path, "specify a file to store your credentials"),
+	OPTION_PATHNAME(0, "key-path", &key_path, "specify a file to store your credential encryption key"),
 	OPTION_BOOL(0, "encrypt", &with_cipher, "encrypt database with key"),
 	/* consider adding some sqlcipher configure options like cipher type */
 	OPTION_END(),

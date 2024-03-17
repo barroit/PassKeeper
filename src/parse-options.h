@@ -32,8 +32,8 @@ enum option_type
 	OPTION_SWITCH,
 	/* options with arguments */
 	OPTION_STRING,
-	// OPTION_INTEGER,
-	OPTION_FILENAME,
+	OPTION_UNSIGNED,
+	OPTION_PATHNAME,
 };
 
 enum option_flag
@@ -63,9 +63,8 @@ struct option
 
 enum option_parser_flag
 {
-	PARSER_KEEP_ARGV0 = 1 << 0,
-	PARSER_STOP_AT_NON_OPTION = 1 << 1,
 	PARSER_ABORT_NON_OPTION = 1 << 0,
+	PARSER_ONE_SHOT = 1 << 1,
 };
 
 #define OPTION_END()					\
@@ -90,6 +89,16 @@ enum option_parser_flag
 	.flags = OPTION_NOARG | OPTION_ALLONEG,		\
 }
 
+#define OPTION_UNSIGNED(s, l, v, a, h)			\
+{							\
+	.type = OPTION_UNSIGNED,			\
+	.alias = (s),					\
+	.name = (l),					\
+	.value = (v),					\
+	.argh = (a),					\
+	.help = (h),					\
+}
+
 #define OPTION_STRING(s, l, v, a, h)			\
 {							\
 	.type = OPTION_STRING,				\
@@ -100,9 +109,9 @@ enum option_parser_flag
 	.help = (h),					\
 }
 
-#define OPTION_FILENAME(s, l, v, h)			\
+#define OPTION_PATHNAME(s, l, v, h)			\
 {							\
-	.type = OPTION_FILENAME,			\
+	.type = OPTION_PATHNAME,			\
 	.alias = (s),					\
 	.name = (l),					\
 	.value = (v),					\
@@ -112,16 +121,16 @@ enum option_parser_flag
 
 extern int option_usage_width;
 
-void pad_usage(FILE *stream, int pos);
-
 int print_help(const char *help, size_t pos, FILE *stream);
 
 int parse_options(int argc, const char **argv, const char *prefix, const struct option *options, const char *const *usages, enum option_parser_flag flags);
 
 extern const char *const cmd_count_usages[];
 extern const char *const cmd_version_usages[];
+extern const char *const cmd_delete_usages[];
 
 extern const struct option cmd_count_options[];
 extern const struct option cmd_version_options[];
+extern const struct option cmd_delete_options[];
 
 #endif /* PARSE_OPTIONS_H */

@@ -1,17 +1,26 @@
 {
-	"files.associations": {
-		"command.h": "c",
-		"stddef.h": "c",
-		"strlist.h": "c",
-		"typeinfo": "c",
-		"type_traits": "c",
-		"stdbool.h": "c",
-		"parse-options.h": "c",
-		"*.in": "c",
-		"strbuf.h": "c",
-		"unistd.h": "c",
-		"limits.h": "c",
-		"usage.h": "c",
-		"filesys.h": "c"
-	}
+    "files.associations": {
+        "command.h": "c",
+        "stddef.h": "c",
+        "strlist.h": "c",
+        "typeinfo": "c",
+        "type_traits": "c",
+        "stdbool.h": "c",
+        "parse-options.h": "c",
+        "*.in": "c",
+        "strbuf.h": "c",
+        "unistd.h": "c",
+        "limits.h": "c",
+        "usage.h": "c",
+        "filesys.h": "c"
+    },
+    "fileHeaderComment.parameter": {
+        "*": {
+            "cbegin": "/****************************************************************************",
+            "cprefix": "**",
+            "cend": "****************************************************************************/",
+            "project": "PassKeeper",
+            "year": "2023, 2024"
+        }
+    }
 }

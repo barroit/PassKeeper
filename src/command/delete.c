@@ -1,4 +1,42 @@
-// int cmd_delete(int argc, const char **argv, UNUSED const char *prefix)
-// {
-// 	return 0;
-// }
+/****************************************************************************
+**
+** Copyright 2023, 2024 Jiamu Sun
+** Contact: barroit@linux.com
+**
+** This file is part of PassKeeper.
+**
+** PassKeeper is free software: you can redistribute it and/or modify it
+** under the terms of the GNU General Public License as published by the
+** Free Software Foundation, either version 3 of the License, or (at your
+** option) any later version.
+**
+** PassKeeper is distributed in the hope that it will be useful, but
+** WITHOUT ANY WARRANTY; without even the implied warranty of
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+** General Public License for more details.
+**
+** You should have received a copy of the GNU General Public License along
+** with PassKeeper. If not, see <https://www.gnu.org/licenses/>.
+**
+****************************************************************************/
+
+#include "parse-options.h"
+
+static unsigned record_id;
+
+const char *const cmd_delete_usages[] = {
+	"pk delete [--record <id>] [<id>]",
+	NULL,
+};
+
+const struct option cmd_delete_options[] = {
+	OPTION_UNSIGNED('i', "record", &record_id, "id", "id points to the record to be deleted"),
+	OPTION_END(),
+};
+
+int cmd_delete(int argc, const char **argv, UNUSED const char *prefix)
+{
+	argc = parse_options(argc, argv, prefix, cmd_delete_options, cmd_delete_usages, PARSER_ONE_SHOT);
+
+	return 0;
+}

@@ -138,7 +138,7 @@ static enum parse_option_result assign_value(
 			break;
 		case OPTION_STRING:
 			return assign_string_value(ctx, opt, flags, (const char **)opt->value);
-		case OPTION_FILENAME:
+		case OPTION_PATHNAME:
 			errcode = assign_string_value(ctx, opt, flags, (const char **)opt->value);
 			if (errcode)
 			{
@@ -306,10 +306,15 @@ static enum parse_option_result parse_option_step(
 	enum parse_option_result rescode;
 
 	argstr = *ctx->argv;
+
+	if ((ctx->parser_flags & PARSER_ONE_SHOT) && ctx->argc0 - ctx->argc == 1)
+	{
+		return PARSING_COMPLETE;
+	}
 	/* check non options */
 	if (*argstr != '-')
 	{
-		if (ctx->parser_flags & (PARSER_STOP_AT_NON_OPTION | PARSER_ABORT_NON_OPTION))
+		if (ctx->parser_flags & PARSER_ABORT_NON_OPTION)
 		{
 			return PARSING_NON_OPTION;
 		}
@@ -393,7 +398,6 @@ static void prepare_context(
 
 	ctx->parser_flags = flags;
 
-	ctx->idx = flags & PARSER_KEEP_ARGV0;
 	ctx->out = argv;
 }
 
@@ -437,7 +441,7 @@ static int print_option_argh(const struct option *opt, FILE *stream)
 
 int option_usage_width = DEFAULT_OPTION_USAGE_WIDTH;
 
-void pad_usage(FILE *stream, int pos)
+static void pad_usage(FILE *stream, int pos)
 {
 	if (pos < option_usage_width)
 	{
@@ -629,14 +633,10 @@ int parse_options(
 			case PARSING_DONE:
 				break;
 			case PARSING_COMPLETE:
-			case PARSING_NON_OPTION:
-				if (ctx->parser_flags & PARSER_ABORT_NON_OPTION)
-				{
-					error("unknown argument '%s'", *ctx->argv);
-					exit(129);
-				}
-
 				goto finish;
+			case PARSING_NON_OPTION:
+				error("unknown argument '%s'", *ctx->argv);
+				exit(129);
 			case PARSING_HELP:
 				usage_with_options(usages, options, false);
 				/* FALLTHRU */
