@@ -36,7 +36,6 @@ const struct option cmd_count_options[] = {
 
 int cmd_count(int argc, const char **argv, UNUSED const char *prefix)
 {
-
 	argc = parse_options(argc, argv, prefix, cmd_count_options, cmd_count_usages, 0);
 	printf("s: %s, a: %d\n", search_pattern, argc);
 

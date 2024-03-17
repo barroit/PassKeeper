@@ -89,13 +89,14 @@ enum option_parser_flag
 	.flags = OPTION_NOARG | OPTION_ALLONEG,		\
 }
 
-#define OPTION_UNSIGNED(s, l, v, a, h)			\
+#define OPTION_UNSIGNED(s, l, v, d, a, h)		\
 {							\
 	.type = OPTION_UNSIGNED,			\
 	.alias = (s),					\
 	.name = (l),					\
 	.value = (v),					\
 	.argh = (a),					\
+	.defval = (intptr_t)(d),			\
 	.help = (h),					\
 }
 
@@ -122,6 +123,8 @@ enum option_parser_flag
 extern int option_usage_width;
 
 int print_help(const char *help, size_t pos, FILE *stream);
+
+int process_unsigned_assignment_result(int rescode, const char *val, const char *field);
 
 int parse_options(int argc, const char **argv, const char *prefix, const struct option *options, const char *const *usages, enum option_parser_flag flags);
 

@@ -21,8 +21,10 @@
 ****************************************************************************/
 
 #include "parse-options.h"
+#include "strbuf.h"
 
 static unsigned record_id;
+static bool record_id_set;
 
 const char *const cmd_delete_usages[] = {
 	"pk delete [--record <id>] [<id>]",
@@ -30,13 +32,40 @@ const char *const cmd_delete_usages[] = {
 };
 
 const struct option cmd_delete_options[] = {
-	OPTION_UNSIGNED('i', "record", &record_id, "id", "id points to the record to be deleted"),
+	OPTION_UNSIGNED('i', "record", &record_id, &record_id_set, "id", "id points to the record to be deleted"),
 	OPTION_END(),
 };
 
+static void set_record_id(int argc, const char *arg)
+{
+	if (argc == 0)
+	{
+		exit(error("no option or argument gives a value to record id"));
+	}
+
+	if (argc > 1)
+	{
+		exit(error("too many arguments give value to record id"));
+	}
+
+	int errcode;
+
+	errcode = strtou(arg, &record_id);
+	errcode = process_unsigned_assignment_result(errcode, arg, "record id");
+
+	if (errcode)
+	{
+		exit(errcode);
+	}
+}
+
 int cmd_delete(int argc, const char **argv, UNUSED const char *prefix)
 {
-	argc = parse_options(argc, argv, prefix, cmd_delete_options, cmd_delete_usages, PARSER_ONE_SHOT);
+	argc = parse_options(argc, argv, prefix, cmd_delete_options, cmd_delete_usages, 0);
+	if (!record_id_set)
+	{
+		set_record_id(argc, *argv);
+	}
 
 	return 0;
 }

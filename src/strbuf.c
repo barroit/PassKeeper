@@ -278,11 +278,6 @@ int strtou(const char *str, unsigned *res)
 		return EINVAL;
 	}
 
-	if (*str == 0)
-	{
-		return EILSEQ;
-	}
-
 	char *end;
 	unsigned long int tmpres;
 

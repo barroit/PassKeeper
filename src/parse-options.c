@@ -110,6 +110,55 @@ static void assign_filename(const char *prefix, const char **out)
 	*out = prefix_filename(prefix, *out);
 }
 
+int process_unsigned_assignment_result(int errcode, const char *val, const char *field)
+{
+	if (!errcode)
+	{
+		return 0;
+	}
+
+	if (errcode == ERANGE)
+	{
+		die("numerical value '%.9s%s' is too long", val, strlen(val) > 9 ? "..." : "");
+	}
+
+	return error("%s expects a numerical value", field);
+}
+
+static enum parse_option_result assign_unsigned_value(
+	struct parser_context *ctx,
+	const struct option *opt,
+	enum option_parsed flags,
+	unsigned *out, bool *indicator)
+{
+	int rescode;
+	const char *arg;
+
+	if (ctx->optstr)
+	{
+		arg = ctx->optstr;
+		ctx->optstr = NULL;
+		rescode = strtou(arg, out);
+	}
+	else if (ctx->argc > 1)
+	{
+		ctx->argc--;
+		arg = *++ctx->argv;
+		rescode = strtou(arg, out);
+	}
+	else
+	{
+		return error("%s requires a value", detailed_option(opt, flags));
+	}
+
+	/**
+	 * set this to true so that we know if
+	 * this unsigned is assigned a value
+	 */
+	*indicator = 1;
+	return process_unsigned_assignment_result(rescode, arg, detailed_option(opt, flags));
+}
+
 static enum parse_option_result assign_value(
 	struct parser_context *ctx,
 	const struct option *opt,
@@ -147,6 +196,8 @@ static enum parse_option_result assign_value(
 
 			assign_filename(ctx->prefix, (const char **)opt->value);
 			break;
+		case OPTION_UNSIGNED:
+			return assign_unsigned_value(ctx, opt, flags, (unsigned *)opt->value, (bool *)opt->defval);
 		default:
 			bug("opt->type %d should not happen", opt->type);
 	}
