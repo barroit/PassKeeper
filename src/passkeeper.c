@@ -21,7 +21,6 @@
 ****************************************************************************/
 
 #include "parse-options.h"
-#include "strbuf.h"
 
 int cmd_count(int argc, const char **argv, const char *prefix);
 int cmd_create(int argc, const char **argv, const char *prefix);
@@ -31,8 +30,6 @@ int cmd_init(int argc, const char **argv, const char *prefix);
 int cmd_read(int argc, const char **argv, const char *prefix);
 int cmd_update(int argc, const char **argv, const char *prefix);
 int cmd_version(int argc, const char **argv, const char *prefix);
-
-const char pk_usages[] = "pk <command> [<args>]";
 
 struct command_info
 {
@@ -115,6 +112,8 @@ static void execute_command(struct command_info *command, int argc, const char *
 	exit(command->handle(argc, argv, prefix));
 }
 
+static const char *fallback_command[] = { "help", "pk", NULL };
+
 /* do not use '__' as parameter prefix, program name should NOT be in the argv */
 static void calibrate_argv(int *argc0, const char ***argv0)
 {
@@ -133,16 +132,60 @@ static void calibrate_argv(int *argc0, const char ***argv0)
 		argv[1] = argv[0];
 		argv[0] = "help";
 	}
-	else if (argc == 0)
+	/**
+	 * - no command passed, set argv to "pk help pk"
+	 * - turn "pk help" into "pk help pk"
+	 */
+	else if (argc == 0 || (argc == 1 && !strcmp(*argv, "help")))
 	{
-		*argc0 = 1;
-		**argv0 = "help";
+		*argc0 = 2;
+		*argv0 = fallback_command;
 	}
 }
 
-static void list_command_help(void)
+void calibrate_command(int *argc0, const char ***argv0, const char *cmdname)
+{
+	if (!is_command(cmdname))
+	{
+		/**
+		 * turn "pk dummycmd" into "pk help
+		 * dummycmd", let help handle this
+		 */
+		fallback_command[1] = cmdname;
+		*argc0 = 2;
+		*argv0 = fallback_command;
+	}
+
+}
+
+int main(int argc, const char **argv)
+{
+	struct command_info *command;
+
+	calibrate_argv(&argc, &argv);
+
+	calibrate_command(&argc, &argv, *argv);
+
+	command = find_command(*argv);
+	if (command == NULL)
+	{
+		bug("your calibrate_command() broken");
+	}
+
+	argc--;
+	argv++;
+
+	execute_command(command, argc, argv);
+
+	return EXIT_SUCCESS;
+}
+
+extern int option_usage_width;
+
+void list_passkeeper_commands(void)
 {
 	const struct command_info *iter;
+	option_usage_width = 13;
 
 	iter = commands;
 	while (iter->name)
@@ -155,40 +198,4 @@ static void list_command_help(void)
 
 		iter++;
 	}
-}
-
-extern int option_usage_width;
-
-void show_pk_help(void)
-{
-	printf_ln("usage: %s", pk_usages);
-	putchar('\n');
-	puts("These are common PassKeeper commands used in various situations:");
-
-	option_usage_width = 13;
-	list_command_help();
-}
-
-void show_unknow_usage(const char *name)
-{
-	fprintf_ln(stderr, "pk: '%s' is not a passkeeper command. See 'pk help'", name);
-}
-
-int main(int argc, const char **argv)
-{
-	struct command_info *command;
-	const char *cmdname;
-
-	calibrate_argv(&argc, &argv);
-
-	cmdname = argv[0];
-	if ((command = find_command(cmdname)) == NULL)
-	{
-		show_unknow_usage(cmdname);
-		return EXIT_FAILURE;
-	}
-
-	execute_command(command, --argc, ++argv);
-
-	return EXIT_SUCCESS;
 }

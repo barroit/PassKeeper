@@ -21,6 +21,7 @@
 ****************************************************************************/
 
 #include "parse-options.h"
+#include "strbuf.h"
 
 const char *const cmd_help_usages[] = {
 	"pk help [<command>]",
@@ -38,7 +39,7 @@ struct command_helper
 	const struct option *options;
 };
 
-static const struct command_helper cmdhelps[] = {
+static const struct command_helper helpers[] = {
 	{ "count",	cmd_count_usages,	cmd_count_options },
 	{ "create",	cmd_create_usages,	cmd_create_options },
 	{ "delete",	cmd_delete_usages,	cmd_delete_options },
@@ -56,7 +57,7 @@ static const struct command_helper *find_command_helper(const char *name)
 {
 	const struct command_helper *iter;
 
-	iter = cmdhelps;
+	iter = helpers;
 	while (iter->name)
 	{
 		if (!strcmp(name, iter->name))
@@ -70,32 +71,49 @@ static const struct command_helper *find_command_helper(const char *name)
 	return NULL;
 }
 
-void show_pk_help(void);
-void show_unknow_usage(const char *name);
 bool is_command(const char *cmdname);
 
-int cmd_help(int argc, const char **argv, UNUSED const char *prefix)
-{
-	if (argc == 0)
-	{
-		show_pk_help();
-		exit(EXIT_SUCCESS);
-	}
+void list_passkeeper_commands();
 
+void handle_command_not_found(const char *name)
+{
+	fprintf_ln(stderr, "pk: '%s' is not a passkeeper command. See 'pk help pk'", name);
+	exit(129);
+}
+
+void handle_main_command_help(void)
+{
+	printf_ln("usage: %s", "pk <command> [<args>]");
+	putchar('\n');
+	puts("These are common PassKeeper commands used in various situations:");
+
+	list_passkeeper_commands();
+	putchar('\n'); /* acts like other helpers */
+	exit(129);
+}
+
+int cmd_help(UNUSED int argc, const char **argv, UNUSED const char *prefix)
+{
 	const char *cmdname;
 	const struct command_helper *helper;
+	bool is_main_command;
 
 	cmdname = *argv;
-	if (!is_command(cmdname))
+	is_main_command = cmdname && !strcmp(cmdname, "pk");
+
+	if (!is_main_command && !is_command(cmdname))
 	{
-		show_unknow_usage(cmdname);
-		exit(EXIT_FAILURE);
+		handle_command_not_found(cmdname);
+	}
+	else if (is_main_command)
+	{
+		handle_main_command_help();
 	}
 
 	helper = find_command_helper(cmdname);
 	if (helper == NULL)
 	{
-		bug("you definitely forgot to add %s to cmdhelps", cmdname);
+		bug("you definitely forgot to add %s to helpers", cmdname);
 	}
 
 	parse_options(1, (const char *[]){ "-h" }, prefix, helper->options, helper->usages, 0);
