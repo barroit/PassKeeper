@@ -33,7 +33,7 @@ enum option_type
 	/* options with arguments */
 	OPTION_STRING,
 	OPTION_UNSIGNED,
-	OPTION_PATHNAME,
+	OPTION_FILENAME,
 };
 
 enum option_flag
@@ -42,6 +42,7 @@ enum option_flag
 	OPTION_NOARG = 1 << 1,
 	OPTION_ALLONEG = 1 << 2,
 	OPTION_RAWARGH = 1 << 3,
+	OPTION_REALPATH = 1 << 4,
 };
 
 struct option
@@ -74,51 +75,58 @@ enum option_parser_flag
 
 #define OPTION_GROUP(h)					\
 {							\
-	.type = OPTION_TYPE_GROUP,			\
+	.type = OPTION_GROUP,				\
 	.help = (h),					\
 }
 
 #define OPTION_BOOL(s, l, v, h)				\
 {							\
-	.type = OPTION_SWITCH,				\
-	.alias = (s),					\
-	.name = (l),					\
-	.value = (v),					\
-	.help = (h),					\
+	.type   = OPTION_SWITCH,			\
+	.alias  = (s),					\
+	.name   = (l),					\
+	.value  = (v),					\
+	.help   = (h),					\
 	.defval = 1,					\
-	.flags = OPTION_NOARG | OPTION_ALLONEG,		\
+	.flags  = OPTION_NOARG | OPTION_ALLONEG,	\
 }
 
-#define OPTION_UNSIGNED(s, l, v, d, a, h)		\
+#define OPTION_UNSIGNED(s, l, v, a, h)			\
 {							\
-	.type = OPTION_UNSIGNED,			\
+	.type  = OPTION_UNSIGNED,			\
 	.alias = (s),					\
-	.name = (l),					\
+	.name  = (l),					\
 	.value = (v),					\
-	.argh = (a),					\
-	.defval = (intptr_t)(d),			\
-	.help = (h),					\
+	.argh  = (a),					\
+	.help  = (h),					\
 }
 
 #define OPTION_STRING(s, l, v, a, h)			\
 {							\
-	.type = OPTION_STRING,				\
+	.type  = OPTION_STRING,				\
 	.alias = (s),					\
-	.name = (l),					\
+	.name  = (l),					\
 	.value = (v),					\
-	.argh = (a),					\
-	.help = (h),					\
+	.argh  = (a),					\
+	.help  = (h),					\
 }
 
-#define OPTION_PATHNAME(s, l, v, h)			\
+#define OPTION_FILENAME_F(s, l, v, h, a, f)		\
 {							\
-	.type = OPTION_PATHNAME,			\
+	.type  = OPTION_FILENAME,			\
 	.alias = (s),					\
-	.name = (l),					\
+	.name  = (l),					\
 	.value = (v),					\
-	.help = (h),					\
-	.argh = ("path"),				\
+	.help  = (h),					\
+	.argh  = (a),					\
+	.flags = (f),					\
 }
+
+#define OPTION_FILENAME(s, l, v, h) OPTION_FILENAME_F((s), (l), (v), (h), "path", 0)
+
+/**
+ * same as OPTION_FILENAME except the path needs to be available
+ */
+#define OPTION_PATHNAME(s, l, v, h) OPTION_FILENAME_F((s), (l), (v), (h), "file", OPTION_REALPATH)
 
 extern int option_usage_width;
 
@@ -131,9 +139,11 @@ int parse_options(int argc, const char **argv, const char *prefix, const struct 
 extern const char *const cmd_count_usages[];
 extern const char *const cmd_version_usages[];
 extern const char *const cmd_delete_usages[];
+extern const char *const cmd_create_usages[];
 
 extern const struct option cmd_count_options[];
 extern const struct option cmd_version_options[];
 extern const struct option cmd_delete_options[];
+extern const struct option cmd_create_options[];
 
 #endif /* PARSE_OPTIONS_H */

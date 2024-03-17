@@ -43,7 +43,7 @@ struct command_info
 
 static struct command_info commands[] = {
 	{ "count",	cmd_count,	"Count the number of records" },
-	// { "create",	cmd_create,	"" },
+	{ "create",	cmd_create,	"Create a record" },
 	{ "delete",	cmd_delete,	"Delete a record" },
 	{ "help",	cmd_help,	"Display help information about PassKeeper" },
 	{ "init",	cmd_init,	"Initialize database files for storing credentials" },

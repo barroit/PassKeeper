@@ -35,11 +35,14 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <sys/stat.h>
 
 #ifdef __linux__
 #define ENV_USERHOME "HOME"
+#define DIRSEP "/"
 #else
 #define ENV_USERHOME "USERPROFILE"
+#define DIRSEP "\\"
 #endif
 
 #define UNUSED __attribute__((unused))

@@ -23,21 +23,18 @@
 #ifndef FILESYS_H
 #define FILESYS_H
 
-static inline bool exists(const char *pathname)
+enum file_test_result
 {
-	return pathname != NULL && !access(pathname, F_OK);
-}
+	F_NOT_ALLOW = 1,
+	F_NOT_FILE,
+	F_NOT_EXISTS,
+};
 
-static inline bool file_avail(const char *pathname)
-{
-	return pathname != NULL && !access(pathname, F_OK | R_OK | W_OK);
-}
-
-static inline bool dir_avail(const char *dirname)
-{
-	return dirname != NULL && !access(dirname, F_OK | R_OK | W_OK | X_OK);
-}
-
+/**
+ * append `filename` to `prefix` if needed
+ */
 char *prefix_filename(const char *prefix, const char *filename);
+
+enum file_test_result test_file_avail(const char *filename);
 
 #endif /* FILESYS_H */

@@ -40,7 +40,7 @@ struct command_helper
 
 static const struct command_helper cmdhelps[] = {
 	{ "count",	cmd_count_usages,	cmd_count_options },
-	// { "create",	cmd__usages,	cmd__options },
+	{ "create",	cmd_create_usages,	cmd_create_options },
 	{ "delete",	cmd_delete_usages,	cmd_delete_options },
 	{ "help",	cmd_help_usages,	cmd_help_options },
 	// { "init",	cmd__usages,	cmd__options },

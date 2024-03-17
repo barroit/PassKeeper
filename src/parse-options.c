@@ -129,7 +129,7 @@ static enum parse_option_result assign_unsigned_value(
 	struct parser_context *ctx,
 	const struct option *opt,
 	enum option_parsed flags,
-	unsigned *out, bool *indicator)
+	unsigned **out)
 {
 	int rescode;
 	const char *arg;
@@ -138,24 +138,19 @@ static enum parse_option_result assign_unsigned_value(
 	{
 		arg = ctx->optstr;
 		ctx->optstr = NULL;
-		rescode = strtou(arg, out);
+		rescode = strtou(arg, *out);
 	}
 	else if (ctx->argc > 1)
 	{
 		ctx->argc--;
 		arg = *++ctx->argv;
-		rescode = strtou(arg, out);
+		rescode = strtou(arg, *out);
 	}
 	else
 	{
 		return error("%s requires a value", detailed_option(opt, flags));
 	}
 
-	/**
-	 * set this to true so that we know if
-	 * this unsigned is assigned a value
-	 */
-	*indicator = 1;
 	return process_unsigned_assignment_result(rescode, arg, detailed_option(opt, flags));
 }
 
@@ -187,7 +182,7 @@ static enum parse_option_result assign_value(
 			break;
 		case OPTION_STRING:
 			return assign_string_value(ctx, opt, flags, (const char **)opt->value);
-		case OPTION_PATHNAME:
+		case OPTION_FILENAME:
 			errcode = assign_string_value(ctx, opt, flags, (const char **)opt->value);
 			if (errcode)
 			{
@@ -197,7 +192,7 @@ static enum parse_option_result assign_value(
 			assign_filename(ctx->prefix, (const char **)opt->value);
 			break;
 		case OPTION_UNSIGNED:
-			return assign_unsigned_value(ctx, opt, flags, (unsigned *)opt->value, (bool *)opt->defval);
+			return assign_unsigned_value(ctx, opt, flags, (unsigned **)opt->value);
 		default:
 			bug("opt->type %d should not happen", opt->type);
 	}
@@ -208,7 +203,8 @@ static enum parse_option_result assign_value(
 static enum parse_option_result parse_long_option(
 	struct parser_context *ctx,
 	const char *argstr,
-	const struct option *options)
+	const struct option *options,
+	const struct option **outopt)
 {
 	const struct option *abbrev_option, *ambiguous_option;
 	enum option_parsed abbrev_flags, ambiguous_flags;
@@ -222,6 +218,12 @@ static enum parse_option_result parse_long_option(
 
 	while (options->type != OPTION_END)
 	{
+		if (options->type == OPTION_GROUP)
+		{
+			options++;
+			continue;
+		}
+
 		const struct option *opt;
 		enum option_parsed flags, opt_flags;
 		const char *argstr_rest, *opt_name;
@@ -308,6 +310,7 @@ is_abbreviated:
 			ctx->optstr = argstr_rest + 1;
 		}
 
+		*outopt = opt;
 		return assign_value(ctx, opt, flags ^ opt_flags);
 	}
 
@@ -325,6 +328,7 @@ is_abbreviated:
 
 	if (abbrev_option)
 	{
+		*outopt = abbrev_option;
 		return assign_value(ctx, abbrev_option, abbrev_flags);
 	}
 
@@ -334,12 +338,14 @@ is_abbreviated:
 
 static enum parse_option_result parse_short_option(
 	struct parser_context *ctx,
-	const struct option *options)
+	const struct option *options,
+	const struct option **outopt)
 {
 	while (options->type != OPTION_END)
 	{
 		if (options->alias == *ctx->optstr)
 		{
+			*outopt = options;
 			return assign_value(ctx, options, SHORT_OPTION);
 		}
 
@@ -349,7 +355,25 @@ static enum parse_option_result parse_short_option(
 	return PARSING_UNKNOWN;
 }
 
-static enum parse_option_result parse_option_step(
+static enum parse_option_result validate_parsed_value(const struct option *opt)
+{
+	if ((opt->flags & OPTION_REALPATH) != 0)
+	{
+		switch (test_file_avail(*(const char **)opt->value))
+		{
+			case F_NOT_EXISTS:
+				return error("'%s' did not match any files", *(const char **)opt->value);
+			case F_NOT_ALLOW:
+				return error("access denied by '%s'", *(const char **)opt->value);
+			case F_NOT_FILE:
+				return error("'%s' is not a regular file", *(const char **)opt->value);
+		}
+	}
+
+	return 0;
+}
+
+static enum parse_option_result parse_option_next(
 	struct parser_context *ctx,
 	const struct option *options)
 {
@@ -362,6 +386,7 @@ static enum parse_option_result parse_option_step(
 	{
 		return PARSING_COMPLETE;
 	}
+
 	/* check non options */
 	if (*argstr != '-')
 	{
@@ -380,14 +405,17 @@ static enum parse_option_result parse_option_step(
 		return PARSING_HELP;
 	}
 
+	const struct option *outopt;
+
 	/* check aliases */
 	if (argstr[1] != '-')
 	{
-		ctx->optstr = argstr + 1; /* skip hyphen */
+		/* skip hyphen */
+		ctx->optstr = argstr + 1;
 
 		while (ctx->optstr != 0)
 		{
-			switch ((rescode = parse_short_option(ctx, options)))
+			switch ((rescode = parse_short_option(ctx, options, &outopt)))
 			{
 				case PARSING_DONE:
 					ctx->optstr++;
@@ -401,7 +429,7 @@ static enum parse_option_result parse_option_step(
 			}
 		}
 
-		return PARSING_DONE;
+		goto finish;
 	}
 
 	/* check end of option marker */
@@ -419,7 +447,7 @@ static enum parse_option_result parse_option_step(
 	}
 
 	/* check long options */
-	switch ((rescode = parse_long_option(ctx, argstr + 2, options)))
+	switch ((rescode = parse_long_option(ctx, argstr + 2, options, &outopt)))
 	{
 		case PARSING_DONE:
 			break;
@@ -433,7 +461,8 @@ static enum parse_option_result parse_option_step(
 			bug("parse_long_option() cannot return status %d", rescode);
 	}
 
-	return PARSING_DONE;
+finish:
+	return validate_parsed_value(outopt);
 }
 
 static void prepare_context(
@@ -606,6 +635,7 @@ static enum parse_option_result usage_with_options(
 				fprintf(stream, "%s\n", iter->help);
 			}
 
+			iter++;
 			continue;
 		}
 
@@ -679,7 +709,7 @@ int parse_options(
 
 	while (ctx->argc)
 	{
-		switch (parse_option_step(ctx, options))
+		switch (parse_option_next(ctx, options))
 		{
 			case PARSING_DONE:
 				break;
@@ -719,8 +749,8 @@ finish:
 	if (ctx->argc)
 	{
 		MOVE_ARRAY(ctx->out + ctx->idx, ctx->argv, ctx->argc);
-		ctx->out[ctx->idx + ctx->argc] = NULL;
 	}
 
+	ctx->out[ctx->idx + ctx->argc] = NULL;
 	return ctx->idx + ctx->argc;
 }
