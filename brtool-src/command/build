@@ -24,6 +24,9 @@ fi
 echo "-- Build type: $build_type"
 echo "-- Target platform: $target_platform"
 
+export ARCHITECTURE=$(uname -m)
+export BUILD_COMMIT=$(git rev-parse HEAD)
+
 cmake -B $build_prefix \
 -DCMAKE_TARGET_PLATFORM=${target_platform^} \
 -DCMAKE_BUILD_TYPE=${build_type^} -DLIB_INSTALL_PREFIX=$INSTALL_PREFIX

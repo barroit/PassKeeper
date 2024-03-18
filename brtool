@@ -14,6 +14,8 @@ export TARGET_PLATFORMS='penguin window'
 export SOURCE_PREFIX="$HOME"/Source
 export INSTALL_PREFIX="$HOME"/.local
 
+export TEST_PREFIX="$BRTOOL_PREFIX"/test
+
 declare -A COMMANDS
 
 for cmdname in $(ls "$BRTOOL_COMMAND_PREFIX")

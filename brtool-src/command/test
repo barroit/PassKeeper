@@ -1,2 +1,17 @@
 #!/usr/bin/bash
 
+build_type=${1:-debug}
+
+if ! find_array_element "$build_type" "$BUILD_TYPES"
+then
+	die "unknown build type '$build_type' to run this suit"
+fi
+
+export PKBIN="$BUILD_PREFIX"/"$build_type"/pk
+
+if [[ ! -s "$PKBIN" ]]
+then
+	command "$BRTOOL_PREFIX"/brtool
+fi
+
+prove -j25 --timer "$TEST_PREFIX"/

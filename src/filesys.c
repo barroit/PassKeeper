@@ -110,7 +110,7 @@ static enum file_test_result test_file_rw_permission(struct stat *st)
 	return 0;
 }
 #else
-static enum file_test_result test_file_rw_permission(const char *filename)
+static inline enum file_test_result test_file_rw_permission(const char *filename)
 {
 	return access(filename, R_OK | W_OK) == -1 && F_NOT_ALLOW;
 }
