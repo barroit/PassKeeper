@@ -1,0 +1,4 @@
+#!/usr/bin/bash
+
+ssh "$(get_remote_info username)"@"$(get_remote_info address)" \
+	"pwsh -NoExit -Command cd $(get_remote_info workdir)"

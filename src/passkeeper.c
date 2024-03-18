@@ -155,7 +155,6 @@ void calibrate_command(int *argc0, const char ***argv0, const char *cmdname)
 		*argc0 = 2;
 		*argv0 = fallback_command;
 	}
-
 }
 
 int main(int argc, const char **argv)

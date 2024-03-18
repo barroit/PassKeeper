@@ -1,0 +1,60 @@
+#!/usr/bin/bash
+# you should NEVER execute this file manually, or you may get unexpected side effects
+
+target_platform="$1"
+
+if [[ -z "$target_platform" ]]
+then
+	die 'target platform not found'
+fi
+
+if depstat_match_prev 'openssl' "$target_platform"
+then
+	exit 0
+fi
+
+cd $SOURCE_PREFIX
+
+openssl_src="$SOURCE_PREFIX"/openssl
+
+if [[ ! -d $openssl_src ]]
+then
+	git clone 'git://git.openssl.org/openssl.git'
+fi
+
+cd $openssl_src
+
+target='linux-x86_64'
+flag="--prefix=$INSTALL_PREFIX"
+feature='no-apps no-shared no-legacy no-deprecated no-ui-console no-stdio'
+
+if [[ $target_platform == 'window' ]]
+then
+	target=mingw64
+	flag+=' --cross-compile-prefix=x86_64-w64-mingw32-'
+fi
+
+source "$BRTOOL_SRC_PREFIX"/uihandle
+
+init_ui_handle
+
+if [[ -s "$openssl_src"/Makefile ]]
+then
+	process_start 'cleanup build files'
+	process_exec 'make clean'
+	process_end
+fi
+
+process_start "configuring openssl for $target_platform"
+process_exec "./Configure $target $feature $flag CFLAGS='-O3 -DNDEBUG'"
+process_end
+
+process_start 'building openssl'
+process_exec 'make -j25' # cores plus one
+process_end
+
+process_start 'installing openssl'
+process_exec 'make install_sw'
+process_end
+
+update_depstat_record 'openssl' "$target_platform"

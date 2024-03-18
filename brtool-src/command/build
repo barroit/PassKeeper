@@ -1,0 +1,33 @@
+#!/usr/bin/bash
+# you should NEVER execute this file manually, or you may get unexpected side effects
+
+build_type="${1:-debug}"
+target_platform="${2:-penguin}"
+
+if ! find_array_element "$build_type" "$BUILD_TYPES"
+then
+	die "build type '$build_type' not found"
+fi
+
+build_prefix="$BUILD_PREFIX"/"$build_type"
+
+source "$BRTOOL_SRC_PREFIX"/depstat
+
+command "$BRTOOL_SRC_PREFIX"/make_openssl "$target_platform"
+command "$BRTOOL_SRC_PREFIX"/make_sqlcipher "$target_platform"
+
+if ! depstat_match_prev 'cmake' "$target_platform"
+then
+	rm -rf $build_prefix
+fi
+
+echo "-- Build type: $build_type"
+echo "-- Target platform: $target_platform"
+
+cmake -B $build_prefix \
+-DCMAKE_TARGET_PLATFORM=${target_platform^} \
+-DCMAKE_BUILD_TYPE=${build_type^} -DLIB_INSTALL_PREFIX=$INSTALL_PREFIX
+
+cmake --build "$build_prefix" --parallel 25
+
+update_depstat_record 'cmake' "$target_platform"

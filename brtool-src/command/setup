@@ -1,0 +1,10 @@
+#!/usr/bin/bash
+
+case "$1" in
+'coredump')
+	echo 'core' | sudo tee /proc/sys/kernel/core_pattern
+	;;
+*)
+	die "unknown setup action $1"
+	;;
+esac

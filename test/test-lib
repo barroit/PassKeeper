@@ -1,0 +1,22 @@
+#!/usr/bin/bash
+
+readonly MINIMAL_PERL_VERSION='v5.38'
+
+check_perl_version()
+{
+	if ! command -v perl > /dev/null
+	then
+		echo 'no perl executable found in PATH'
+		return 1
+	fi
+
+	local version=$(perl --version | grep -oP 'v\d.\d+.\d')
+	if [[ "$MINIMAL_PERL_VERSION" > "$version" ]]
+	then
+		echo "perl version $version does not meet requited version $MINIMAL_PERL_VERSION"
+		return 1
+	fi
+
+	return 0
+}
+

@@ -1,0 +1,18 @@
+#!/usr/bin/bash
+
+build_type=${1:-debug}
+
+if ! find_array_element "$1" "$BUILD_TYPES"
+then
+	die "unknown build type: $1"
+fi
+
+executable=$(find $BUILD_PREFIX -maxdepth 2 -type f -regextype posix-extended -regex ".*/$1/.+\.exe$")
+
+if [[ -z "$executable" ]]
+then
+	echo 'nothing to be done'
+	exit 0
+fi
+
+scp "$executable" $(get_remote_info username)@$(get_remote_info address):$(get_remote_info workdir)

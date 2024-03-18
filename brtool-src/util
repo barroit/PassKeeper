@@ -1,0 +1,31 @@
+#!/usr/bin/bash
+
+die()
+{
+	echo "$*" >&2
+	exit 1
+}
+
+export -f die
+
+find_array_element()
+{
+	for el in "$2"
+	do
+		if [[ "$el" == "$1" ]]
+		then
+			return 1
+		fi
+	done
+
+	return 0
+}
+
+export -f find_array_element
+
+get_pair_value()
+{
+	grep -oP "^$1=.+" "$2" | cut -d '=' -f2
+}
+
+export -f get_pair_value

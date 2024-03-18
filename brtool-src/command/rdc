@@ -1,0 +1,6 @@
+#!/usr/bin/bash
+
+xfreerdp /u:$(get_remote_info username) \
+	/p:$(get_remote_info password) \
+	/v:$(get_remote_info address) \
+	/w:1920 /h:1080

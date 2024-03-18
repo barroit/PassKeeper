@@ -1,0 +1,43 @@
+#/usr/bin/bash
+
+spinner()
+{
+	local pid=$!
+	local spin='-\|/'
+	local i=0
+
+	while kill -0 $pid 2>/dev/null
+	do
+		i=$(((i + 1) % 4))
+		printf '%s\b' "${spin:$i:1}"
+		sleep .2
+	done
+}
+
+init_ui_handle()
+{
+	temp_stderr=$(mktemp)
+	trap '{ rm -f -- "$brerr"; }' EXIT
+	exec 3>/dev/null
+}
+
+process_start()
+{
+	printf -- '-- %s... ' "$*"
+}
+
+process_exec() {
+	eval "$*" 2> >(grep -v "WARNING" > $temp_stderr) >&3 & spinner
+}
+
+process_end()
+{
+	if [[ -s $temp_stderr ]]
+	then
+		echo 'no'
+		cat $temp_stderr >&2
+		truncate -s 0 $temp_stderr
+	else
+		echo 'ok'
+	fi
+}

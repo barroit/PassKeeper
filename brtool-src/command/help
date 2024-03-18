@@ -1,0 +1,31 @@
+#!/usr/bin/bash
+
+cat << EOF
+usage: ./brtool <command> [args]
+
+clean::    remove files
+    build	remove cmake generated object/binary files
+    coredump	remove core dump files
+    draft	remove drafts
+
+help::     get help message
+
+ssh::	   make a remote ssh connection
+
+rdc::      open a remote desktop connection
+
+scp::      transfer executable to remote
+    [type]	transfer executable under [type]/
+
+build::    build executable
+    [type]	which type (profile) to be built
+    [platform]	which platform the executable will runs on
+
+build type affects cmake build flags and predefined macros
+    debug	for debuf build (contains debug symbols...)
+    release	for release build (optimize run time...)
+
+target platform indicates which os executable will run on
+    penguin	unix-like system
+    window	windows system
+EOF

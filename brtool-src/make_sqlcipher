@@ -1,31 +1,42 @@
 #!/usr/bin/bash
+# you should NEVER execute this file manually, or you may get unexpected side effects
 
-project_root="$(cd $(dirname $0) &> /dev/null && pwd)/.."
+target_platform="$1"
 
-source "$project_root/tool/util"
+if [[ -z "$target_platform" ]]
+then
+	die 'target platform not found'
+fi
 
-check_depstat 'sqlcipher'
+if depstat_match_prev 'sqlcipher' "$target_platform"
+then
+	exit 0
+fi
 
-cd $source_dir
+cd $SOURCE_PREFIX
 
-sqlcipher_dir="$source_dir/sqlcipher"
+sqlcipher_src="$SOURCE_PREFIX"/sqlcipher
 
-if [[ ! -d $sqlcipher_dir ]]
+if [[ ! -d $sqlcipher_src ]]
 then
 	git clone 'https://github.com/sqlcipher/sqlcipher.git'
 fi
 
-cd $sqlcipher_dir
+cd $sqlcipher_src
 
-flags="--disable-tcl --enable-tempstore=yes --prefix=$install_prefix"
-cflags="-I$install_prefix/include -DSQLITE_HAS_CODEC -DSQLCIPHER_CRYPTO_OPENSSL -Os"
-ldflags="-L$install_prefix/lib64 -lcrypto"
+flags="--disable-tcl --enable-tempstore=yes --prefix="$INSTALL_PREFIX""
+cflags="-I"$INSTALL_PREFIX"/include -DSQLITE_HAS_CODEC -DSQLCIPHER_CRYPTO_OPENSSL -O3 -DNDEBUG"
+ldflags="-L"$INSTALL_PREFIX"/lib64 -lcrypto"
 
-# we need mksourceid
-if [[ ! -f mksourceid || $target_platform != 'window' ]]
+source "$BRTOOL_SRC_PREFIX"/uihandle
+
+init_ui_handle
+
+# we need mksourceid for build windows executable
+if [[ ! -s "$sqlcipher_src"/mksourceid || $target_platform != 'window' ]]
 then
 	process_start 'configuring sqlcipher for penguin'
-	process_exec "./configure $flags CFLAGS=\"$cflags\" LDFLAGS=\"$ldflags\""
+	process_exec "./configure $flags CFLAGS='$cflags' LDFLAGS='$ldflags'"
 	process_end
 
 	process_start 'building sqlcipher for penguin'
@@ -84,5 +95,4 @@ process_exec 'make header_install'
 process_exec 'make pc_install'
 process_end
 
-process_cleanup
-set_depstat 'sqlcipher'
+update_depstat_record 'sqlcipher' "$target_platform"

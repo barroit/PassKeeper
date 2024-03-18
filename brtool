@@ -1,140 +1,46 @@
 #!/usr/bin/bash
 
-project_root="$(cd $(dirname $0) &> /dev/null && pwd)"
+export BRTOOL_PREFIX=$(dirname $(realpath $0))
 
-target_platforms=('penguin' 'window')
-build_types=('debug' 'release')
+export BRTOOL_SRC_PREFIX="$BRTOOL_PREFIX"/brtool-src
+export BRTOOL_COMMAND_PREFIX="$BRTOOL_SRC_PREFIX"/command
 
-build_type="${1:-debug}"
-target_platform="${2:-penguin}"
+export BUILD_PREFIX="$BRTOOL_PREFIX"/build
+export BRTOOL_DEPSTAT_RECORD="$BUILD_PREFIX"/dependency.status
 
-build_dir='/dummydir'
-source "$project_root/tool/util"
+export BUILD_TYPES='debug release'
+export TARGET_PLATFORMS='penguin window'
 
-if [[ $1 == 'help' ]]
+export SOURCE_PREFIX="$HOME"/Source
+export INSTALL_PREFIX="$HOME"/.local
+
+declare -A COMMANDS
+
+for cmdname in $(ls "$BRTOOL_COMMAND_PREFIX")
+do
+	COMMANDS["$cmdname"]="$BRTOOL_COMMAND_PREFIX"/"$cmdname"
+done
+
+source "$BRTOOL_SRC_PREFIX"/util
+
+get_remote_info()
+{
+	get_pair_value "$1" "$BRTOOL_PREFIX"/remote.info
+}
+
+export -f get_remote_info
+
+if [[ ! -s "$BRTOOL_PREFIX"/remote.info ]]
 then
-	cat << EOF
-usage: ./brtool [<build_type>]
-   or: ./brtool <build_type> [<target_platform>]
-   or: ./brtool clean [<args>...]
-   or: ./brtool [<op>]
-   or: ./brtool <build_type> [<op>]
-
-build type affects cmake build behaviors, the compiler common flags is -Wall -Wextra
-    debug	with extra flags -O0 -g3
-    release	with extra flags -Werror -O3 -DNDEBUG
-
-target platform indicates which platform the executable will run on
-    penguin	unix-like system
-    window	windows system
-
-clean target is used to specify which files will be removed
-    core_dump	remove all core dump files
-    draft	remove all files whose names start with draft
-
-op is used to specify which operation will be taken
-    s_core_dump	setup core dump file generation
-    ssh		communicate with remote server by ssh
-    rdc		open the remote desktop connection
-    scp		primarily used for transferring executable to windows
-EOF
-	exit 0
+	die "$BRTOOL_PREFIX/remote.info: file not exists"
 fi
 
-if [[ $1 == 'clean' ]]
+command="${1:-build}"
+
+if ! find_array_element "$command" "${COMMANDS[@]}"
 then
-	if [[ $2 == 'core_dump' ]]
-	then
-		rm $project_root/core.*
-		done_clean=0
-	fi
-
-	if [[ $2 == 'draft' ]]
-	then
-		rm -f $project_root/core.*
-		done_clean=0
-	fi
-
-	if [[ $done_clean ]]
-	then
-		exit 0
-	fi
+	die "command '$command' not found, see ./brtool help"
+	echo 1
 fi
 
-if [[ $1 == 'setup-core_dump' ]]
-then
-	echo 'core' | sudo tee /proc/sys/kernel/core_pattern
-	exit 0
-fi
-
-if [[ $1 == 'ssh' ]]
-then
-	ssh $(grep_rdcred username)@$(grep_rdcred address) "pwsh -NoExit -Command cd $(grep_rdcred userhome)"
-	exit 0
-fi
-
-if [[ $1 == 'rdc' ]]
-then
-	xfreerdp /u:$(grep_rdcred username) /p:$(grep_rdcred password) \
-	/v:$(grep_rdcred address) /w:1920 /h:1080
-	exit 0
-fi
-
-if [[ $1 == 'clean' ]]
-then
-	for __build_type in "${build_types[@]}"
-	do
-		__build_dir="$build_dir/$__build_type"
-		if [[ -s "$__build_dir/Makefile" ]]
-		then
-			cmake --build $__build_dir --target clean
-		fi
-	done
-	exit 0
-fi
-
-if printf '%s\0' "${build_types[@]}" | grep -Fxqz -- $build_type
-then
-	build_dir+="/$build_type"
-else
-	echo "not a valid build type: $build_type"
-	exit 1
-fi
-
-build_target='pk'
-
-if [[ $2 == 'scp' ]]
-then
-	scp $build_dir/$build_target.exe $(grep_rdcred username)@$(grep_rdcred address):$(grep_rdcred userhome)
-	exit 0
-fi
-
-echo "-- Found build type: $build_type"
-echo "-- Found target platform: $target_platform"
-
-export target_platform=$target_platform
-
-$project_root/tool/make_openssl
-$project_root/tool/make_sqlcipher
-
-if ! match_depstat 'cmake'
-then
-	rm -rf $build_dir
-fi
-
-export ARCHITECTURE=$(uname -m)
-export BUILD_COMMIT=$(git rev-parse HEAD)
-export AUTHOR=$(grep_projcfg author)
-export CONTACT=$(grep_projcfg contact)
-export PROJNAME=$(grep_projcfg projname)
-export LICENSE_NOTIES=$(grep_projcfg license_noties)
-export CREDENTIAL_ENVNAME=$(grep_projcfg credential_envname)
-export CREDENTIAL_KEY_ENVNAME=$(grep_projcfg credential_key_envname)
-
-cmake -B $build_dir \
--DCMAKE_TARGET_PLATFORM=${target_platform^} \
--DCMAKE_BUILD_TYPE=${build_type^} -DLIB_INSTALL_PREFIX=$install_prefix
-
-cmake --build $build_dir --target $build_target --parallel 25
-
-set_depstat 'cmake'
+command "${COMMANDS[$command]}" ${*:2}

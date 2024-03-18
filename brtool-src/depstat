@@ -1,0 +1,33 @@
+#!/usr/bin/bash
+# depstat stands for dependency status
+# you should NEVER execute this file manually, or you may get unexpected side effects
+
+depstat_match_prev()
+{
+	if [[ -s "$BRTOOL_DEPSTAT_RECORD" && "$(get_pair_value "$1" "$BRTOOL_DEPSTAT_RECORD")" == "$2" ]]
+	then
+		return 0
+	else
+		return 1
+	fi
+}
+
+export -f depstat_match_prev
+
+update_depstat_record()
+{
+	if [[ ! -s "$BRTOOL_DEPSTAT_RECORD" ]]
+	then
+		mkdir -p $(dirname "$BRTOOL_DEPSTAT_RECORD")
+		touch "$BRTOOL_DEPSTAT_RECORD"
+	fi
+
+	if [[ -z "$(get_pair_value "$1" "$BRTOOL_DEPSTAT_RECORD")" ]]
+	then
+		echo "$1"="$2" >> "$BRTOOL_DEPSTAT_RECORD"
+	else
+		sed -i "s/^\($1=\).*/\1$2/" "$BRTOOL_DEPSTAT_RECORD"
+	fi
+}
+
+export -f update_depstat_record
