@@ -100,6 +100,9 @@ enum option_parser_flag
 	.help  = (h),					\
 }
 
+#define OPTUINT_INIT (unsigned)~0
+#define OPTUINT_UNCHANGED(v) ((v) == OPTUINT_INIT)
+
 #define OPTION_STRING(s, l, v, a, h)			\
 {							\
 	.type  = OPTION_STRING,				\
@@ -137,13 +140,23 @@ int process_unsigned_assignment_result(int rescode, const char *val, const char 
 int parse_options(int argc, const char **argv, const char *prefix, const struct option *options, const char *const *usages, enum option_parser_flag flags);
 
 extern const char *const cmd_count_usages[];
-extern const char *const cmd_version_usages[];
-extern const char *const cmd_delete_usages[];
 extern const char *const cmd_create_usages[];
+extern const char *const cmd_delete_usages[];
+extern const char *const cmd_help_usages[];
+extern const char *const cmd_init_usages[];
+extern const char *const cmd_read_usages[];
+extern const char *const cmd_update_usages[];
+extern const char *const cmd_version_usages[];
+extern const char *const cmd_pk_usages[];
 
 extern const struct option cmd_count_options[];
-extern const struct option cmd_version_options[];
-extern const struct option cmd_delete_options[];
 extern const struct option cmd_create_options[];
+extern const struct option cmd_delete_options[];
+extern const struct option cmd_help_options[];
+extern const struct option cmd_init_options[];
+extern const struct option cmd_read_options[];
+extern const struct option cmd_update_options[];
+extern const struct option cmd_version_options[];
+extern const struct option cmd_pk_options[];
 
 #endif /* PARSE_OPTIONS_H */

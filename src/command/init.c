@@ -23,18 +23,13 @@
 #include "parse-options.h"
 
 static bool with_cipher;
-static const char *db_path;
-static const char *key_path;
 
 const char *const cmd_init_usages[] = {
-	"pk init [--db-path <path>] [--key-path <path>]\n"
-	"        [--encrypt | --no-encrypt]",
+	"pk init [--encrypt]",
 	NULL,
 };
 
 const struct option cmd_init_options[] = {
-	OPTION_FILENAME(0, "db-path", &db_path, "specify a file to store your credentials"),
-	OPTION_FILENAME(0, "key-path", &key_path, "specify a file to store your credential encryption key"),
 	OPTION_BOOL(0, "encrypt", &with_cipher, "encrypt database with key"),
 	/* consider adding some sqlcipher configure options like cipher type */
 	OPTION_END(),

@@ -129,7 +129,7 @@ static enum parse_option_result assign_unsigned_value(
 	struct parser_context *ctx,
 	const struct option *opt,
 	enum option_parsed flags,
-	unsigned **out)
+	unsigned *out)
 {
 	int rescode;
 	const char *arg;
@@ -138,13 +138,13 @@ static enum parse_option_result assign_unsigned_value(
 	{
 		arg = ctx->optstr;
 		ctx->optstr = NULL;
-		rescode = strtou(arg, *out);
+		rescode = strtou(arg, out);
 	}
 	else if (ctx->argc > 1)
 	{
 		ctx->argc--;
 		arg = *++ctx->argv;
-		rescode = strtou(arg, *out);
+		rescode = strtou(arg, out);
 	}
 	else
 	{
@@ -192,7 +192,7 @@ static enum parse_option_result assign_value(
 			assign_filename(ctx->prefix, (const char **)opt->value);
 			break;
 		case OPTION_UNSIGNED:
-			return assign_unsigned_value(ctx, opt, flags, (unsigned **)opt->value);
+			return assign_unsigned_value(ctx, opt, flags, (unsigned *)opt->value);
 		default:
 			bug("opt->type %d should not happen", opt->type);
 	}

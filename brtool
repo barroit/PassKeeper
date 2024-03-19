@@ -14,7 +14,8 @@ export TARGET_PLATFORMS='penguin window'
 export SOURCE_PREFIX="$HOME"/Source
 export INSTALL_PREFIX="$HOME"/.local
 
-export TEST_PREFIX="$BRTOOL_PREFIX"/test
+export TEST_SRC_NAME=test
+export TEST_PREFIX="$BRTOOL_PREFIX"/"$TEST_SRC_NAME"
 
 declare -A COMMANDS
 

@@ -91,12 +91,7 @@ static inline void *xrealloc(void *ptr, size_t size)
 /* similar to strncpy, except omit the first parameter and null-terminated */
 static inline void *xmemdup_str(const void *ptr, size_t size)
 {
-	char *buf;
-
-	buf = memcpy(xmalloc(size + 1), ptr, size);
-	buf[size] = 0;
-
-	return buf;
+	return memcpy(xmalloc(size + 1), ptr, size + 1);
 }
 
 static inline size_t __attribute__((const)) st_mult(size_t x, size_t y)

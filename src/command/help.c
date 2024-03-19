@@ -40,16 +40,15 @@ struct command_helper
 };
 
 static const struct command_helper helpers[] = {
-	{ "count",	cmd_count_usages,	cmd_count_options },
-	{ "create",	cmd_create_usages,	cmd_create_options },
-	{ "delete",	cmd_delete_usages,	cmd_delete_options },
-	{ "help",	cmd_help_usages,	cmd_help_options },
-	// { "init",	cmd__usages,	cmd__options },
-	// { "read",	cmd__usages,	cmd__options },
-	// { "update",	cmd__usages,	cmd__options },
-	{ "version",	cmd_version_usages,	cmd_version_options },
-	// { "dump",	cmd__usages,	cmd__options },
-	// { "source",	cmd__usages,	cmd__options },
+	{ "count",   cmd_count_usages,   cmd_count_options },
+	{ "create",  cmd_create_usages,  cmd_create_options },
+	{ "delete",  cmd_delete_usages,  cmd_delete_options },
+	{ "help",    cmd_help_usages,    cmd_help_options },
+	{ "init",    cmd_init_usages,    cmd_init_options },
+	{ "read",    cmd_read_usages,    cmd_read_options },
+	{ "update",  cmd_update_usages,  cmd_update_options },
+	{ "version", cmd_version_usages, cmd_version_options },
+	{ "pk",      cmd_pk_usages,      cmd_pk_options },
 	{ NULL },
 };
 
@@ -73,22 +72,9 @@ static const struct command_helper *find_command_helper(const char *name)
 
 bool is_command(const char *cmdname);
 
-void list_passkeeper_commands();
-
 void handle_command_not_found(const char *name)
 {
 	fprintf_ln(stderr, "pk: '%s' is not a passkeeper command. See 'pk help pk'", name);
-	exit(129);
-}
-
-void handle_main_command_help(void)
-{
-	printf_ln("usage: %s", "pk <command> [<args>]");
-	putchar('\n');
-	puts("These are common PassKeeper commands used in various situations:");
-
-	list_passkeeper_commands();
-	putchar('\n'); /* acts like other helpers */
 	exit(129);
 }
 
@@ -99,15 +85,10 @@ int cmd_help(UNUSED int argc, const char **argv, UNUSED const char *prefix)
 	bool is_main_command;
 
 	cmdname = *argv;
-	is_main_command = cmdname && !strcmp(cmdname, "pk");
 
-	if (!is_main_command && !is_command(cmdname))
+	if (strcmp(cmdname, "pk") && !is_command(cmdname))
 	{
 		handle_command_not_found(cmdname);
-	}
-	else if (is_main_command)
-	{
-		handle_main_command_help();
 	}
 
 	helper = find_command_helper(cmdname);

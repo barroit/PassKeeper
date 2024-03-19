@@ -23,7 +23,7 @@
 #include "parse-options.h"
 #include "strbuf.h"
 
-static unsigned record_id, *record_id_ptr = &record_id;
+static unsigned record_id = OPTUINT_INIT;
 
 const char *const cmd_delete_usages[] = {
 	"pk delete [--record <id>] [<id>]",
@@ -31,7 +31,7 @@ const char *const cmd_delete_usages[] = {
 };
 
 const struct option cmd_delete_options[] = {
-	OPTION_UNSIGNED('i', "record", &record_id_ptr, "id", "id points to the record to be deleted"),
+	OPTION_UNSIGNED('i', "record", &record_id, "id", "id points to the record to be deleted"),
 	OPTION_END(),
 };
 
@@ -49,7 +49,7 @@ static void set_record_id(int argc, const char *arg)
 
 	int errcode;
 
-	errcode = strtou(arg, record_id_ptr);
+	errcode = strtou(arg, &record_id);
 	errcode = process_unsigned_assignment_result(errcode, arg, "record id");
 
 	if (errcode)
@@ -61,7 +61,7 @@ static void set_record_id(int argc, const char *arg)
 int cmd_delete(int argc, const char **argv, UNUSED const char *prefix)
 {
 	argc = parse_options(argc, argv, prefix, cmd_delete_options, cmd_delete_usages, PARSER_ONE_SHOT);
-	if (record_id_ptr == NULL)
+	if (OPTUINT_UNCHANGED(record_id))
 	{
 		set_record_id(argc, *argv);
 	}

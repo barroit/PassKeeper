@@ -49,6 +49,10 @@ void strbuf_nprint(struct strbuf *sb, const char *str, size_t sz);
 
 bool starts_with(const char *str, const char *prefix);
 
+/**
+ * Skip `prefix` of the given `str`, `out` contains the rest part
+ * of `str`. If the skip failed, `out` remains unchanged
+ */
 bool skip_prefix(const char *str, const char *prefix, const char **out);
 
 size_t u8strlen(const char *iter);

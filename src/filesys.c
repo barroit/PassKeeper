@@ -36,7 +36,7 @@ char *prefix_filename(const char *prefix, const char *filename)
 {
 	if (is_absolute_path(filename))
 	{
-		return xmemdup_str(filename, sizeof(filename));
+		return xmemdup_str(filename, strlen(filename));
 	}
 
 	struct strbuf *sb = STRBUF_INIT_P;

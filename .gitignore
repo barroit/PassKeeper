@@ -1,7 +1,3 @@
 build/
-data/
-report/
-dummydir/
-dummyfile
 draft*
 .gdbinit

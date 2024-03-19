@@ -21,6 +21,7 @@
 ****************************************************************************/
 
 #include "parse-options.h"
+#include "strbuf.h"
 
 int cmd_count(int argc, const char **argv, const char *prefix);
 int cmd_create(int argc, const char **argv, const char *prefix);
@@ -30,6 +31,15 @@ int cmd_init(int argc, const char **argv, const char *prefix);
 int cmd_read(int argc, const char **argv, const char *prefix);
 int cmd_update(int argc, const char **argv, const char *prefix);
 int cmd_version(int argc, const char **argv, const char *prefix);
+
+const char *const cmd_pk_usages[] = {
+	"usage: %s", "pk <command> [<args>]",
+	NULL,
+};
+
+const struct option cmd_pk_options[] = {
+	OPTION_END(),
+};
 
 struct command_info
 {
@@ -44,11 +54,9 @@ static struct command_info commands[] = {
 	{ "delete",	cmd_delete,	"Delete a record" },
 	{ "help",	cmd_help,	"Display help information about PassKeeper" },
 	{ "init",	cmd_init,	"Initialize database files for storing credentials" },
-	// { "read",	cmd_read,	"" },
-	// { "update",	cmd_update,	"" },
+	{ "read",	cmd_read,	"Read a record" },
+	{ "update",	cmd_update,	"Update a record" },
 	{ "version",	cmd_version,	"Display version information about PassKeeper" },
-	// { "dump",	NULL,		"" }, /* reserved */
-	// { "source",	NULL,		"" }, /* reserved */
 	{ NULL },
 };
 
@@ -114,46 +122,91 @@ static void execute_command(struct command_info *command, int argc, const char *
 
 static const char *fallback_command[] = { "help", "pk", NULL };
 
-/* do not use '__' as parameter prefix, program name should NOT be in the argv */
-static void calibrate_argv(int *argc0, const char ***argv0)
+/**
+ * do not use '__' as parameter prefix
+ * program name should NOT be in the argv
+ */
+static void calibrate_argv(int *argc, const char ***argv)
 {
-	int argc;
-	const char **argv;
-
-	(*argc0)--;
-	(*argv0)++;
-
-	argc = *argc0;
-	argv = *argv0;
-
 	/* turn "pk cmd --help" into "pk help cmd" */
-	if (argc > 1 && !strcmp(argv[1], "--help"))
+	if (*argc > 1 && !strcmp((*argv)[1], "--help"))
 	{
-		argv[1] = argv[0];
-		argv[0] = "help";
+		(*argv)[1] = (*argv)[0];
+		(*argv)[0] = "help";
 	}
 	/**
 	 * - no command passed, set argv to "pk help pk"
 	 * - turn "pk help" into "pk help pk"
 	 */
-	else if (argc == 0 || (argc == 1 && !strcmp(*argv, "help")))
+	else if (*argc == 0 || (*argc == 1 && !strcmp(**argv, "help")))
 	{
-		*argc0 = 2;
-		*argv0 = fallback_command;
+		*argc = 2;
+		*argv = fallback_command;
+	}
+	else if (!is_command(**argv))
+	{
+		/**
+		 * turn "pk dummycmd" into "pk help dummycmd" so that
+		 * command 'help' can generate messages
+		 */
+		fallback_command[1] = cmdname;
+		*argc = 2;
+		*argv = fallback_command;
 	}
 }
 
-void calibrate_command(int *argc0, const char ***argv0, const char *cmdname)
+static const char *get_option_value(int *argc, const char ***argv, const char *option)
 {
-	if (!is_command(cmdname))
+	if (*option == '=')
 	{
-		/**
-		 * turn "pk dummycmd" into "pk help
-		 * dummycmd", let help handle this
-		 */
-		fallback_command[1] = cmdname;
-		*argc0 = 2;
-		*argv0 = fallback_command;
+		return option + 1;
+	}
+	else
+	{
+		if (*argc == 0)
+		{
+			return NULL;
+		}
+
+		(*argc)--;
+		(*argv)++;
+		return **argv;
+	}
+}
+
+static void handle_parse_global_option_error(
+	int *argc, const char ***argv, const char *option)
+{
+	error("no database path given for --db-path\n");
+	*argc = 2;
+	*argv = fallback_command;
+}
+
+static void handle_options(int *argc, const char ***argv)
+{
+	const char *option;
+	const char *argval;
+	while (*argc && *(option = **argv) == '-')
+	{
+		(*argc)--;
+		(*argv)++;
+
+		if (skip_prefix(option, "--db-path", &option))
+		{
+			if ((argval = get_option_value(argc, argv, option)) == NULL)
+			{
+				handle_parse_global_option_error();
+				break;
+			}
+		}
+		else if (!skip_prefix(option, "--key-path", &option))
+		{
+			//
+		}
+		else
+		{
+			//
+		}
 	}
 }
 
@@ -161,9 +214,12 @@ int main(int argc, const char **argv)
 {
 	struct command_info *command;
 
-	calibrate_argv(&argc, &argv);
+	argv++;
+	argc--;
 
-	calibrate_command(&argc, &argv, *argv);
+	handle_options(&argc, &argv);
+
+	calibrate_argv(&argc, &argv);
 
 	command = find_command(*argv);
 	if (command == NULL)

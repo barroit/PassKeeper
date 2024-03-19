@@ -23,19 +23,32 @@
 #include "parse-options.h"
 #include "strbuf.h"
 
-static const char *db_path;
-static const char *key_path;
+static struct
+{
+	const char *sitename;
+	const char *siteurl;
+	const char *username;
+	const char *password;
+	const char *authtext;
+	const char *bakcode;
+	const char *comment;
+	// const char *sqltime
+	// const char *modtime,
+} record;
 
 const char *const cmd_create_usages[] = {
-	"pk init [--db-path <file>] [--key-path <file>] <options>",
+	"pk create <fields>",
 	NULL,
 };
 
 const struct option cmd_create_options[] = {
-	// OPTION_STRING(0, "sitename", NULL, "name", "name of a web"),
-	OPTION_GROUP(""),
-	OPTION_PATHNAME(0, "db-path", &db_path, "credentials file to read"),
-	OPTION_PATHNAME(0, "key-path", &key_path, "encryption key file to read"),
+	OPTION_STRING(0, "sitename", &record.sitename, "name", "human readable name of a website"),
+	OPTION_STRING(0, "siteurl ",  &record.siteurl, "url",  "url that used for disambiguation"),
+	OPTION_STRING(0, "username", &record.username, "name", "identification that can be used to login"),
+	OPTION_STRING(0, "password", &record.password, "pwd",  "secret phrase that can be used to login"),
+	OPTION_STRING(0, "authtext", &record.authtext, "ans",  "predefined question selected during account creation"),
+	OPTION_STRING(0, "bakcode ",  &record.bakcode, "code", "backup code used for account recovery purposes"),
+	OPTION_STRING(0, "comment ",  &record.comment, "text", "you just write what the fuck you want to"),
 	OPTION_END(),
 };
 
