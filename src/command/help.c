@@ -82,7 +82,6 @@ int cmd_help(UNUSED int argc, const char **argv, UNUSED const char *prefix)
 {
 	const char *cmdname;
 	const struct command_helper *helper;
-	bool is_main_command;
 
 	cmdname = *argv;
 

@@ -36,6 +36,7 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <sys/stat.h>
+#include <assert.h>
 
 #ifdef __linux__
 #define ENV_USERHOME "HOME"
@@ -88,10 +89,18 @@ static inline void *xrealloc(void *ptr, size_t size)
 	return ptr;
 }
 
-/* similar to strncpy, except omit the first parameter and null-terminated */
+/**
+ * copies at most size characters of the stringand make
+ * it null-terminated
+ */
 static inline void *xmemdup_str(const void *ptr, size_t size)
 {
-	return memcpy(xmalloc(size + 1), ptr, size + 1);
+	char *buf;
+
+	buf = memcpy(xmalloc(size + 1), ptr, size);
+	buf[size] = 0;
+
+	return buf;
 }
 
 static inline size_t __attribute__((const)) st_mult(size_t x, size_t y)

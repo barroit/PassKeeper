@@ -218,7 +218,7 @@ static enum parse_option_result parse_long_option(
 
 	while (options->type != OPTION_END)
 	{
-		if (options->type == OPTION_GROUP)
+		if (options->type == OPTION_GROUP || options->flags & OPTION_NOEMDASH)
 		{
 			options++;
 			continue;
@@ -379,8 +379,10 @@ static enum parse_option_result parse_option_next(
 {
 	const char *argstr;
 	enum parse_option_result rescode;
+	bool allow_short_help;
 
 	argstr = *ctx->argv;
+	allow_short_help = !(ctx->parser_flags & PARSER_NO_SHORT_HELP);
 
 	if ((ctx->parser_flags & PARSER_ONE_SHOT) && ctx->argc0 - ctx->argc == 1)
 	{
@@ -395,12 +397,17 @@ static enum parse_option_result parse_option_next(
 			return PARSING_NON_OPTION;
 		}
 
+		if (ctx->parser_flags & PARSER_STOP_AT_NON_OPTION)
+		{
+			return PARSING_COMPLETE;
+		}
+
 		ctx->out[ctx->idx++] = *ctx->argv;
 		return PARSING_DONE;
 	}
 
 	/* lone -h asks for help */
-	if (ctx->argc0 == 1 && !strcmp(argstr + 1, "h"))
+	if (ctx->argc0 == 1 && !strcmp(argstr + 1, "h") && allow_short_help)
 	{
 		return PARSING_HELP;
 	}
@@ -421,7 +428,11 @@ static enum parse_option_result parse_option_next(
 					ctx->optstr++;
 					break;
 				case PARSING_UNKNOWN:
-					return *ctx->optstr == 'h' ? PARSING_HELP : PARSING_UNKNOWN;
+					if (*ctx->optstr == 'h' && allow_short_help)
+					{
+						return PARSING_HELP;
+					}
+					return PARSING_UNKNOWN;
 				case PARSING_ERROR:
 					return PARSING_ERROR;
 				default:
@@ -515,21 +526,17 @@ static int print_option_argh(const struct option *opt, FILE *stream)
 	return fprintf(stream, fmt, opt->argh ? opt->argh : "...");
 }
 
-#ifndef DEFAULT_OPTION_USAGE_WIDTH
-#define DEFAULT_OPTION_USAGE_WIDTH 26
-#endif
-
-int option_usage_width = DEFAULT_OPTION_USAGE_WIDTH;
+int option_usage_alignment = OPTION_USAGE_ALIGNMENT;
 
 static void pad_usage(FILE *stream, int pos)
 {
-	if (pos < option_usage_width)
+	if (pos < option_usage_alignment)
 	{
-		fprintf(stream, "%*s", option_usage_width - pos, "");
+		fprintf(stream, "%*s", option_usage_alignment - pos, "");
 	}
 	else
 	{
-		fprintf(stream, "\n%*s", option_usage_width, "");
+		fprintf(stream, "\n%*s", option_usage_alignment, "");
 	}
 }
 
@@ -621,6 +628,12 @@ static enum parse_option_result usage_with_options(
 
 	while (iter->type != OPTION_END)
 	{
+		if (iter->flags & OPTION_HIDDEN)
+		{
+			iter++;
+			continue;
+		}
+
 		size_t prev_pos;
 		const char *negpos_name;
 
@@ -659,13 +672,16 @@ static enum parse_option_result usage_with_options(
 
 		if (iter->name)
 		{
+			bool skip_emdash;
+
+			skip_emdash = iter->flags & OPTION_NOEMDASH;
 			if (!(iter->flags & OPTION_ALLONEG) || skip_prefix(iter->name, "no-", &negpos_name))
 			{
-				prev_pos += fprintf(stream, "--%s", iter->name);
+				prev_pos += fprintf(stream, "%s%s", skip_emdash ? "" : "--", iter->name);
 			}
 			else
 			{
-				prev_pos += fprintf(stream, "--[no-]%s", iter->name);
+				prev_pos += fprintf(stream, "%s[no-]%s", skip_emdash ? "" : "--", iter->name);
 			}
 		}
 

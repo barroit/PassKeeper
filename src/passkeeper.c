@@ -32,32 +32,44 @@ int cmd_read(int argc, const char **argv, const char *prefix);
 int cmd_update(int argc, const char **argv, const char *prefix);
 int cmd_version(int argc, const char **argv, const char *prefix);
 
-const char *const cmd_pk_usages[] = {
-	"usage: %s", "pk <command> [<args>]",
-	NULL,
-};
-
-const struct option cmd_pk_options[] = {
-	OPTION_END(),
-};
-
 struct command_info
 {
 	const char *name;
 	int (*handle)(int argc, const char **argv, const char *prefix);
-	const char *help;
 };
 
 static struct command_info commands[] = {
-	{ "count",	cmd_count,	"Count the number of records" },
-	{ "create",	cmd_create,	"Create a record" },
-	{ "delete",	cmd_delete,	"Delete a record" },
-	{ "help",	cmd_help,	"Display help information about PassKeeper" },
-	{ "init",	cmd_init,	"Initialize database files for storing credentials" },
-	{ "read",	cmd_read,	"Read a record" },
-	{ "update",	cmd_update,	"Update a record" },
-	{ "version",	cmd_version,	"Display version information about PassKeeper" },
+	{ "count",   cmd_count },
+	{ "create",  cmd_create },
+	{ "delete",  cmd_delete },
+	{ "help",    cmd_help },
+	{ "init",    cmd_init },
+	{ "read",    cmd_read },
+	{ "update",  cmd_update },
+	{ "version", cmd_version },
 	{ NULL },
+};
+
+static const char *db_path;
+static const char *key_path;
+
+const char *const cmd_pk_usages[] = {
+	"pk [--db-path <file>] [--key-path <file>] <command> [<args>]",
+	NULL,
+};
+
+const struct option cmd_pk_options[] = {
+	OPTION_HIDDEN_PATHNAME(0, "db-path", &db_path),
+	OPTION_HIDDEN_PATHNAME(0, "key-path", &key_path),
+	OPTION_COMMAND("count",   "Count the number of records"),
+	OPTION_COMMAND("create",  "Create a record"),
+	OPTION_COMMAND("delete",  "Delete a record"),
+	OPTION_COMMAND("help",    "Display help information about PassKeeper"),
+	OPTION_COMMAND("init",    "Initialize database files for storing credentials"),
+	OPTION_COMMAND("read",    "Read a record"),
+	OPTION_COMMAND("update",  "Update a record"),
+	OPTION_COMMAND("version", "Display version information about PassKeeper"),
+	OPTION_END(),
 };
 
 static struct command_info *find_command(const char *cmdname)
@@ -149,64 +161,9 @@ static void calibrate_argv(int *argc, const char ***argv)
 		 * turn "pk dummycmd" into "pk help dummycmd" so that
 		 * command 'help' can generate messages
 		 */
-		fallback_command[1] = cmdname;
+		fallback_command[1] = **argv;
 		*argc = 2;
 		*argv = fallback_command;
-	}
-}
-
-static const char *get_option_value(int *argc, const char ***argv, const char *option)
-{
-	if (*option == '=')
-	{
-		return option + 1;
-	}
-	else
-	{
-		if (*argc == 0)
-		{
-			return NULL;
-		}
-
-		(*argc)--;
-		(*argv)++;
-		return **argv;
-	}
-}
-
-static void handle_parse_global_option_error(
-	int *argc, const char ***argv, const char *option)
-{
-	error("no database path given for --db-path\n");
-	*argc = 2;
-	*argv = fallback_command;
-}
-
-static void handle_options(int *argc, const char ***argv)
-{
-	const char *option;
-	const char *argval;
-	while (*argc && *(option = **argv) == '-')
-	{
-		(*argc)--;
-		(*argv)++;
-
-		if (skip_prefix(option, "--db-path", &option))
-		{
-			if ((argval = get_option_value(argc, argv, option)) == NULL)
-			{
-				handle_parse_global_option_error();
-				break;
-			}
-		}
-		else if (!skip_prefix(option, "--key-path", &option))
-		{
-			//
-		}
-		else
-		{
-			//
-		}
 	}
 }
 
@@ -217,14 +174,16 @@ int main(int argc, const char **argv)
 	argv++;
 	argc--;
 
-	handle_options(&argc, &argv);
+	option_usage_alignment = 13;
+	argc = parse_options(argc, argv, NULL, cmd_pk_options, cmd_pk_usages, PARSER_STOP_AT_NON_OPTION | PARSER_NO_SHORT_HELP);
+	option_usage_alignment = OPTION_USAGE_ALIGNMENT;
 
 	calibrate_argv(&argc, &argv);
 
 	command = find_command(*argv);
 	if (command == NULL)
 	{
-		bug("your calibrate_command() broken");
+		bug("your calibrate_argv() broken");
 	}
 
 	argc--;
@@ -233,24 +192,4 @@ int main(int argc, const char **argv)
 	execute_command(command, argc, argv);
 
 	return EXIT_SUCCESS;
-}
-
-extern int option_usage_width;
-
-void list_passkeeper_commands(void)
-{
-	const struct command_info *iter;
-	option_usage_width = 13;
-
-	iter = commands;
-	while (iter->name)
-	{
-		size_t pos;
-
-		pos = printf("   %s", iter->name);
-		print_help(iter->help, pos, stdout);
-		putchar('\n');
-
-		iter++;
-	}
 }

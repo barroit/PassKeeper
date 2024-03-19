@@ -43,6 +43,16 @@ enum option_flag
 	OPTION_ALLONEG = 1 << 2,
 	OPTION_RAWARGH = 1 << 3,
 	OPTION_REALPATH = 1 << 4,
+	/**
+	 * options with this flag will not shown in help messages
+	 * but parser will parse the value for this option
+	 */
+	OPTION_HIDDEN = 1 << 5,
+	/**
+	 * options with this flag will be ignored by parser and
+	 * help messages get printed will not prefix with em dash
+	 */
+	OPTION_NOEMDASH = 1 << 6,
 };
 
 struct option
@@ -66,7 +76,34 @@ enum option_parser_flag
 {
 	PARSER_ABORT_NON_OPTION = 1 << 0,
 	PARSER_ONE_SHOT = 1 << 1,
+	PARSER_STOP_AT_NON_OPTION = 1 << 2,
+	/**
+	 * disable -h
+	 */
+	PARSER_NO_SHORT_HELP = 1 << 3,
 };
+
+#define OPTION_STRING_F(s, l, v, a, h, f)		\
+{							\
+	.type  = OPTION_STRING,				\
+	.alias = (s),					\
+	.name  = (l),					\
+	.value = (v),					\
+	.argh  = (a),					\
+	.help  = (h),					\
+	.flags  = (f),					\
+}
+
+#define OPTION_FILENAME_F(s, l, v, h, a, f)		\
+{							\
+	.type  = OPTION_FILENAME,			\
+	.alias = (s),					\
+	.name  = (l),					\
+	.value = (v),					\
+	.help  = (h),					\
+	.argh  = (a),					\
+	.flags = (f),					\
+}
 
 #define OPTION_END()					\
 {							\
@@ -103,35 +140,30 @@ enum option_parser_flag
 #define OPTUINT_INIT (unsigned)~0
 #define OPTUINT_UNCHANGED(v) ((v) == OPTUINT_INIT)
 
-#define OPTION_STRING(s, l, v, a, h)			\
-{							\
-	.type  = OPTION_STRING,				\
-	.alias = (s),					\
-	.name  = (l),					\
-	.value = (v),					\
-	.argh  = (a),					\
-	.help  = (h),					\
-}
-
-#define OPTION_FILENAME_F(s, l, v, h, a, f)		\
-{							\
-	.type  = OPTION_FILENAME,			\
-	.alias = (s),					\
-	.name  = (l),					\
-	.value = (v),					\
-	.help  = (h),					\
-	.argh  = (a),					\
-	.flags = (f),					\
-}
+#define OPTION_STRING(s, l, v, a, h) OPTION_STRING_F((s), (l), (v), (a), (h), 0)
 
 #define OPTION_FILENAME(s, l, v, h) OPTION_FILENAME_F((s), (l), (v), (h), "path", 0)
 
 /**
- * same as OPTION_FILENAME except the path needs to be available
+ * same as OPTION_PATHNAME except the path needs to be available
  */
 #define OPTION_PATHNAME(s, l, v, h) OPTION_FILENAME_F((s), (l), (v), (h), "file", OPTION_REALPATH)
 
-extern int option_usage_width;
+/**
+ * same as OPTION_FILENAME but invisible to helper
+ */
+#define OPTION_HIDDEN_PATHNAME(s, l, v) OPTION_FILENAME_F((s), (l), (v), 0, 0, OPTION_REALPATH | OPTION_HIDDEN)
+
+/**
+ * for option (command) without em dash
+ */
+#define OPTION_COMMAND(l, h) OPTION_STRING_F(0, (l), 0, 0, (h), OPTION_NOARG | OPTION_NOEMDASH)
+
+#ifndef OPTION_USAGE_ALIGNMENT
+#define OPTION_USAGE_ALIGNMENT 26
+#endif
+
+extern int option_usage_alignment;
 
 int print_help(const char *help, size_t pos, FILE *stream);
 

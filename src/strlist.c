@@ -66,10 +66,7 @@ void string_list_clear(struct strlist *sl, bool free_ext)
 
 size_t string_list_split(struct strlist *sl, const char *str, char delim, int maxsplit)
 {
-	if (!sl->dupstr)
-	{
-		bug("string_list_split() cannot be used with dupstr set to false");
-	}
+	assert(sl->dupstr);
 
 	size_t count;
 	const char *delim_pos;
