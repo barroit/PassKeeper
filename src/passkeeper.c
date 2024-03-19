@@ -119,20 +119,19 @@ static char *resolve_working_dir(void)
 	return buf;
 }
 
-static void execute_command(struct command_info *command, int argc, const char **argv)
+static void execute_command(struct command_info *command, int argc, const char **argv, const char *prefix)
 {
-	char *prefix;
-
 	if (command->handle == NULL)
 	{
 		bug("command '%s' has no handler", command->name);
 	}
 
-	prefix = resolve_working_dir();
 	exit(command->handle(argc, argv, prefix));
 }
 
 static const char *fallback_command[] = { "help", "pk", NULL };
+
+void handle_command_not_found(const char *name);
 
 /**
  * do not use '__' as parameter prefix
@@ -155,6 +154,10 @@ static void calibrate_argv(int *argc, const char ***argv)
 		*argc = 2;
 		*argv = fallback_command;
 	}
+	else if (!strcmp(**argv, "pk"))
+	{
+		handle_command_not_found(**argv);
+	}
 	else if (!is_command(**argv))
 	{
 		/**
@@ -169,13 +172,16 @@ static void calibrate_argv(int *argc, const char ***argv)
 
 int main(int argc, const char **argv)
 {
+	const char *prefix;
 	struct command_info *command;
 
 	argv++;
 	argc--;
 
+	prefix = resolve_working_dir();
+
 	option_usage_alignment = 13;
-	argc = parse_options(argc, argv, NULL, cmd_pk_options, cmd_pk_usages, PARSER_STOP_AT_NON_OPTION | PARSER_NO_SHORT_HELP);
+	argc = parse_options(argc, argv, prefix, cmd_pk_options, cmd_pk_usages, PARSER_STOP_AT_NON_OPTION | PARSER_NO_SHORT_HELP);
 	option_usage_alignment = OPTION_USAGE_ALIGNMENT;
 
 	calibrate_argv(&argc, &argv);
@@ -189,7 +195,7 @@ int main(int argc, const char **argv)
 	argc--;
 	argv++;
 
-	execute_command(command, argc, argv);
+	execute_command(command, argc, argv, prefix);
 
 	return EXIT_SUCCESS;
 }

@@ -85,7 +85,12 @@ int cmd_help(UNUSED int argc, const char **argv, UNUSED const char *prefix)
 
 	cmdname = *argv;
 
-	if (strcmp(cmdname, "pk") && !is_command(cmdname))
+	if (!strcmp(cmdname, "-h"))
+	{
+		cmdname = "help";
+	}
+
+	if (!is_command(cmdname) && strcmp(cmdname, "pk"))
 	{
 		handle_command_not_found(cmdname);
 	}
@@ -94,6 +99,11 @@ int cmd_help(UNUSED int argc, const char **argv, UNUSED const char *prefix)
 	if (helper == NULL)
 	{
 		bug("you definitely forgot to add %s to helpers", cmdname);
+	}
+
+	if (!strcmp(cmdname, "pk"))
+	{
+		option_usage_alignment = 13;
 	}
 
 	parse_options(1, (const char *[]){ "-h" }, prefix, helper->options, helper->usages, 0);

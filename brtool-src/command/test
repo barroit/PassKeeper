@@ -17,4 +17,4 @@ fi
 echo "entering $TEST_PREFIX"
 cd $TEST_PREFIX
 
-prove -j25 --timer ./
+prove -j25 ./

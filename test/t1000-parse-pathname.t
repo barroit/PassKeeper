@@ -33,7 +33,7 @@ while(my($filename, $rest) = each %pathnames)
 {
 	my ($regex, $description) = @$rest;
 
-	my @cmd = ($ENV{PKBIN}, 'create', '--db-path', "$filename");
+	my @cmd = ($ENV{PKBIN}, '--db-path', "$filename");
 	run \@cmd, '>', \my $output, '2>&1';
 
 	like($output, $regex, $description);
