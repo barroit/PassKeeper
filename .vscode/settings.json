@@ -1,5 +1,7 @@
 {
     "files.associations": {
+        ".gdb*": "plaintext",
+        "gdb*": "plaintext",
         ".?gdb*": "plaintext",
         "command.h": "c",
         "stddef.h": "c",
@@ -14,7 +16,8 @@
         "limits.h": "c",
         "usage.h": "c",
         "filesys.h": "c",
-        "assert.h": "c"
+        "assert.h": "c",
+        "sqlite3.h": "c"
     },
     "fileHeaderComment.parameter": {
         "*": {

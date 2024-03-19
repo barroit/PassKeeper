@@ -20,31 +20,39 @@
 **
 ****************************************************************************/
 
-#ifndef FILESYS_H
-#define FILESYS_H
-
-enum file_test_result
+char *pk_strchrnul(const char *s, int c)
 {
-	F_NOT_ALLOW = 1,
-	F_NOT_FILE,
-	F_NOT_EXISTS,
-};
-
-static inline const char *get_user_home(void)
-{
-	const char *home;
-	if ((home = getenv(ENV_USERHOME)) == NULL)
+	while (*s && *s != c)
 	{
-		die("your user home corrupted in env");
+		s++;
 	}
-	return home;
+
+	return (char *)s;
 }
 
-/**
- * append `filename` to `prefix` if needed
- */
-char *prefix_filename(const char *prefix, const char *filename);
+int pk_setenv(const char *name, const char *value, int replace)
+{
+	if (name == NULL || value == NULL || strchr(name, '='))
+	{
+		return -1;
+	}
 
-enum file_test_result test_file_avail(const char *filename);
+	if (getenv(name) && !replace)
+	{
+		return 0;
+	}
 
-#endif /* FILESYS_H */
+	size_t ll, rl;
+	char *buf;
+
+	ll = strlen(name);
+	rl = strlen(value);
+	buf = xmalloc(ll + rl + 2);
+
+	memcpy(buf, name, ll);
+	buf[ll++] = '=';
+	memcpy(buf + ll, value, rl);
+	buf[ll + rl] = 0;
+
+	return putenv(buf);
+}

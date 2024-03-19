@@ -38,7 +38,7 @@
 #include <sys/stat.h>
 #include <assert.h>
 
-#ifdef __linux__
+#ifdef POSIX
 #define ENV_USERHOME "HOME"
 #define DIRSEP "/"
 #else
@@ -129,26 +129,12 @@ static inline size_t __attribute__((const)) st_mult(size_t x, size_t y)
 	}						\
 	while (0)
 
-#ifdef __WIN64__
-static inline char *strchrnul(const char *s, int c)
-{
-	while (*s && *s != c)
-	{
-		s++;
-	}
-
-	return (char *)s;
-}
+#ifdef NO_STRCHRNUL
+#define strchrnul pk_strchrnul
 #endif
 
-static inline const char *get_user_home(void)
-{
-	const char *home;
-	if ((home = getenv(ENV_USERHOME)) == NULL)
-	{
-		die("your user home corrupted in env");
-	}
-	return home;
-}
+#ifdef NO_SETENV
+#define setenv pk_setenv
+#endif
 
 #endif /* COMPACT_UTIL_H */

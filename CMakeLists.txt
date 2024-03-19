@@ -15,17 +15,6 @@ set(CMAKE_C_STANDARD 17)
 set(ENV{PKG_CONFIG_PATH} "${LIB_INSTALL_PREFIX}/lib64/pkgconfig:${LIB_INSTALL_PREFIX}/lib/pkgconfig")
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
-set(AUTHOR "Jiamu Sun")
-set(CONTACT "barroit@linux.com")
-set(PROJNAME "BR passkeeper")
-set(LICENSE_NOTIES [=[Copyright (C) 2023, 2024 Jiamu Sun\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n]=])
-
-set(ARCHITECTURE $ENV{ARCHITECTURE})
-set(BUILD_COMMIT $ENV{BUILD_COMMIT})
-
-set(CREDENTIAL_ENVNAME "CREDENTIAL_PATH")
-set(CREDENTIAL_KEY_ENVNAME "CREDENTIAL_KEY_PATH")
-
 configure_file(cmake/project-config.h project-config.h)
 
 # common flags

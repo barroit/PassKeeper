@@ -25,7 +25,7 @@
 
 static inline bool is_absolute_path(const char *path)
 {
-#ifdef __linux__
+#ifdef POSIX
 	return *path && *path == '/';
 #else
 	return *path && in_range(*path, 'A', 'Z', true) && path[1] == ':';
@@ -57,7 +57,7 @@ char *prefix_filename(const char *prefix, const char *filename)
 	return sb->buf;
 }
 
-#ifdef __linux__
+#ifdef POSIX
 static inline bool eu_match_stu(uid_t st_uid)
 {
 	return st_uid == geteuid();
@@ -132,7 +132,7 @@ enum file_test_result test_file_avail(const char *filename)
 		return F_NOT_FILE;
 	}
 
-#ifdef __linux__
+#ifdef POSIX
 	return test_file_rw_permission(st);
 #else
 	return test_file_rw_permission(filename);

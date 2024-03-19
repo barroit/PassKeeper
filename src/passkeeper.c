@@ -22,6 +22,7 @@
 
 #include "parse-options.h"
 #include "strbuf.h"
+#include "filesys.h"
 
 int cmd_count(int argc, const char **argv, const char *prefix);
 int cmd_create(int argc, const char **argv, const char *prefix);
@@ -170,6 +171,25 @@ static void calibrate_argv(int *argc, const char ***argv)
 	}
 }
 
+static int handle_options(int argc, const char **argv, const char *prefix)
+{
+	option_usage_alignment = 13;
+	argc = parse_options(argc, argv, prefix, cmd_pk_options, cmd_pk_usages, PARSER_STOP_AT_NON_OPTION | PARSER_NO_SHORT_HELP);
+	option_usage_alignment = OPTION_USAGE_ALIGNMENT;
+
+	if (db_path)
+	{
+		setenv(PK_CRED_DB, db_path, 1);
+	}
+
+	if (key_path)
+	{
+		setenv(PK_CRED_KY, key_path, 1);
+	}
+
+	return argc;
+}
+
 int main(int argc, const char **argv)
 {
 	const char *prefix;
@@ -180,9 +200,7 @@ int main(int argc, const char **argv)
 
 	prefix = resolve_working_dir();
 
-	option_usage_alignment = 13;
-	argc = parse_options(argc, argv, prefix, cmd_pk_options, cmd_pk_usages, PARSER_STOP_AT_NON_OPTION | PARSER_NO_SHORT_HELP);
-	option_usage_alignment = OPTION_USAGE_ALIGNMENT;
+	argc = handle_options(argc, argv, prefix);
 
 	calibrate_argv(&argc, &argv);
 

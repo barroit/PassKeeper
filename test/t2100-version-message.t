@@ -15,6 +15,6 @@ like($output, qr/^pk \(.+\).*\d\.\d+\.\d\nCopyr.+\n.+tten by .+<\S+com>$/s, "run
 
 @cmd = ($ENV{PKBIN}, 'version', '--build-options');
 run \@cmd, '>', \$output;
-like($output, qr/^pk \(.+\).*\d\.\d+\.\d\nCopyr.+\n.+ure: \S+\n.*mmit: \w+\n.+tten by .+<\S+com>$/s, "run version command without any arguments");
+like($output, qr/^pk \(.+\).*\d\.\d+\.\d\nCopyr.+\n.+ure: \S+\n.*mmit: \w+\n.+tten by .+<\S+com>$/s, "run version command with option --build-options");
 
 done_testing();

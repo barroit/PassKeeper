@@ -29,3 +29,27 @@ get_pair_value()
 }
 
 export -f get_pair_value
+
+get_remote_info()
+{
+	get_pair_value "$1" "$BRTOOL_PREFIX"/remote.info
+}
+
+export -f get_remote_info
+
+if [[ ! -s "$BRTOOL_PREFIX"/remote.info ]]
+then
+	die "$BRTOOL_PREFIX/remote.info: file not exists"
+fi
+
+get_project_info()
+{
+	get_pair_value "$1" "$BRTOOL_PREFIX"/project.info
+}
+
+export -f get_project_info
+
+if [[ ! -s "$BRTOOL_PREFIX"/project.info ]]
+then
+	die "$BRTOOL_PREFIX/project.info: file not exists"
+fi

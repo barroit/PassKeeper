@@ -4,6 +4,8 @@ find_package(SqlCipher REQUIRED)
 # provides OPENSSL_INCLUDE_DIRS OPENSSL_LIBRARIES OPENSSL_LIBRARY_DIRS
 find_package(OpenSSL REQUIRED)
 
+include("${CMAKE_MODULE_PATH}/BuildCompat.cmake")
+
 file(GLOB_RECURSE SOURCES_FILES "*.c")
 
 add_compile_definitions(SQLITE_HAS_CODEC $<$<STREQUAL:${CMAKE_TARGET_PLATFORM},Penguin>:_GNU_SOURCE>)
