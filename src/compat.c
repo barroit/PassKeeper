@@ -56,3 +56,86 @@ int pk_setenv(const char *name, const char *value, int replace)
 
 	return putenv(buf);
 }
+
+/**
+ * The dirname() function shall take a pointer to a character string that
+ * contains a pathname, and return a pointer to a string that is a
+ * pathname of the parent directory of that file. The dirname() function
+ * shall not perform pathname resolution; the result shall not be
+ * affected by whether or not path exists or by its file type. Trailing
+ * '/' characters in the path that are not also leading '/' characters
+ * shall not be counted as part of the path.
+ *
+ * If path does not contain a '/', then dirname() shall return a pointer
+ * to the string ".". If path is a null pointer or points to an empty
+ * string, dirname() shall return a pointer to the string "." .
+ *
+ * The dirname() function may modify the string pointed to by path, and
+ * may return a pointer to static storage that may then be overwritten by
+ * a subsequent call to dirname().
+ */
+char *pk_dirname(char *path)
+{
+	if (path == NULL || *path == 0 || *path == '.' || !strcmp(path, ".."))
+	{
+		return ".";
+	}
+
+	char *next_sep, *prev_sep, *iter;
+	ptrdiff_t plen;
+
+	next_sep = NULL;
+	prev_sep = NULL;
+	iter = path;
+
+	while (*iter)
+	{
+		if (*iter == '/')
+		{
+			prev_sep = next_sep;
+			next_sep = iter;
+		}
+
+		iter++;
+	}
+
+	/* not found */
+	if (next_sep == NULL)
+	{
+		return ".";
+	}
+	/* path is '/' */
+	else if (next_sep == path)
+	{
+		return "/";
+	}
+	else
+	{
+		/* trailing '/' */
+		if (*(next_sep + 1) == 0)
+		{
+			/* path like 'usr/' */
+			if (prev_sep == NULL)
+			{
+				return ".";
+			}
+
+			/* path like '/usr/' */
+			if (prev_sep == path)
+			{
+				return "/";
+			}
+
+			plen = prev_sep - path; 
+		}
+		/* path like '/usr/lib' or 'usr/lib' */
+		else
+		{
+			plen = next_sep - path;
+		}
+
+		path = xrealloc(path, plen);
+		path[plen] = 0;
+		return path;
+	}
+}

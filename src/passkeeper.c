@@ -29,6 +29,7 @@ int cmd_create(int argc, const char **argv, const char *prefix);
 int cmd_delete(int argc, const char **argv, const char *prefix);
 int cmd_help(int argc, const char **argv, const char *prefix);
 int cmd_init(int argc, const char **argv, const char *prefix);
+int cmd_makekey(int argc, const char **argv, const char *prefix);
 int cmd_read(int argc, const char **argv, const char *prefix);
 int cmd_update(int argc, const char **argv, const char *prefix);
 int cmd_version(int argc, const char **argv, const char *prefix);
@@ -40,14 +41,17 @@ struct command_info
 };
 
 static struct command_info commands[] = {
-	{ "count",   cmd_count },
-	{ "create",  cmd_create },
-	{ "delete",  cmd_delete },
-	{ "help",    cmd_help },
-	{ "init",    cmd_init },
-	{ "read",    cmd_read },
-	{ "update",  cmd_update },
-	{ "version", cmd_version },
+	{ "count",    cmd_count },
+	{ "create",   cmd_create },
+	{ "delete",   cmd_delete },
+	{ "help",     cmd_help },
+	{ "init",     cmd_init },
+	{ "makekey",  cmd_makekey },
+	{ "read",     cmd_read },
+	// { "show",     cmd_show },
+	{ "update",   cmd_update },
+	{ "version",  cmd_version },
+	// { "validate", cmd_validate },
 	{ NULL },
 };
 
@@ -189,6 +193,8 @@ static int handle_options(int argc, const char **argv, const char *prefix)
 
 	return argc;
 }
+
+#include "rawnumop.h"
 
 int main(int argc, const char **argv)
 {

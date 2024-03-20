@@ -36,8 +36,6 @@ fi
 
 source "$BRTOOL_SRC_PREFIX"/uihandle
 
-init_ui_handle
-
 if [[ -s "$openssl_src"/Makefile ]]
 then
 	process_start 'cleanup build files'
@@ -46,7 +44,7 @@ then
 fi
 
 process_start "configuring openssl for $target_platform"
-process_exec "./Configure $target $feature $flag CFLAGS='-O3 -DNDEBUG'"
+process_exec "./Configure $target $feature $flag CFLAGS='-O3 -DNDEBUG -w'"
 process_end
 
 process_start 'building openssl'
@@ -58,3 +56,4 @@ process_exec 'make install_sw'
 process_end
 
 update_depstat_record 'openssl' "$target_platform"
+process_cleanup

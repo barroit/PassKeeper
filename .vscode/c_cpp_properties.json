@@ -4,6 +4,7 @@
             "name": "linux",
             "defines": [
                 "${default}",
+                "POSIX",
                 "SQLITE_HAS_CODEC"
             ],
             "forcedInclude": [

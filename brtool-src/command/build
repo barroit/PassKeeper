@@ -13,8 +13,15 @@ build_prefix="$BUILD_PREFIX"/"$build_type"
 
 source "$BRTOOL_SRC_PREFIX"/depstat
 
-command "$BRTOOL_SRC_PREFIX"/make_openssl "$target_platform"
-command "$BRTOOL_SRC_PREFIX"/make_sqlcipher "$target_platform"
+if ! command "$BRTOOL_SRC_PREFIX"/make_openssl "$target_platform"
+then
+	die 'stop building'
+fi
+
+if ! command "$BRTOOL_SRC_PREFIX"/make_sqlcipher "$target_platform"
+then
+	die 'stop building'
+fi
 
 if ! depstat_match_prev 'cmake' "$target_platform"
 then

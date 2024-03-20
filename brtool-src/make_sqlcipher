@@ -25,12 +25,10 @@ fi
 cd $sqlcipher_src
 
 flags="--disable-tcl --enable-tempstore=yes --prefix="$INSTALL_PREFIX""
-cflags="-I"$INSTALL_PREFIX"/include -DSQLITE_HAS_CODEC -DSQLCIPHER_CRYPTO_OPENSSL -O3 -DNDEBUG"
+cflags="-I"$INSTALL_PREFIX"/include -DSQLITE_HAS_CODEC -DSQLCIPHER_CRYPTO_OPENSSL -w -O3 -DNDEBUG"
 ldflags="-L"$INSTALL_PREFIX"/lib64 -lcrypto"
 
 source "$BRTOOL_SRC_PREFIX"/uihandle
-
-init_ui_handle
 
 # we need mksourceid for build windows executable
 if [[ ! -s "$sqlcipher_src"/mksourceid || $target_platform != 'window' ]]
@@ -96,3 +94,4 @@ process_exec 'make pc_install'
 process_end
 
 update_depstat_record 'sqlcipher' "$target_platform"
+process_cleanup

@@ -1,5 +1,9 @@
 #/usr/bin/bash
 
+temp_stderr=$(mktemp)
+exec 3>/dev/null
+failed=0
+
 spinner()
 {
 	local pid=$!
@@ -12,13 +16,6 @@ spinner()
 		printf '%s\b' "${spin:$i:1}"
 		sleep .2
 	done
-}
-
-init_ui_handle()
-{
-	temp_stderr=$(mktemp)
-	trap '{ rm -f -- "$brerr"; }' EXIT
-	exec 3>/dev/null
 }
 
 process_start()
@@ -37,7 +34,14 @@ process_end()
 		echo 'no'
 		cat $temp_stderr >&2
 		truncate -s 0 $temp_stderr
+		failed=1
 	else
 		echo 'ok'
 	fi
+}
+
+process_cleanup()
+{
+	rm $temp_stderr
+	exit $failed
 }

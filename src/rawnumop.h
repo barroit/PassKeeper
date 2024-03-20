@@ -20,32 +20,42 @@
 **
 ****************************************************************************/
 
-#ifndef FILESYS_H
-#define FILESYS_H
-
-enum file_test_result
-{
-	F_NOT_ALLOW = 1,
-	F_NOT_FILE,
-	F_NOT_DIR,
-	F_NOT_EXISTS,
-};
-
-static inline const char *get_user_home(void)
-{
-	const char *home;
-	if ((home = getenv(ENV_USERHOME)) == NULL)
-	{
-		die("your user home corrupted in env");
-	}
-	return home;
-}
+#ifndef RAWNUMOP_H
+#define RAWNUMOP_H
 
 /**
- * append `filename` to `prefix` if needed
+ * Check if `x` is greater than (or equal to) `r1` and less
+ * than (or equal to) `r2`
+*/
+static inline bool in_range(int x, int r1, int r2, bool inclusive)
+{
+	return x > (r1 - inclusive) && x < (r2 + inclusive);
+}
+
+static inline byte_t hexchar2decnum(char c)
+{
+	return isupper(c) ? (c - 'A' + 10) :
+		islower(c) ? (c - 'a' + 10) :
+		 (c - '0');
+}
+
+static inline char decnum2hexchar(byte_t n)
+{
+	return n < 10 ? (n + '0') : (n - 10 + 'A');
+}
+
+byte_t *generate_binkey(size_t length);
+
+/**
+ * convert at most `size` characters of the `hex`
+ * to binary, `size` must be a multiple of 2
  */
-char *prefix_filename(const char *prefix, const char *filename);
+byte_t *hex2bin(const char *hex, size_t size);
 
-void prepare_file_directory(const char *pathname);
+/**
+ * convert at most `size` bytes of the `bin`
+ * to hex characters
+ */
+char *bin2hex(const byte_t *bin, size_t size);
 
-#endif /* FILESYS_H */
+#endif /* RAWNUMOP_H */

@@ -17,7 +17,11 @@
         "usage.h": "c",
         "filesys.h": "c",
         "assert.h": "c",
-        "sqlite3.h": "c"
+        "sqlite3.h": "c",
+        "rand.h": "c",
+        "rawnumop.h": "c",
+        "libgen.h": "c",
+        "stat.h": "c"
     },
     "fileHeaderComment.parameter": {
         "*": {

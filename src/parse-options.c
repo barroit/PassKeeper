@@ -357,16 +357,17 @@ static enum parse_option_result parse_short_option(
 
 static enum parse_option_result validate_parsed_value(const struct option *opt)
 {
-	if ((opt->flags & OPTION_REALPATH) != 0)
+	if (opt->flags & OPTION_REALPATH)
 	{
-		switch (test_file_avail(*(const char **)opt->value))
+		struct stat st;
+		if (stat(*(const char **)opt->value, &st))
 		{
-			case F_NOT_EXISTS:
-				return error("'%s' did not match any files", *(const char **)opt->value);
-			case F_NOT_ALLOW:
-				return error("access denied by '%s'", *(const char **)opt->value);
-			case F_NOT_FILE:
-				return error("'%s' is not a regular file", *(const char **)opt->value);
+			return error("'%s' did not match any files", *(const char **)opt->value);
+		}
+
+		if (S_ISDIR(st.st_mode))
+		{
+			return error("'%s' is not a regular file", *(const char **)opt->value);
 		}
 	}
 

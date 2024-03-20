@@ -1,3 +1,5 @@
 build/
 draft*
 .gdbinit
+test/build/
+test/sandbox/

@@ -46,6 +46,8 @@
 #define DIRSEP "\\"
 #endif
 
+#define byte_t unsigned char
+
 #define UNUSED __attribute__((unused))
 
 int error(const char *err, ...) __attribute__((format(printf, 2, 3)));
@@ -53,15 +55,6 @@ void die(const char *reason, ...) __attribute__((format(printf, 2, 3)));
 
 void bug_fl(const char *file, int line, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
 #define bug(...) bug_fl(__FILE__, __LINE__, __VA_ARGS__)
-
-/**
- * Check if `x` is greater than (or equal to) `r1` and less
- * than (or equal to) `r2`
-*/
-static inline bool in_range(int x, int r1, int r2, bool inclusive)
-{
-	return x > r1 - inclusive && x < r2 + inclusive;
-}
 
 static inline size_t __attribute__((const)) fixed_growth(size_t sz)
 {
@@ -129,12 +122,57 @@ static inline size_t __attribute__((const)) st_mult(size_t x, size_t y)
 	}						\
 	while (0)
 
+
 #ifdef NO_STRCHRNUL
+char *pk_strchrnul(const char *s, int c);
 #define strchrnul pk_strchrnul
 #endif
 
 #ifdef NO_SETENV
+int pk_setenv(const char *name, const char *value, int replace);
 #define setenv pk_setenv
+#endif
+
+#ifdef POSIX
+#include <libgen.h>
+#endif
+
+#ifdef NO_DIRNAME
+char *pk_dirname(char *path);
+#define dirname pk_dirname
+#endif
+
+#ifdef POSIX
+#include <sys/stat.h>
+#endif
+
+static inline void xmkdir(const char *path)
+{
+#if defined(POSIX) || defined(PKTEST) /* for test */
+	if (mkdir(path, 0775) != 0)
+#else
+	if (mkdir(path) != 0)
+#endif
+	{
+		die("failed to create a directory at path '%s'", path);
+	}
+}
+
+static inline FILE *xfopen(const char *filename, const char *mode)
+{
+	FILE *fs;
+	if ((fs = fopen(filename, mode)) == NULL)
+	{
+		die("failed to open file '%s'", filename);
+	}
+
+	return fs;
+}
+
+#ifdef POSIX
+#define test_file_permission(p, s, m) test_file_permission_st(s, m)
+#else
+#define test_file_permission(p, s, m) test_file_permission_ch(p, m)
 #endif
 
 #endif /* COMPACT_UTIL_H */

@@ -22,6 +22,7 @@
 
 #include "filesys.h"
 #include "strbuf.h"
+#include "rawnumop.h"
 
 static inline bool is_absolute_path(const char *path)
 {
@@ -58,83 +59,61 @@ char *prefix_filename(const char *prefix, const char *filename)
 }
 
 #ifdef POSIX
-static inline bool eu_match_stu(uid_t st_uid)
-{
-	return st_uid == geteuid();
-}
+/* check b1 has b2 if a1 has a2 */
+#define check_if_has(a1, a2, b1, b2) (((a1) & (a2)) ? ((b1) & (b2)) : 1)
 
-static inline bool eu_can_rw_st(mode_t st_mode)
+int test_file_permission_st(struct stat *st, int mode)
 {
-	return (st_mode & S_IRUSR) && (st_mode & S_IWUSR);
-}
-
-static inline bool eg_match_stg(gid_t st_gid)
-{
-	return st_gid == getegid();
-}
-
-static inline bool eg_can_rw_st(mode_t st_mode)
-{
-	return (st_mode & S_IRGRP) && (st_mode & S_IWGRP);
-}
-
-static inline bool eo_can_rw_st(mode_t st_mode)
-{
-	return (st_mode & S_IROTH) && (st_mode & S_IWOTH);
-}
-
-static enum file_test_result test_file_rw_permission(struct stat *st)
-{
-	if (eu_match_stu(st->st_uid)) /* euid matches owner id? */
+	if (st->st_uid == geteuid()) /* euid matches owner id? */
 	{
-		if (!eu_can_rw_st(st->st_mode))
+		if (check_if_has(mode, R_OK, st->st_mode, S_IRUSR) &&
+		     check_if_has(mode, W_OK, st->st_mode, S_IWUSR) &&
+		      check_if_has(mode, X_OK, st->st_mode, S_IXUSR))
 		{
-			return F_NOT_ALLOW;
+			return 0;
 		}
 	}
-	else if (eg_match_stg(st->st_gid)) /* egid matches group id? */
+	else if (st->st_gid == getegid()) /* egid matches group id? */
 	{
-		if (!eg_can_rw_st(st->st_mode))
+		if (check_if_has(mode, R_OK, st->st_mode, S_IRGRP) &&
+		     check_if_has(mode, W_OK, st->st_mode, S_IWGRP) &&
+		      check_if_has(mode, X_OK, st->st_mode, S_IXGRP))
 		{
-			return F_NOT_ALLOW;
+			return 0;
 		}
 	}
 	else /* check other bits */
 	{
-		if (!eo_can_rw_st(st->st_mode))
+		if (check_if_has(mode, R_OK, st->st_mode, S_IROTH) &&
+		     check_if_has(mode, W_OK, st->st_mode, S_IWOTH) &&
+		      check_if_has(mode, X_OK, st->st_mode, S_IXOTH))
 		{
-			return F_NOT_ALLOW;
+			return 0;
 		}
 	}
 
-	return 0;
+	return 1;
 }
 #else
-static inline enum file_test_result test_file_rw_permission(const char *filename)
+int test_file_permission_ch(const char *pathname, int mode)
 {
-	return access(filename, R_OK | W_OK) == -1 && F_NOT_ALLOW;
+	return access(pathname, mode) == -1;
 }
 #endif
 
-enum file_test_result test_file_avail(const char *filename)
+void prepare_file_directory(const char *pathname)
 {
-	struct stat *st = &(struct stat){ 0 };
-	errno = 0;
+	char *pathcopy;
+	const char *pathdir;
 
-	/* file exists? */
-	if (stat(filename, st) == -1)
+	pathcopy = strdup(pathname);
+	pathdir = dirname(pathcopy);
+
+	struct stat st;
+	if (stat(pathdir, &st) != 0)
 	{
-		return F_NOT_EXISTS;
+		xmkdir(pathdir);
 	}
 
-	if (!S_ISREG(st->st_mode))
-	{
-		return F_NOT_FILE;
-	}
-
-#ifdef POSIX
-	return test_file_rw_permission(st);
-#else
-	return test_file_rw_permission(filename);
-#endif
+	free(pathcopy);
 }

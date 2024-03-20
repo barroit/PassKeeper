@@ -20,32 +20,53 @@
 **
 ****************************************************************************/
 
-#ifndef FILESYS_H
-#define FILESYS_H
+#include "rawnumop.h"
+#include <openssl/rand.h>
 
-enum file_test_result
+byte_t *generate_binkey(size_t length)
 {
-	F_NOT_ALLOW = 1,
-	F_NOT_FILE,
-	F_NOT_DIR,
-	F_NOT_EXISTS,
-};
+	byte_t *bin;
 
-static inline const char *get_user_home(void)
-{
-	const char *home;
-	if ((home = getenv(ENV_USERHOME)) == NULL)
+	bin = xmalloc(length);
+
+	if (RAND_bytes(bin, length) != 1)
 	{
-		die("your user home corrupted in env");
+		die("failed to generate binary key");
 	}
-	return home;
+
+	return bin;
 }
 
-/**
- * append `filename` to `prefix` if needed
- */
-char *prefix_filename(const char *prefix, const char *filename);
+byte_t *hex2bin(const char *hex, size_t size)
+{
+	byte_t *bin;
+	size_t i, ii, bin_size;
 
-void prepare_file_directory(const char *pathname);
+	bin_size = size / 2;
+	bin = xmalloc(bin_size);
 
-#endif /* FILESYS_H */
+	for (i = 0, ii = 0; ii < bin_size; i += 2, ii++)
+	{
+		bin[ii] = (hexchar2decnum(hex[i]) << 4) | hexchar2decnum(hex[i + 1]);
+	}
+
+	return bin;
+}
+
+char *bin2hex(const byte_t *bin, size_t size)
+{
+	char *hex;
+	size_t i, ii, hex_size;
+
+	hex_size = size * 2;
+	hex = xmalloc(hex_size + 1);
+
+	for (i = 0, ii = 0; ii < hex_size; i++, ii += 2)
+	{
+		hex[ii] = decnum2hexchar(bin[i] >> 4);
+		hex[ii + 1] = decnum2hexchar(bin[i] & 0x0F);
+	}
+
+	hex[hex_size] = 0;
+	return hex;
+}
