@@ -31,16 +31,7 @@ fi
 echo "-- Build type: $build_type"
 echo "-- Target platform: $target_platform"
 
-export ARCHITECTURE=$(uname -m)
-export BUILD_COMMIT=$(git rev-parse HEAD)
-
-export AUTHOR=$(get_project_info author)
-export CONTACT=$(get_project_info contact)
-export PROJNAME=$(get_project_info projname)
-export LICENSE_NOTIES=$(get_project_info license_noties)
-
-export PK_CRED_DB=$(get_project_info pk_cred_db)
-export PK_CRED_KY=$(get_project_info pk_cred_ky)
+load_project_info
 
 cmake -B $build_prefix \
 -DCMAKE_TARGET_PLATFORM=${target_platform^} \

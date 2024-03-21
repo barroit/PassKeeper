@@ -71,6 +71,7 @@ const struct option cmd_pk_options[] = {
 	OPTION_COMMAND("delete",  "Delete a record"),
 	OPTION_COMMAND("help",    "Display help information about PassKeeper"),
 	OPTION_COMMAND("init",    "Initialize database files for storing credentials"),
+	OPTION_COMMAND("makekey", "Generate random bytes using a CSPRNG"),
 	OPTION_COMMAND("read",    "Read a record"),
 	OPTION_COMMAND("update",  "Update a record"),
 	OPTION_COMMAND("version", "Display version information about PassKeeper"),

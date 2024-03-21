@@ -9,17 +9,14 @@ fi
 
 build_prefix="$TEST_PREFIX"/build
 
-export PKBIN="$BUILD_PREFIX"/"$build_type"/pk
+export PKBIN="$build_prefix"/pk
 export TEST_BUILD_PREFIX="$build_prefix"
 export SRC_PREFIX="$BRTOOL_PREFIX"/src
 export TEST_SANDBOX_PREFIX="$TEST_PREFIX"/sandbox
 
-if [[ ! -s "$PKBIN" ]]
-then
-	command "$BRTOOL_PREFIX"/brtool
-fi
+load_project_info
 
-if ! cmake -B $build_prefix -DPK_Test=1 -DLIB_INSTALL_PREFIX=$INSTALL_PREFIX \
+if ! cmake -B $build_prefix -DPK_TEST=1 -DLIB_INSTALL_PREFIX=$INSTALL_PREFIX \
 -DCMAKE_BUILD_TYPE=${build_type^} -DCMAKE_TARGET_PLATFORM=Penguin  > /dev/null
 then
 	die 'stop building'

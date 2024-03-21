@@ -17,13 +17,12 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 configure_file(cmake/project-config.h project-config.h)
 
-# common flags
 set(CMAKE_C_FLAGS "-Wall -Wextra")
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g3")
 set(CMAKE_C_FLAGS_RELEASE "-Werror -O3 -DNDEBUG")
 
-if(NOT PK_Test)
-	add_subdirectory(src)
-else()
+add_subdirectory(src)
+
+if(DEFINED PK_TEST)
 	add_subdirectory(test)
 endif()

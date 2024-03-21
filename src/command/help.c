@@ -45,6 +45,7 @@ static const struct command_helper helpers[] = {
 	{ "delete",  cmd_delete_usages,  cmd_delete_options },
 	{ "help",    cmd_help_usages,    cmd_help_options },
 	{ "init",    cmd_init_usages,    cmd_init_options },
+	{ "makekey", cmd_makekey_usages, cmd_makekey_options },
 	{ "read",    cmd_read_usages,    cmd_read_options },
 	{ "update",  cmd_update_usages,  cmd_update_options },
 	{ "version", cmd_version_usages, cmd_version_options },
