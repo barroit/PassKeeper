@@ -47,15 +47,18 @@ static inline char decnum2hexchar(byte_t n)
 byte_t *generate_binkey(size_t length);
 
 /**
- * convert at most `size` characters of the `hex`
- * to binary, `size` must be a multiple of 2
+ * convert at most `hexsz` characters of the `hex` string to
+ * binary data, `size` must be a multiple of 2, this operation
+ * is in-place and `hex` shall be modified, returned pointer
+ * is the as `hex`
  */
-byte_t *hex2bin(const char *hex, size_t size);
+byte_t *hex2bin(char *hex, size_t hexsz);
 
 /**
- * convert at most `size` bytes of the `bin`
- * to hex characters
+ * convert at most `binsz` bytes of the `bin` binary data to
+ * hex characters, making it null-terminated, and `bin` shall
+ * be invalid after convert, returned value shall be freed
  */
-char *bin2hex(const byte_t *bin, size_t size);
+char *bin2hex(byte_t *bin, size_t binsz);
 
 #endif /* RAWNUMOP_H */

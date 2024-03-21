@@ -194,8 +194,6 @@ static int handle_options(int argc, const char **argv, const char *prefix)
 	return argc;
 }
 
-#include "rawnumop.h"
-
 int main(int argc, const char **argv)
 {
 	const char *prefix;

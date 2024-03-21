@@ -37,36 +37,44 @@ byte_t *generate_binkey(size_t length)
 	return bin;
 }
 
-byte_t *hex2bin(const char *hex, size_t size)
+byte_t *hex2bin(char *hex, size_t hexsz)
 {
-	byte_t *bin;
-	size_t i, ii, bin_size;
+	byte_t *binhead, *binit, *bintail;
 
-	bin_size = size / 2;
-	bin = xmalloc(bin_size);
-
-	for (i = 0, ii = 0; ii < bin_size; i += 2, ii++)
+	binhead = (byte_t *)hex;
+	binit = binhead;
+	bintail = binhead + (hexsz / 2);
+	while (binit < bintail)
 	{
-		bin[ii] = (hexchar2decnum(hex[i]) << 4) | hexchar2decnum(hex[i + 1]);
+		*binit = (hexchar2decnum(hex[0]) << 4) | hexchar2decnum(hex[1]);
+
+		binit++;
+		hex += 2;
 	}
 
-	return bin;
+	return binhead;
 }
 
-char *bin2hex(const byte_t *bin, size_t size)
+char *bin2hex(byte_t *bin, size_t binsz)
 {
-	char *hex;
-	size_t i, ii, hex_size;
+	char *hexit, *hexhead;
+	byte_t *binit;
+	size_t hexsz;
 
-	hex_size = size * 2;
-	hex = xmalloc(hex_size + 1);
+	hexsz = binsz * 2;
+	bin = xrealloc(bin, hexsz + 1);
+	binit = bin + binsz - 1;
+	hexhead = (char *)bin;
+	hexit = hexhead + hexsz - 1;
 
-	for (i = 0, ii = 0; ii < hex_size; i++, ii += 2)
+	while (binit >= bin)
 	{
-		hex[ii] = decnum2hexchar(bin[i] >> 4);
-		hex[ii + 1] = decnum2hexchar(bin[i] & 0x0F);
+		*(hexit - 0) = decnum2hexchar(*binit & 0x0F);
+		*(hexit - 1) = decnum2hexchar(*binit >> 4);
+		binit--;
+		hexit -= 2;
 	}
 
-	hex[hex_size] = 0;
-	return hex;
+	hexhead[hexsz] = 0;
+	return hexhead;
 }

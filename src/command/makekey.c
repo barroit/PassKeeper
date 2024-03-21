@@ -63,16 +63,14 @@ int cmd_makekey(int argc, const char **argv, UNUSED const char *prefix)
 		fs = xfopen(output_file, "w");
 	}
 
-	byte_t *bin;
-	char *hex;
+	static char *hex;
 
-	bin = generate_binkey(key_size);
-	hex = bin2hex(bin, key_size);
-
+	hex = bin2hex(generate_binkey(key_size), key_size);
 	fprintf(fs, "0x%s", hex);
 	if (fs == stdout)
 	{
 		putchar('\n');
 	}
+
 	return 0;
 }
