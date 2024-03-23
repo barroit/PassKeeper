@@ -1,5 +1,5 @@
 find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(SQLCIPHER REQUIRED sqlcipher)
+pkg_check_modules(SQLCIPHER REQUIRED sqlcipher>=3.44)
 
 mark_as_advanced(SQLCIPHER_INCLUDE_DIRS SQLCIPHER_LIBRARIES SQLCIPHER_LIBRARY_DIRS)

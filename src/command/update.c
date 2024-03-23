@@ -42,19 +42,19 @@ const char *const cmd_update_usages[] = {
 };
 
 const struct option cmd_update_options[] = {
-	OPTION_UNSIGNED('i', "record", &record.id, "id", "id points to the record to be deleted"),
+	OPTION_UNSIGNED_F('i', "record", &record.id, "id", "id points to the record to be deleted", OPTION_SHOWARGH),
 	OPTION_GROUP(""),
-	OPTION_STRING(0, "sitename", &record.sitename, "name", "human readable name of a website"),
-	OPTION_STRING(0, "siteurl ",  &record.siteurl, "url",  "url that used for disambiguation"),
-	OPTION_STRING(0, "username", &record.username, "name", "identification that can be used to login"),
-	OPTION_STRING(0, "password", &record.password, "pwd",  "secret phrase that can be used to login"),
-	OPTION_STRING(0, "authtext", &record.authtext, "ans",  "predefined question selected during account creation"),
-	OPTION_STRING(0, "bakcode ",  &record.bakcode, "code", "backup code used for account recovery purposes"),
-	OPTION_STRING(0, "comment ",  &record.comment, "text", "you just write what the fuck you want to"),
+	OPTION_STRING(0, "sitename", &record.sitename, "human readable name of a website"),
+	OPTION_STRING(0, "siteurl ",  &record.siteurl,  "url that used for disambiguation"),
+	OPTION_STRING(0, "username", &record.username, "identification that can be used to login"),
+	OPTION_STRING(0, "password", &record.password,  "secret phrase that can be used to login"),
+	OPTION_STRING(0, "authtext", &record.authtext,  "predefined question selected during account creation"),
+	OPTION_STRING(0, "bakcode ",  &record.bakcode, "backup code used for account recovery purposes"),
+	OPTION_STRING(0, "comment ",  &record.comment, "you just write what the fuck you want to"),
 	OPTION_END(),
 };
 
-int cmd_update(int argc, const char **argv, UNUSED const char *prefix)
+int cmd_update(int argc, const char **argv, const char *prefix)
 {
 	argc = parse_options(argc, argv, prefix, cmd_update_options, cmd_update_usages, 0);
 	return 0;

@@ -23,6 +23,11 @@
 #ifndef RAWNUMOP_H
 #define RAWNUMOP_H
 
+static inline bool is_pow2(unsigned x)
+{
+	return x != 0 && (x & (x - 1)) == 0;
+}
+
 /**
  * Check if `x` is greater than (or equal to) `r1` and less
  * than (or equal to) `r2`
@@ -32,19 +37,29 @@ static inline bool in_range(int x, int r1, int r2, bool inclusive)
 	return x > (r1 - inclusive) && x < (r2 + inclusive);
 }
 
-static inline byte_t hexchar2decnum(char c)
+static inline bool in_range_u(unsigned x, unsigned r1, unsigned r2, bool inclusive)
+{
+	return x > (r1 - inclusive) && x < (r2 + inclusive);
+}
+
+static inline uint8_t hexchar2decnum(char c)
 {
 	return isupper(c) ? (c - 'A' + 10) :
 		islower(c) ? (c - 'a' + 10) :
 		 (c - '0');
 }
 
-static inline char decnum2hexchar(byte_t n)
+static inline bool is_hexchar(char c)
+{
+	return in_range(c, 'A', 'F', 1) || in_range(c, 'a', 'f', 1) || isdigit(c);
+}
+
+static inline char decnum2hexchar(uint8_t n)
 {
 	return n < 10 ? (n + '0') : (n - 10 + 'A');
 }
 
-byte_t *generate_binkey(size_t length);
+uint8_t *random_bytes(size_t length);
 
 /**
  * convert at most `hexsz` characters of the `hex` string to
@@ -52,13 +67,25 @@ byte_t *generate_binkey(size_t length);
  * is in-place and `hex` shall be modified, returned pointer
  * is the as `hex`
  */
-byte_t *hex2bin(char *hex, size_t hexsz);
+uint8_t *hex2bin(char *hex, size_t hexsz);
 
 /**
  * convert at most `binsz` bytes of the `bin` binary data to
  * hex characters, making it null-terminated, and `bin` shall
  * be invalid after convert, returned value shall be freed
  */
-char *bin2hex(byte_t *bin, size_t binsz);
+char *bin2hex(uint8_t *bin, size_t binsz);
+
+/**
+ * check if at most `size` characters of the `hex` string are
+ * valid hex characters
+ */
+bool is_hexstr(const char *hex, size_t size);
+
+/**
+ * check if at most `size` characters of the `salt` string are
+ * valid hex characters
+ */
+bool is_saltstr(const char *salt, size_t size);
 
 #endif /* RAWNUMOP_H */

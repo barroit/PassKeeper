@@ -114,6 +114,10 @@ void prepare_file_directory(const char *pathname)
 	{
 		xmkdir(pathdir);
 	}
+	else if (test_file_permission(pathdir, &st, W_OK) != 0)
+	{
+		die("access denied by '%s'", pathdir);
+	}
 
 	free(pathcopy);
 }

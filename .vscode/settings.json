@@ -21,7 +21,9 @@
         "rand.h": "c",
         "rawnumop.h": "c",
         "libgen.h": "c",
-        "stat.h": "c"
+        "stat.h": "c",
+        "sha.h": "c",
+        "credky.h": "c"
     },
     "fileHeaderComment.parameter": {
         "*": {

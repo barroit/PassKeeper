@@ -1,0 +1,9 @@
+When you add a new command, make sure
+
+   - in parse-command.h: the command usages and options are declared
+
+   - in passkeeper.c: the command function signature is added and
+     function pointer is inserted into command list
+
+   - in command/help.c: the command helper entry is inserted into
+     helpers

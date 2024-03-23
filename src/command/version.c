@@ -31,11 +31,11 @@ const char *const cmd_version_usages[] = {
 };
 
 const struct option cmd_version_options[] = {
-	OPTION_BOOL(0, "build-options", &show_build_options, "also print build information"),
+	OPTION_BOOLEAN(0, "build-options", &show_build_options, "also print build information"),
 	OPTION_END(),
 };
 
-int cmd_version(int argc, const char **argv, UNUSED const char *prefix)
+int cmd_version(int argc, const char **argv, const char *prefix)
 {
 	argc = parse_options(argc, argv, prefix, cmd_version_options, cmd_version_usages, 0);
 

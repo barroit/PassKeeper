@@ -41,7 +41,7 @@ enum option_flag
 	OPTION_OPTARG = 1 << 0,
 	OPTION_NOARG = 1 << 1,
 	OPTION_ALLONEG = 1 << 2,
-	OPTION_RAWARGH = 1 << 3,
+	OPTION_SHOWARGH = 1 << 3,
 	OPTION_REALPATH = 1 << 4,
 	/**
 	 * options with this flag will not shown in help messages
@@ -91,7 +91,19 @@ enum option_parser_flag
 	.value = (v),					\
 	.argh  = (a),					\
 	.help  = (h),					\
-	.flags  = (f),					\
+	.flags = (f),					\
+}
+
+#define OPTION_OPTARG_F(s, l, v, d, a, h, f)		\
+{							\
+	.type   = OPTION_STRING,			\
+	.alias  = (s),					\
+	.name   = (l),					\
+	.value  = (v),					\
+	.defval = (intptr_t)(d),			\
+	.argh   = (a),					\
+	.help   = (h),					\
+	.flags  = OPTION_OPTARG | (f),			\
 }
 
 #define OPTION_FILENAME_F(s, l, v, h, a, f)		\
@@ -116,7 +128,7 @@ enum option_parser_flag
 	.help = (h),					\
 }
 
-#define OPTION_BOOL(s, l, v, h)				\
+#define OPTION_BOOLEAN(s, l, v, h)			\
 {							\
 	.type   = OPTION_SWITCH,			\
 	.alias  = (s),					\
@@ -127,7 +139,7 @@ enum option_parser_flag
 	.flags  = OPTION_NOARG | OPTION_ALLONEG,	\
 }
 
-#define OPTION_UNSIGNED(s, l, v, a, h)			\
+#define OPTION_UNSIGNED_F(s, l, v, a, h, f)		\
 {							\
 	.type  = OPTION_UNSIGNED,			\
 	.alias = (s),					\
@@ -135,19 +147,22 @@ enum option_parser_flag
 	.value = (v),					\
 	.argh  = (a),					\
 	.help  = (h),					\
+	.flags = (f),					\
 }
 
 #define OPTUINT_INIT (unsigned)~0
 #define OPTUINT_UNCHANGED(v) ((v) == OPTUINT_INIT)
 
-#define OPTION_STRING(s, l, v, a, h) OPTION_STRING_F((s), (l), (v), (a), (h), 0)
+#define OPTION_STRING(s, l, v, h) OPTION_STRING_F((s), (l), (v), 0, (h), 0)
 
-#define OPTION_FILENAME(s, l, v, h) OPTION_FILENAME_F((s), (l), (v), (h), "path", 0)
+#define OPTION_UNSIGNED(s, l, v, h) OPTION_UNSIGNED_F((s), (l), (v), 0, (h), 0)
+
+#define OPTION_FILENAME(s, l, v, h) OPTION_FILENAME_F((s), (l), (v), (h), "path", OPTION_SHOWARGH)
 
 /**
  * same as OPTION_PATHNAME except the path needs to be available
  */
-#define OPTION_PATHNAME(s, l, v, h) OPTION_FILENAME_F((s), (l), (v), (h), "file", OPTION_REALPATH)
+#define OPTION_PATHNAME(s, l, v, h) OPTION_FILENAME_F((s), (l), (v), (h), "file", OPTION_REALPATH | OPTION_SHOWARGH)
 
 /**
  * same as OPTION_FILENAME but invisible to helper
@@ -159,15 +174,15 @@ enum option_parser_flag
  */
 #define OPTION_COMMAND(l, h) OPTION_STRING_F(0, (l), 0, 0, (h), OPTION_NOARG | OPTION_NOEMDASH)
 
+#define OPTION_OPTARG(s, l, v, d, a, h) OPTION_OPTARG_F((s), (l), (v), (d), (a), (h), OPTION_SHOWARGH)
+
 #ifndef OPTION_USAGE_ALIGNMENT
-#define OPTION_USAGE_ALIGNMENT 26
+#define OPTION_USAGE_ALIGNMENT 23
 #endif
 
 extern int option_usage_alignment;
 
-int print_help(const char *help, size_t pos, FILE *stream);
-
-int process_unsigned_assignment_result(int rescode, const char *val, const char *field);
+int process_get_unsigned_argument_result(int rescode, const char *val, const char *field);
 
 int parse_options(int argc, const char **argv, const char *prefix, const struct option *options, const char *const *usages, enum option_parser_flag flags);
 

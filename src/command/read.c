@@ -32,14 +32,14 @@ const char *const cmd_read_usages[] = {
 };
 
 const struct option cmd_read_options[] = {
-	OPTION_BOOL('v', "verbose", &verbose, "print more fields of a record"),
+	OPTION_BOOLEAN('v', "verbose", &verbose, "print more fields of a record"),
 	OPTION_GROUP(""),
-	OPTION_STRING(0, "search", &search_pattern, "pattern", "count record for a particular site"),
-	OPTION_UNSIGNED('i', "record", &record_id, "id", "id points to the record to be deleted"),
+	OPTION_STRING_F(0, "search", &search_pattern, "pattern", "count record for a particular site", OPTION_SHOWARGH),
+	OPTION_UNSIGNED_F('i', "record", &record_id, "id", "id points to the record to be deleted", OPTION_SHOWARGH),
 	OPTION_END(),
 };
 
-int cmd_read(int argc, const char **argv, UNUSED const char *prefix)
+int cmd_read(int argc, const char **argv, const char *prefix)
 {
 	argc = parse_options(argc, argv, prefix, cmd_read_options, cmd_read_usages, 0);
 	return 0;

@@ -23,9 +23,9 @@
 #include "rawnumop.h"
 #include <openssl/rand.h>
 
-byte_t *generate_binkey(size_t length)
+uint8_t *random_bytes(size_t length)
 {
-	byte_t *bin;
+	uint8_t *bin;
 
 	bin = xmalloc(length);
 
@@ -37,11 +37,11 @@ byte_t *generate_binkey(size_t length)
 	return bin;
 }
 
-byte_t *hex2bin(char *hex, size_t hexsz)
+uint8_t *hex2bin(char *hex, size_t hexsz)
 {
-	byte_t *binhead, *binit, *bintail;
+	uint8_t *binhead, *binit, *bintail;
 
-	binhead = (byte_t *)hex;
+	binhead = (uint8_t *)hex;
 	binit = binhead;
 	bintail = binhead + (hexsz / 2);
 	while (binit < bintail)
@@ -55,10 +55,10 @@ byte_t *hex2bin(char *hex, size_t hexsz)
 	return binhead;
 }
 
-char *bin2hex(byte_t *bin, size_t binsz)
+char *bin2hex(uint8_t *bin, size_t binsz)
 {
 	char *hexit, *hexhead;
-	byte_t *binit;
+	uint8_t *binit;
 	size_t hexsz;
 
 	hexsz = binsz * 2;
@@ -77,4 +77,35 @@ char *bin2hex(byte_t *bin, size_t binsz)
 
 	hexhead[hexsz] = 0;
 	return hexhead;
+}
+
+bool is_hexstr(const char *hex, size_t size)
+{
+	while (size > 0)
+	{
+		if (!is_hexchar(*hex++))
+		{
+			return false;
+		}
+
+		size--;
+	}
+
+	return true;
+}
+
+bool is_saltstr(const char *salt, size_t size)
+{
+	while (size > 0)
+	{
+		if (*salt != '0' && *salt != '1')
+		{
+			return false;
+		}
+
+		salt++;
+		size--;
+	}
+
+	return true;
 }

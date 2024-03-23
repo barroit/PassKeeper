@@ -35,7 +35,7 @@ load_project_info
 
 cmake -B $build_prefix \
 -DCMAKE_TARGET_PLATFORM=${target_platform^} \
--DCMAKE_BUILD_TYPE=${build_type^} -DLIB_INSTALL_PREFIX=$INSTALL_PREFIX
+-DCMAKE_BUILD_TYPE=${build_type^} -DINSTALL_PREFIX=$INSTALL_PREFIX
 
 cmake --build "$build_prefix" --parallel 25
 

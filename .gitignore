@@ -3,3 +3,4 @@ draft*
 .gdbinit
 test/build/
 test/sandbox/
+docs/*.html

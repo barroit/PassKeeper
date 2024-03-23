@@ -34,11 +34,11 @@ const char *const cmd_makekey_usages[] = {
 
 const struct option cmd_makekey_options[] = {
 	OPTION_FILENAME(0, "output", &output_file, "file to be written, default is stdout"),
-	OPTION_UNSIGNED('s', "size", &key_size, "sz", "specify the key length in bytes, default is 32"),
+	OPTION_UNSIGNED('s', "size", &key_size, "specify the key length in bytes, default is 32"),
 	OPTION_END(),
 };
 
-int cmd_makekey(int argc, const char **argv, UNUSED const char *prefix)
+int cmd_makekey(int argc, const char **argv, const char *prefix)
 {
 	parse_options(argc, argv, prefix, cmd_makekey_options, cmd_makekey_usages, PARSER_ABORT_NON_OPTION);
 
@@ -65,7 +65,7 @@ int cmd_makekey(int argc, const char **argv, UNUSED const char *prefix)
 
 	static char *hex;
 
-	hex = bin2hex(generate_binkey(key_size), key_size);
+	hex = bin2hex(random_bytes(key_size), key_size);
 	fprintf(fs, "0x%s", hex);
 	if (fs == stdout)
 	{

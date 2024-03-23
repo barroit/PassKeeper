@@ -79,7 +79,7 @@ void handle_command_not_found(const char *name)
 	exit(129);
 }
 
-int cmd_help(UNUSED int argc, const char **argv, UNUSED const char *prefix)
+int cmd_help(UNUSED int argc, const char **argv, const char *prefix)
 {
 	const char *cmdname;
 	const struct command_helper *helper;

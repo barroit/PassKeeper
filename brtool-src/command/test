@@ -9,6 +9,7 @@ fi
 
 build_prefix="$TEST_PREFIX"/build
 
+export BUILD_PREFIX="$build_prefix" # override BUILD_PREFIX
 export PKBIN="$build_prefix"/pk
 export TEST_BUILD_PREFIX="$build_prefix"
 export SRC_PREFIX="$BRTOOL_PREFIX"/src
@@ -16,7 +17,7 @@ export TEST_SANDBOX_PREFIX="$TEST_PREFIX"/sandbox
 
 load_project_info
 
-if ! cmake -B $build_prefix -DPK_TEST=1 -DLIB_INSTALL_PREFIX=$INSTALL_PREFIX \
+if ! cmake -B $build_prefix -DPK_TEST=1 -DINSTALL_PREFIX=$INSTALL_PREFIX \
 -DCMAKE_BUILD_TYPE=${build_type^} -DCMAKE_TARGET_PLATFORM=Penguin  > /dev/null
 then
 	die 'stop building'

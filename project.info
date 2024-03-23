@@ -1,6 +1,4 @@
 author=Jiamu Sun
 contact=barroit@linux.com
 projname=BR passkeeper
-pk_cred_db=PK_CRED_DB
-pk_cred_ky=PK_CRED_KY
 license_noties=Copyright (C) 2023, 2024 Jiamu Sun\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n

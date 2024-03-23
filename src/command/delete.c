@@ -31,7 +31,7 @@ const char *const cmd_delete_usages[] = {
 };
 
 const struct option cmd_delete_options[] = {
-	OPTION_UNSIGNED('i', "record", &record_id, "id", "id points to the record to be deleted"),
+	OPTION_UNSIGNED_F('i', "record", &record_id, "id", "id points to the record to be deleted", OPTION_SHOWARGH),
 	OPTION_END(),
 };
 
@@ -50,7 +50,7 @@ static void set_record_id(int argc, const char *arg)
 	int errcode;
 
 	errcode = strtou(arg, &record_id);
-	errcode = process_unsigned_assignment_result(errcode, arg, "record id");
+	errcode = process_get_unsigned_argument_result(errcode, arg, "record id");
 
 	if (errcode)
 	{
@@ -58,7 +58,7 @@ static void set_record_id(int argc, const char *arg)
 	}
 }
 
-int cmd_delete(int argc, const char **argv, UNUSED const char *prefix)
+int cmd_delete(int argc, const char **argv, const char *prefix)
 {
 	argc = parse_options(argc, argv, prefix, cmd_delete_options, cmd_delete_usages, PARSER_ONE_SHOT);
 	if (OPTUINT_UNCHANGED(record_id))

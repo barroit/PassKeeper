@@ -34,29 +34,35 @@ int cmd_read(int argc, const char **argv, const char *prefix);
 int cmd_update(int argc, const char **argv, const char *prefix);
 int cmd_version(int argc, const char **argv, const char *prefix);
 
+#define REQUIRE_DB_FILE (1 << 0)
+
 struct command_info
 {
 	const char *name;
 	int (*handle)(int argc, const char **argv, const char *prefix);
+	unsigned precheck;
 };
 
 static struct command_info commands[] = {
-	{ "count",    cmd_count },
-	{ "create",   cmd_create },
-	{ "delete",   cmd_delete },
+	{ "count",    cmd_count, REQUIRE_DB_FILE },
+	{ "create",   cmd_create, REQUIRE_DB_FILE  },
+	{ "delete",   cmd_delete, REQUIRE_DB_FILE  },
 	{ "help",     cmd_help },
 	{ "init",     cmd_init },
 	{ "makekey",  cmd_makekey },
-	{ "read",     cmd_read },
-	// { "show",     cmd_show },
+	{ "read",     cmd_read, REQUIRE_DB_FILE  },
+	// { "show",     cmd_show, REQUIRE_DB_FILE  },
 	{ "update",   cmd_update },
 	{ "version",  cmd_version },
-	// { "validate", cmd_validate },
+	// { "validate", cmd_validate, REQUIRE_DB_FILE  },
 	{ NULL },
 };
 
-static const char *db_path;
-static const char *key_path;
+static struct
+{
+	const char *db_path;
+	const char *key_path;
+} environment;
 
 const char *const cmd_pk_usages[] = {
 	"pk [--db-path <file>] [--key-path <file>] <command> [<args>]",
@@ -64,8 +70,8 @@ const char *const cmd_pk_usages[] = {
 };
 
 const struct option cmd_pk_options[] = {
-	OPTION_HIDDEN_PATHNAME(0, "db-path", &db_path),
-	OPTION_HIDDEN_PATHNAME(0, "key-path", &key_path),
+	OPTION_HIDDEN_PATHNAME(0, "db-path", &environment.db_path),
+	OPTION_HIDDEN_PATHNAME(0, "key-path", &environment.key_path),
 	OPTION_COMMAND("count",   "Count the number of records"),
 	OPTION_COMMAND("create",  "Create a record"),
 	OPTION_COMMAND("delete",  "Delete a record"),
@@ -182,14 +188,14 @@ static int handle_options(int argc, const char **argv, const char *prefix)
 	argc = parse_options(argc, argv, prefix, cmd_pk_options, cmd_pk_usages, PARSER_STOP_AT_NON_OPTION | PARSER_NO_SHORT_HELP);
 	option_usage_alignment = OPTION_USAGE_ALIGNMENT;
 
-	if (db_path)
+	if (environment.db_path)
 	{
-		setenv(PK_CRED_DB, db_path, 1);
+		setenv(PK_CRED_DB, environment.db_path, 1);
 	}
 
-	if (key_path)
+	if (environment.key_path)
 	{
-		setenv(PK_CRED_KY, key_path, 1);
+		setenv(PK_CRED_KY, environment.key_path, 1);
 	}
 
 	return argc;

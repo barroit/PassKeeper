@@ -48,4 +48,10 @@ void string_list_clear(struct strlist *sl, bool free_ext);
 
 size_t string_list_split(struct strlist *sl, const char *str, char delim, int maxsplit);
 
+static inline bool in_string_array(const char *strarr[], const char *item)
+{
+	while (*strarr && strcmp(item, *strarr++));
+	return *strarr == NULL;
+}
+
 #endif /* STRLIST_H */

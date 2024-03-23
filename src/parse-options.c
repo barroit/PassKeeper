@@ -57,7 +57,7 @@ enum option_parsed
 	UNSET_OPTION = 1 << 1,
 };
 
-static const char *detailed_option(const struct option *opt, enum option_parsed flags)
+static const char *typed_option_name(const struct option *opt, enum option_parsed flags)
 {
 	static char ret[64];
 
@@ -75,13 +75,13 @@ static const char *detailed_option(const struct option *opt, enum option_parsed 
 	}
 	else
 	{
-		bug("detailed_option() got unknown flags %d", flags);
+		bug("typed_option_name() got unknown flags %d", flags);
 	}
 
 	return ret;
 }
 
-static enum parse_option_result assign_string_value(
+static enum parse_option_result get_string_argument(
 	struct parser_context *ctx,
 	const struct option *opt,
 	enum option_parsed flags,
@@ -99,18 +99,18 @@ static enum parse_option_result assign_string_value(
 	}
 	else
 	{
-		return error("%s requires a value", detailed_option(opt, flags));
+		return error("%s requires a value", typed_option_name(opt, flags));
 	}
 
 	return 0;
 }
 
-static void assign_filename(const char *prefix, const char **out)
+static void get_filename_argument(const char *prefix, const char **out)
 {
 	*out = prefix_filename(prefix, *out);
 }
 
-int process_unsigned_assignment_result(int errcode, const char *val, const char *field)
+int process_get_unsigned_argument_result(int errcode, const char *val, const char *field)
 {
 	if (!errcode)
 	{
@@ -125,7 +125,7 @@ int process_unsigned_assignment_result(int errcode, const char *val, const char 
 	return error("%s expects a numerical value", field);
 }
 
-static enum parse_option_result assign_unsigned_value(
+static enum parse_option_result get_unsigned_argument(
 	struct parser_context *ctx,
 	const struct option *opt,
 	enum option_parsed flags,
@@ -148,13 +148,13 @@ static enum parse_option_result assign_unsigned_value(
 	}
 	else
 	{
-		return error("%s requires a value", detailed_option(opt, flags));
+		return error("%s requires a value", typed_option_name(opt, flags));
 	}
 
-	return process_unsigned_assignment_result(rescode, arg, detailed_option(opt, flags));
+	return process_get_unsigned_argument_result(rescode, arg, typed_option_name(opt, flags));
 }
 
-static enum parse_option_result assign_value(
+static enum parse_option_result get_argument(
 	struct parser_context *ctx,
 	const struct option *opt,
 	enum option_parsed flags)
@@ -164,15 +164,15 @@ static enum parse_option_result assign_value(
 
 	if (unset && ctx->optstr)
 	{
-		return error("%s takes no value", detailed_option(opt, flags));
+		return error("%s takes no value", typed_option_name(opt, flags));
 	}
 	if (unset && !(opt->flags & OPTION_ALLONEG))
 	{
-		return error("%s isn't available", detailed_option(opt, flags));
+		return error("%s isn't available", typed_option_name(opt, flags));
 	}
 	if (!(flags & SHORT_OPTION) && ctx->optstr && (opt->flags & OPTION_NOARG))
 	{
-		return error("%s takes no value", detailed_option(opt, flags));
+		return error("%s takes no value", typed_option_name(opt, flags));
 	}
 
 	switch (opt->type)
@@ -181,18 +181,31 @@ static enum parse_option_result assign_value(
 			*(int *)opt->value = unset ? 0 : opt->defval;
 			break;
 		case OPTION_STRING:
-			return assign_string_value(ctx, opt, flags, (const char **)opt->value);
+			if (unset)
+			{
+				*(const char **)opt->value = NULL;
+			}
+			else if ((opt->flags & OPTION_OPTARG) && !ctx->optstr)
+			{
+				*(const char **)opt->value = (const char *)opt->defval;
+			}
+			else
+			{
+				return get_string_argument(ctx, opt, flags, (const char **)opt->value);
+			}
+
+			break;
 		case OPTION_FILENAME:
-			errcode = assign_string_value(ctx, opt, flags, (const char **)opt->value);
+			errcode = get_string_argument(ctx, opt, flags, (const char **)opt->value);
 			if (errcode)
 			{
 				return errcode;
 			}
 
-			assign_filename(ctx->prefix, (const char **)opt->value);
+			get_filename_argument(ctx->prefix, (const char **)opt->value);
 			break;
 		case OPTION_UNSIGNED:
-			return assign_unsigned_value(ctx, opt, flags, (unsigned *)opt->value);
+			return get_unsigned_argument(ctx, opt, flags, (unsigned *)opt->value);
 		default:
 			bug("opt->type %d should not happen", opt->type);
 	}
@@ -311,7 +324,7 @@ is_abbreviated:
 		}
 
 		*outopt = opt;
-		return assign_value(ctx, opt, flags ^ opt_flags);
+		return get_argument(ctx, opt, flags ^ opt_flags);
 	}
 
 	if (ambiguous_option)
@@ -329,7 +342,7 @@ is_abbreviated:
 	if (abbrev_option)
 	{
 		*outopt = abbrev_option;
-		return assign_value(ctx, abbrev_option, abbrev_flags);
+		return get_argument(ctx, abbrev_option, abbrev_flags);
 	}
 
 	ctx->optstr = argstr;
@@ -341,12 +354,14 @@ static enum parse_option_result parse_short_option(
 	const struct option *options,
 	const struct option **outopt)
 {
+	enum parse_option_result rescode;
 	while (options->type != OPTION_END)
 	{
 		if (options->alias == *ctx->optstr)
 		{
 			*outopt = options;
-			return assign_value(ctx, options, SHORT_OPTION);
+			rescode = get_argument(ctx, options, SHORT_OPTION);
+			return ctx->optstr == NULL ? PARSING_COMPLETE: rescode;
 		}
 
 		options++;
@@ -427,6 +442,8 @@ static enum parse_option_result parse_option_next(
 			{
 				case PARSING_DONE:
 					ctx->optstr++;
+					/* FALLTHRU */
+				case PARSING_COMPLETE:
 					break;
 				case PARSING_UNKNOWN:
 					if (*ctx->optstr == 'h' && allow_short_help)
@@ -506,7 +523,7 @@ static inline int indent_usage(FILE *stream)
 static int print_option_argh(const struct option *opt, FILE *stream)
 {
 	const char *fmt;
-	bool printraw = (opt->flags & OPTION_RAWARGH) || !opt->argh || strpbrk(opt->argh, "()<>[]|");
+	bool printraw = !opt->argh || strpbrk(opt->argh, "()<>[]|");
 
 	if (opt->flags & OPTION_OPTARG)
 	{
@@ -541,7 +558,7 @@ static void pad_usage(FILE *stream, int pos)
 	}
 }
 
-int print_help(const char *help, size_t pos, FILE *stream)
+static int print_help(const char *help, size_t pos, FILE *stream)
 {
 	const char *prev_line, *next_line;
 
@@ -564,7 +581,7 @@ int print_help(const char *help, size_t pos, FILE *stream)
 	return pos;
 }
 
-static int print_option_help(const struct option *opt, size_t pos, FILE *stream)
+static inline int print_option_help(const struct option *opt, size_t pos, FILE *stream)
 {
 	return print_help(opt->help ? opt->help : "", pos, stream);
 }
@@ -686,7 +703,7 @@ static enum parse_option_result usage_with_options(
 			}
 		}
 
-		if ((iter->flags & OPTION_RAWARGH) || !(iter->flags & OPTION_NOARG))
+		if ((iter->flags & OPTION_SHOWARGH) && !(iter->flags & OPTION_NOARG))
 		{
 			prev_pos += print_option_argh(iter, stream);
 		}

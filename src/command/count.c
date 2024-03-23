@@ -30,11 +30,11 @@ const char *const cmd_count_usages[] = {
 };
 
 const struct option cmd_count_options[] = {
-	OPTION_STRING(0, "search", &search_pattern, "pattern", "count record for a particular site"),
+	OPTION_STRING_F(0, "search", &search_pattern, "pattern", "count record for a particular site", OPTION_SHOWARGH),
 	OPTION_END(),
 };
 
-int cmd_count(int argc, const char **argv, UNUSED const char *prefix)
+int cmd_count(int argc, const char **argv, const char *prefix)
 {
 	argc = parse_options(argc, argv, prefix, cmd_count_options, cmd_count_usages, PARSER_ABORT_NON_OPTION);
 	printf("s: %s, a: %d\n", search_pattern, argc);

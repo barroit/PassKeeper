@@ -46,8 +46,6 @@
 #define DIRSEP "\\"
 #endif
 
-#define byte_t unsigned char
-
 #define UNUSED __attribute__((unused))
 
 int error(const char *err, ...) __attribute__((format(printf, 2, 3)));
@@ -82,15 +80,20 @@ static inline void *xrealloc(void *ptr, size_t size)
 	return ptr;
 }
 
+static inline void *xmemdup(const void *ptr, size_t size)
+{
+	return memcpy(xmalloc(size), ptr, size);
+}
+
 /**
  * copies at most size characters of the stringand make
  * it null-terminated
  */
 static inline void *xmemdup_str(const void *ptr, size_t size)
 {
-	char *buf;
+	uint8_t *buf;
 
-	buf = memcpy(xmalloc(size + 1), ptr, size);
+	buf = xmemdup(ptr, size + 1);
 	buf[size] = 0;
 
 	return buf;
@@ -163,7 +166,7 @@ static inline FILE *xfopen(const char *filename, const char *mode)
 	FILE *fs;
 	if ((fs = fopen(filename, mode)) == NULL)
 	{
-		die("failed to open file '%s'", filename);
+		die("file '%s' reports %s", filename, strerror(errno));
 	}
 
 	return fs;

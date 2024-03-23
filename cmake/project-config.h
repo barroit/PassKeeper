@@ -11,7 +11,9 @@
 #define PROJNAME	"$ENV{PROJNAME}"
 #define LICENSE_NOTIES	"$ENV{LICENSE_NOTIES}"
 
-#define PK_CRED_DB	"$ENV{PK_CRED_DB}"
-#define PK_CRED_KY	"$ENV{PK_CRED_KY}"
+#define PK_CRED_DB	"PK_CRED_DB"
+#define PK_CRED_KY	"PK_CRED_KY"
+#define PK_CRED_DB_NM	".pk-credfl"
+#define PK_CRED_KY_NM	".pk-credky"
 
 #endif /* PROJECT_CONFIG_H */
