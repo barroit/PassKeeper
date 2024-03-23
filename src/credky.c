@@ -22,62 +22,113 @@
 
 #include "credky.h"
 
-enum cipher_config_field
+enum data_type
 {
-	FIELD_KDF_ALGORITHM = 1,
+	FIELD_KDF_ALGORITHM,
 	FIELD_HMAC_ALGORITHM,
 	FIELD_COMPATIBILITY,
 	FIELD_PAGE_SIZE,
 	FIELD_KDF_ITER,
 	FIELD_KEY,
+	data_type_elements,
 };
 
 enum key_type
 {
-	KEY_PASSPHRASE = 1,
+	/**
+	 * for FIELD_KEY + config->is_binary_key
+	 * order shall not be changed
+	 */
+	KEY_PASSPHRASE,
 	KEY_BINARY,
 };
 
-#define LENGTH(m) sizeof(uint8_t) + sizeof(size_t) + m
+#define entry_size(dl) sizeof(uint8_t) + sizeof(size_t) + (dl)
 
-#define APPEND(o, p, l)			\
-	do				\
-	{				\
-		memcpy(o, p, l);	\
-		o += l;			\
-	}				\
-	while (0)
+static uint8_t *append_buf(uint8_t *buf, uint8_t type, const void *data, size_t dlen)
+{
+	*buf++ = type;
+
+	memcpy(buf, &dlen, sizeof(size_t));
+	buf += sizeof(size_t);
+
+	if (data && dlen)
+	{
+		memcpy(buf, data, dlen);
+		buf += dlen;
+	}
+
+	return buf;
+}
 
 uint8_t *serialize_cipher_config(
-	const struct cipher_config *config, size_t *out_buflen)
+	struct cipher_config *config, size_t *buflen)
 {
-	uint8_t *out, *out_ptr;
-	size_t config_kdf_algorithm_memlen, config_hmac_algorithm_memlen;
+	uint8_t *buf0, *buf;
+	size_t lenmap[data_type_elements];
 
-	config_kdf_algorithm_memlen  = strlen(config->kdf_algorithm) + 1;
-	config_hmac_algorithm_memlen = strlen(config->hmac_algorithm) + 1;
+	memset(lenmap, 0, sizeof(lenmap));
 
-	// void *config_field = {
-	// 	FIELD_KDF_ALGORITHM, config->kdf_algorithm, 
-	// }
+	if (config->kdf_algorithm && strcmp(config->kdf_algorithm, CIPHER_DEFAULT_KDF_ALGORITHM))
+	{
+		lenmap[FIELD_KDF_ALGORITHM] = strlen(config->kdf_algorithm);
+	}
+	else
+	{
+		/* turn default value into null */
+		config->kdf_algorithm = NULL;
+	}
 
-	*out_buflen =
-		LENGTH(config_kdf_algorithm_memlen) +
-		 LENGTH(config_hmac_algorithm_memlen) +
-		  LENGTH(sizeof(unsigned)) +
-		   LENGTH(sizeof(unsigned)) +
-		    LENGTH(sizeof(unsigned)) +
-		     LENGTH(config->keylen);
+	if (config->hmac_algorithm && strcmp(config->hmac_algorithm, CIPHER_DEFAULT_HMAC_ALGORITHM))
+	{
+		lenmap[FIELD_HMAC_ALGORITHM] = strlen(config->hmac_algorithm);
+	}
+	else
+	{
+		config->hmac_algorithm = NULL;
+	}
 
-	out = xmalloc(*out_buflen);
-	out_ptr = out;
+	if (config->compatibility != CIPHER_DEFAULT_COMPATIBILITY)
+	{
+		lenmap[FIELD_COMPATIBILITY] = sizeof(unsigned);
+	}
 
-	APPEND(out_ptr, config->kdf_algorithm, config_kdf_algorithm_memlen);
-	APPEND(out_ptr, config->hmac_algorithm, config_hmac_algorithm_memlen);
-	APPEND(out_ptr, &config->compatibility, sizeof(unsigned));
-	APPEND(out_ptr, &config->page_size, sizeof(unsigned));
-	APPEND(out_ptr, &config->kdf_iter, sizeof(unsigned));
-	APPEND(out_ptr, config->key, config->keylen);
+	if (config->page_size != CIPHER_DEFAULT_PAGE_SIZE)
+	{
+		lenmap[FIELD_PAGE_SIZE] = sizeof(unsigned);
+	}
 
-	return out;
+	if (config->kdf_iter != CIPHER_DEFAULT_KDF_ITER)
+	{
+		lenmap[FIELD_KDF_ITER] = sizeof(unsigned);
+	}
+
+	if (config->keylen)
+	{
+		lenmap[FIELD_KEY] = config->keylen;
+	}
+
+	/**
+	 * [(uint8_t data_type) + [(uint8_t key_type)], (size_t data_length), (data)]
+	 * data shall not contains null-terminator
+	 */
+	*buflen = 
+		entry_size(lenmap[FIELD_KDF_ALGORITHM]) +     /* kdf_algorithm */
+		 entry_size(lenmap[FIELD_HMAC_ALGORITHM]) +  /* hmac_algorithm */
+		  entry_size(lenmap[FIELD_COMPATIBILITY]) + /* compatibility */
+		   entry_size(lenmap[FIELD_PAGE_SIZE]) +   /* page_size */
+		    entry_size(lenmap[FIELD_KDF_ITER]) +  /* kdf_iter */
+		     entry_size(lenmap[FIELD_KEY]);      /* key */
+
+	buf0 = xmalloc(*buflen);
+	buf = buf0;
+
+	buf = append_buf(buf, FIELD_KDF_ALGORITHM, config->kdf_algorithm, lenmap[FIELD_KDF_ALGORITHM]);
+	buf = append_buf(buf, FIELD_HMAC_ALGORITHM, config->hmac_algorithm, lenmap[FIELD_HMAC_ALGORITHM]);
+	buf = append_buf(buf, FIELD_COMPATIBILITY, &config->compatibility, lenmap[FIELD_COMPATIBILITY]);
+	buf = append_buf(buf, FIELD_PAGE_SIZE, &config->page_size, lenmap[FIELD_PAGE_SIZE]);
+	buf = append_buf(buf, FIELD_KDF_ITER, &config->kdf_iter, lenmap[FIELD_KDF_ITER]);
+	buf = append_buf(buf, FIELD_KEY + config->is_binary_key, config->key, lenmap[FIELD_KEY]);
+
+	return buf0;
 }

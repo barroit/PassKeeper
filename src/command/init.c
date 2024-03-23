@@ -146,6 +146,10 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	parse_options(argc, argv, prefix, cmd_init_options, cmd_init_usages, PARSER_ABORT_NON_OPTION);
 
 	encrypt_db = !!user.key;
+	if (user.store_key && !encrypt_db)
+	{
+		exit(error("remember option must be used together with encrypt option"));
+	}
 
 	use_pkgen_binkey = (intptr_t)user.key == 1;
 	use_binkey = encrypt_db && !use_pkgen_binkey && *user.key == 'x';
@@ -198,9 +202,9 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 		prepare_file_path(ky_path, prefix, PK_CRED_KY, PK_CRED_KY_NM);
 	}
 
-	if (!use_binkey)
+	if (!encrypt_db)
 	{
-		goto init_key_file;
+		goto setup_key_file;
 	}
 
 	if (use_pkgen_binkey)
@@ -214,7 +218,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 		hexkey_str_len = snprintf(hexkey_str, HEXKEYSTR_LENGTH, "x'%s'", hexkey_str_tmp);
 		free(hexkey_str_tmp);
 	}
-	else
+	else if (use_binkey)
 	{
 		size_t hexkey_len;
 
@@ -227,24 +231,32 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 
 		strncpy(hexkey_str, user.key, sizeof(hexkey_str));
 	}
+	else
+	{
+		cc.keylen = strlen(user.key);
+		if (cc.keylen == 0)
+		{
+			exit(error("passphrase key is empty"));
+		}
 
-init_key_file:
+		cc.key = xmemdup(user.key, cc.keylen);
+	}
+
+	cc.is_binary_key = !use_passphrase;
+
+setup_key_file:
 
 	if (!use_key_file)
 	{
 		goto init_database;
 	}
 
-// struct cipher_config
-// {
-// 	const char *kdf_algorithm;
-// 	const char *hmac_algorithm;
-// 	unsigned compatibility;
-// 	unsigned page_size;
-// 	unsigned kdf_iter;
-// 	uint8_t *key;
-// 	size_t keylen;
-// };
+	uint8_t *cc_buf;
+	size_t cc_buflen;
+
+	cc_buf = serialize_cipher_config(&cc, &cc_buflen);
+
+	free(cc_buf);
 
 init_database:
 
