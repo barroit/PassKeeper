@@ -37,6 +37,9 @@
 #include <stdarg.h>
 #include <sys/stat.h>
 #include <assert.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
+#include <sqlite3.h>
 
 #ifdef POSIX
 #define ENV_USERHOME "HOME"
@@ -47,84 +50,6 @@
 #endif
 
 #define UNUSED __attribute__((unused))
-
-int error(const char *err, ...) __attribute__((format(printf, 2, 3)));
-void die(const char *reason, ...) __attribute__((format(printf, 2, 3)));
-
-void bug_fl(const char *file, int line, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
-#define bug(...) bug_fl(__FILE__, __LINE__, __VA_ARGS__)
-
-static inline size_t __attribute__((const)) fixed_growth(size_t sz)
-{
-	return (sz + 16) * 3 / 2;
-}
-
-static inline void *xmalloc(size_t size)
-{
-	void *ret;
-	if ((ret = malloc(size)) == NULL)
-	{
-		die("out of memory, malloc failed (tried to allocate %"PRIuMAX" bytes)", size);
-	}
-
-	return ret;
-}
-
-static inline void *xrealloc(void *ptr, size_t size)
-{
-	if ((ptr = realloc(ptr, size)) == NULL)
-	{
-		die("out of memory, realloc failed (tried to allocate %"PRIuMAX" bytes)", size);
-	}
-
-	return ptr;
-}
-
-static inline void *xmemdup(const void *ptr, size_t size)
-{
-	return memcpy(xmalloc(size), ptr, size);
-}
-
-/**
- * copies at most size characters of the stringand make
- * it null-terminated
- */
-static inline void *xmemdup_str(const void *ptr, size_t size)
-{
-	uint8_t *buf;
-
-	buf = xmemdup(ptr, size + 1);
-	buf[size] = 0;
-
-	return buf;
-}
-
-static inline size_t __attribute__((const)) st_mult(size_t x, size_t y)
-{
-	if ((SIZE_MAX / x) < y)
-	{
-		die("size_t overflow: %"PRIuMAX" * %"PRIuMAX, x, y);
-	}
-
-	return x * y;
-}
-
-#define MOVE_ARRAY(dest, src, size) memmove(dest, src, st_mult(sizeof(*src), size))
-
-#define REALLOC_ARRAY(ptr, size) xrealloc(ptr, st_mult(sizeof(*ptr), size))
-
-#define CAPACITY_GROW(ptr, size, cap)			\
-	do						\
-	{						\
-		if (size > cap)				\
-		{					\
-			cap = fixed_growth(cap);	\
-			cap = cap < size ? size : cap;	\
-			ptr = REALLOC_ARRAY(ptr, cap);	\
-		}					\
-	}						\
-	while (0)
-
 
 #ifdef NO_STRCHRNUL
 char *pk_strchrnul(const char *s, int c);
@@ -149,28 +74,9 @@ char *pk_dirname(char *path);
 #include <sys/stat.h>
 #endif
 
-static inline void xmkdir(const char *path)
-{
 #if defined(POSIX) || defined(PKTEST) /* for test */
-	if (mkdir(path, 0775) != 0)
-#else
-	if (mkdir(path) != 0)
+#define mkdir(path) mkdir((path), 0775)
 #endif
-	{
-		die("failed to create a directory at path '%s'", path);
-	}
-}
-
-static inline FILE *xfopen(const char *filename, const char *mode)
-{
-	FILE *fs;
-	if ((fs = fopen(filename, mode)) == NULL)
-	{
-		die("file '%s' reports %s", filename, strerror(errno));
-	}
-
-	return fs;
-}
 
 #ifdef POSIX
 #define test_file_permission(p, s, m) test_file_permission_st(s, m)

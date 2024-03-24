@@ -8,7 +8,8 @@
                 "SQLITE_HAS_CODEC"
             ],
             "forcedInclude": [
-                "${workspaceFolder}/src/compat-util.h"
+                "${workspaceFolder}/src/compat-util.h",
+                "${workspaceFolder}/src/wrapper.h"
             ]
         }
     ],

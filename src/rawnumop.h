@@ -88,4 +88,13 @@ bool is_hexstr(const char *hex, size_t size);
  */
 bool is_saltstr(const char *salt, size_t size);
 
+uint8_t *digest_message_sha256(const uint8_t *message, size_t message_length);
+
+static inline void clean_digest(uint8_t *digest)
+{
+	OPENSSL_free(digest);
+}
+
+void report_openssl_error(void);
+
 #endif /* RAWNUMOP_H */

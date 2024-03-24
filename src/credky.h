@@ -22,6 +22,8 @@ struct cipher_config
 #define CIPHER_MIN_COMPATIBILITY	1
 #define CIPHER_MAX_COMPATIBILITY	CIPHER_DEFAULT_COMPATIBILITY
 
+#define DIGEST_LENGTH 32
+
 uint8_t *serialize_cipher_config(struct cipher_config *config, size_t *buflen);
 
 #endif /* CREDKY_H */

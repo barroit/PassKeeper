@@ -21,7 +21,6 @@
 ****************************************************************************/
 
 #include "rawnumop.h"
-#include <openssl/rand.h>
 
 uint8_t *random_bytes(size_t length)
 {
@@ -108,4 +107,43 @@ bool is_saltstr(const char *salt, size_t size)
 	}
 
 	return true;
+}
+
+uint8_t *digest_message_sha256(const uint8_t *message, size_t message_length)
+{
+	EVP_MD_CTX *mdctx;
+	uint8_t *out;
+
+	/**
+	 * upper camel case with no x version api
+	 * ugly and sad :(
+	 */
+	if((mdctx = EVP_MD_CTX_new()) == NULL)
+	{
+		report_openssl_error();
+	}
+
+	if(EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL) != 1)
+	{
+		report_openssl_error();
+	}
+
+	if(EVP_DigestUpdate(mdctx, message, message_length) != 1)
+	{
+		report_openssl_error();
+	}
+
+	if((out = OPENSSL_malloc(EVP_MD_size(EVP_sha256()))) == NULL)
+	{
+		report_openssl_error();
+	}
+
+	if(EVP_DigestFinal_ex(mdctx, out, NULL) != 1)
+	{
+		report_openssl_error();
+	}
+
+	EVP_MD_CTX_free(mdctx);
+
+	return out;
 }

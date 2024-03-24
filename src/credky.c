@@ -43,6 +43,8 @@ enum key_type
 	KEY_BINARY,
 };
 
+#define DIGEST_LENGTH 32
+
 #define entry_size(dl) sizeof(uint8_t) + sizeof(size_t) + (dl)
 
 static uint8_t *append_buf(uint8_t *buf, uint8_t type, const void *data, size_t dlen)
@@ -118,7 +120,8 @@ uint8_t *serialize_cipher_config(
 		  entry_size(lenmap[FIELD_COMPATIBILITY]) + /* compatibility */
 		   entry_size(lenmap[FIELD_PAGE_SIZE]) +   /* page_size */
 		    entry_size(lenmap[FIELD_KDF_ITER]) +  /* kdf_iter */
-		     entry_size(lenmap[FIELD_KEY]);      /* key */
+		     entry_size(lenmap[FIELD_KEY]) +     /* key */
+		      DIGEST_LENGTH;                    /* buf digest */
 
 	buf0 = xmalloc(*buflen);
 	buf = buf0;

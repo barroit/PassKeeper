@@ -138,7 +138,7 @@ static void execute_command(struct command_info *command, int argc, const char *
 		bug("command '%s' has no handler", command->name);
 	}
 
-	exit(command->handle(argc, argv, prefix));
+	exit(command->handle(argc, argv, prefix) & 0xff);
 }
 
 static const char *fallback_command[] = { "help", "pk", NULL };

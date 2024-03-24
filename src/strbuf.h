@@ -43,9 +43,9 @@ void strbuf_putc(struct strbuf *sb, char c);
 
 void strbuf_nprint(struct strbuf *sb, const char *str, size_t sz);
 
-#define strbuf_print(sb, str) strbuf_nprint(sb, str, strlen(str))
+#define strbuf_print(sb, str) strbuf_nprint((sb), (str), strlen(str))
 
-#define strbuf_puts(sb, str) strbuf_printf(sb, "%s\n", str)
+#define strbuf_puts(sb, str) strbuf_printf((sb), "%s\n", (str))
 
 bool starts_with(const char *str, const char *prefix);
 

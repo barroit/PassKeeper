@@ -22,7 +22,7 @@
 
 static void vreportf(const char *prefix, const char *fmt, va_list ap)
 {
-	char buf_head[4096], *content_head, *content_tail; 
+	char buf_head[2048], *content_head, *content_tail; 
 
 	content_head = buf_head + strlen(prefix);
 	content_tail = content_head;
@@ -79,4 +79,20 @@ void bug_fl(const char *file, int line, const char *fmt, ...)
 	bug_flvp(file, line, fmt, ap);
 
 	exit(EXIT_FAILURE);
+}
+
+void report_openssl_error(void)
+{
+	unsigned long errcode;
+	const char *reason;
+
+	errcode = ERR_get_error();
+	if (errcode == 0)
+	{
+		bug("calling report_openssl_error() without actual error does not make sense");
+	}
+
+	reason = ERR_reason_error_string(errcode);
+
+	die("openssl reports '%s'", reason);
 }
