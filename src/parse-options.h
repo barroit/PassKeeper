@@ -128,7 +128,7 @@ enum option_parser_flag
 	.help = (h),					\
 }
 
-#define OPTION_BOOLEAN_F(s, l, v, h, f)			\
+#define OPTION_BOOLEAN(s, l, v, h)			\
 {							\
 	.type   = OPTION_SWITCH,			\
 	.alias  = (s),					\
@@ -136,10 +136,8 @@ enum option_parser_flag
 	.value  = (v),					\
 	.help   = (h),					\
 	.defval = 1,					\
-	.flags  = OPTION_NOARG | (f),			\
+	.flags  = OPTION_NOARG | OPTION_ALLONEG,	\
 }
-
-#define OPTION_BOOLEAN(s, l, v, h) OPTION_BOOLEAN_F(s, l, v, h, OPTION_ALLONEG)
 
 #define OPTION_UNSIGNED_F(s, l, v, a, h, f)		\
 {							\

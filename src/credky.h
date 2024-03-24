@@ -5,7 +5,7 @@ struct cipher_config
 {
 	const char *kdf_algorithm;
 	const char *hmac_algorithm;
-	unsigned compatibility;
+	unsigned cipher_compat;
 	unsigned page_size;
 	unsigned kdf_iter;
 	uint8_t *key;

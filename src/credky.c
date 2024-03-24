@@ -90,7 +90,7 @@ uint8_t *serialize_cipher_config(
 		config->hmac_algorithm = NULL;
 	}
 
-	if (config->compatibility != CIPHER_DEFAULT_COMPATIBILITY)
+	if (config->cipher_compat != CIPHER_DEFAULT_COMPATIBILITY)
 	{
 		lenmap[FIELD_COMPATIBILITY] = sizeof(unsigned);
 	}
@@ -128,7 +128,7 @@ uint8_t *serialize_cipher_config(
 
 	buf = append_buf(buf, FIELD_KDF_ALGORITHM, config->kdf_algorithm, lenmap[FIELD_KDF_ALGORITHM]);
 	buf = append_buf(buf, FIELD_HMAC_ALGORITHM, config->hmac_algorithm, lenmap[FIELD_HMAC_ALGORITHM]);
-	buf = append_buf(buf, FIELD_COMPATIBILITY, &config->compatibility, lenmap[FIELD_COMPATIBILITY]);
+	buf = append_buf(buf, FIELD_COMPATIBILITY, &config->cipher_compat, lenmap[FIELD_COMPATIBILITY]);
 	buf = append_buf(buf, FIELD_PAGE_SIZE, &config->page_size, lenmap[FIELD_PAGE_SIZE]);
 	buf = append_buf(buf, FIELD_KDF_ITER, &config->kdf_iter, lenmap[FIELD_KDF_ITER]);
 	buf = append_buf(buf, FIELD_KEY + config->is_binary_key, config->key, lenmap[FIELD_KEY]);

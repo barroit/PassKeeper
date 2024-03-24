@@ -59,10 +59,11 @@ load_project_info()
 	export ARCHITECTURE=$(uname -m)
 	export BUILD_COMMIT=$(git rev-parse HEAD)
 
-	export AUTHOR=$(get_project_info author)
-	export CONTACT=$(get_project_info contact)
-	export PROJNAME=$(get_project_info projname)
-	export LICENSE_NOTIES=$(get_project_info license_noties)
+	export PK_VERSION=$(get_project_info version)
+	export PK_AUTHOR=$(get_project_info author)
+	export PK_AUTHOR_CONTACT=$(get_project_info contact)
+	export PK_PROJNAME=$(get_project_info projname)
+	export PK_LICENSE_NOTIES=$(get_project_info license_noties)
 }
 
 export -f load_project_info

@@ -51,6 +51,12 @@
 
 #define UNUSED __attribute__((unused))
 
+// #define POSIX_ONLY
+
+// #ifndef POSIX
+// #define POSIX_ONLY static
+// #endif
+
 #ifdef NO_STRCHRNUL
 char *pk_strchrnul(const char *s, int c);
 #define strchrnul pk_strchrnul
@@ -70,10 +76,6 @@ char *pk_dirname(char *path);
 #define dirname pk_dirname
 #endif
 
-#ifdef POSIX
-#include <sys/stat.h>
-#endif
-
 #if defined(POSIX) || defined(PKTEST) /* for test */
 #define mkdir(path) mkdir((path), 0775)
 #endif
@@ -83,5 +85,13 @@ char *pk_dirname(char *path);
 #else
 #define test_file_permission(p, s, m) test_file_permission_ch(p, m)
 #endif
+
+#ifdef POSIX
+#include <time.h>
+#else
+#include <timezoneapi.h>
+#endif
+
+int get_bias(long *bais);
 
 #endif /* COMPACT_UTIL_H */

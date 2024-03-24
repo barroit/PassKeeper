@@ -4,3 +4,4 @@ draft*
 test/build/
 test/sandbox/
 docs/*.html
+docs/*.1

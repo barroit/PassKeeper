@@ -1,4 +1,3 @@
-target_compile_definitions(pklib PUBLIC NO_SETENV NO_STRCHRNUL NO_DIRNAME PKTEST)
 link_libraries(pklib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 

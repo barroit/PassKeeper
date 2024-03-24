@@ -1,0 +1,10 @@
+#!/usr/bin/bash
+# you should NEVER execute this file manually, or you may get unexpected side effects
+
+target=${1:-all}
+
+load_project_info
+
+cd "$DOCS_PREFIX"
+
+make "$target" -j25

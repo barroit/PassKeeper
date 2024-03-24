@@ -8,7 +8,7 @@ else()
 	set(CMAKE_C_COMPILER gcc)
 endif()
 
-project(PassKeeper VERSION 0.3.0 LANGUAGES C)
+project(PassKeeper VERSION $ENV{PK_VERSION} LANGUAGES C)
 
 set(CMAKE_C_STANDARD 17)
 

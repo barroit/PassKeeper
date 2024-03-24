@@ -1,21 +1,32 @@
-if(NOT PK_TEST)
-	include(${CMAKE_MODULE_PATH}/FeatureTest.cmake)
-endif()
-
-if(NOT CMAKE_SYSTEM_NAME STREQUAL Windows)
-	add_compile_definitions(POSIX)
-
-	if(NOT PK_TEST)
-		add_compile_definitions(_GNU_SOURCE)
-	endif()
-endif()
-
 find_package(OpenSSL REQUIRED)
 find_package(SqlCipher REQUIRED)
 
 file(GLOB pklib_source *.c)
 list(FILTER pklib_source EXCLUDE REGEX passkeeper.c$)
-add_library(pklib ${pklib_source})
+if (CMAKE_SYSTEM_NAME STREQUAL Windows)
+	file(GLOB pklib_source_pf win/*.c)
+else()
+	file(GLOB pklib_source_pf uni/*.c)
+endif()
+list(APPEND pklib_source ${pklib_source_pf})
+
+add_library(pklib OBJECT ${pklib_source})
+
+if(PK_TEST)
+	target_compile_definitions(pklib PUBLIC PKTEST)
+endif()
+
+if(PK_TEST OR CMAKE_SYSTEM_NAME STREQUAL Windows)
+	target_compile_definitions(pklib PUBLIC NO_SETENV NO_STRCHRNUL NO_DIRNAME)
+endif()
+
+if(NOT CMAKE_SYSTEM_NAME STREQUAL Windows)
+	target_compile_definitions(pklib PUBLIC POSIX)
+
+	if(NOT PK_TEST)
+		target_compile_definitions(pklib PUBLIC _GNU_SOURCE)
+	endif()
+endif()
 
 target_include_directories(pklib PUBLIC ${SQLCIPHER_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS})
 target_link_libraries(pklib PUBLIC ${SQLCIPHER_LIBRARIES} ${OPENSSL_LIBRARIES})
