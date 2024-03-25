@@ -9,7 +9,8 @@
             ],
             "forcedInclude": [
                 "${workspaceFolder}/src/compat-util.h",
-                "${workspaceFolder}/src/wrapper.h"
+                "${workspaceFolder}/src/wrapper.h",
+                "${workspaceFolder}/cmake/project-config.h"
             ]
         }
     ],

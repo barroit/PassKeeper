@@ -50,8 +50,11 @@ size_t string_list_split(struct strlist *sl, const char *str, char delim, int ma
 
 static inline bool in_string_array(const char *strarr[], const char *item)
 {
-	while (*strarr && strcmp(item, *strarr++));
-	return *strarr == NULL;
+	while (*strarr && strcmp(item, *strarr))
+	{
+		strarr++;
+	}
+	return *strarr != NULL;
 }
 
 #endif /* STRLIST_H */

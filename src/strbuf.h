@@ -61,9 +61,9 @@ char *u8substr(const char *src, size_t start, size_t count);
 
 int strtou(const char *str, unsigned *res);
 
-int fprintf_ln(FILE *stream, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+int fprintfln(FILE *stream, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
-#define printf_ln(...) fprintf_ln(stdout, __VA_ARGS__)
+#define printfln(...) fprintfln(stdout, __VA_ARGS__)
 
 /**
  * Replace `c1` with `c2` in `str` inplace.

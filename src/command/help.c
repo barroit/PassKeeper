@@ -75,7 +75,7 @@ bool is_command(const char *cmdname);
 
 void handle_command_not_found(const char *name)
 {
-	fprintf_ln(stderr, "pk: '%s' is not a passkeeper command. See 'pk help pk'", name);
+	fprintfln(stderr, "pk: '%s' is not a passkeeper command. See 'pk help pk'", name);
 	exit(129);
 }
 

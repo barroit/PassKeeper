@@ -2,6 +2,6 @@ build/
 draft*
 .gdbinit
 test/build/
-test/sandbox/
+test/tmp/
 docs/*.html
 docs/*.1

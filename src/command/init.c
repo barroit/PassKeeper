@@ -179,6 +179,11 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 		*user.key == 'x' ? USER_BINKEY :
 		 USER_PASSPHRASE;
 
+	if (kt == USER_PASSPHRASE && *user.key == 0)
+	{
+		return error("empty passphrase not allowed");
+	}
+
 	use_key_file = 0;
 
 	if (cc.kdf_algorithm && is_binary_key(kt))
@@ -201,7 +206,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 		use_key_file |= strcmp(cc.hmac_algorithm, CIPHER_DEFAULT_HMAC_ALGORITHM);
 	}
 
-	use_key_file |= cc.kdf_iter != CIPHER_DEFAULT_KDF_ITER && is_binary_key(kt);
+	use_key_file |= cc.kdf_iter != CIPHER_DEFAULT_KDF_ITER && kt == USER_PASSPHRASE;
 
 	if (!in_range_u(cc.page_size, 512, 65536, 1) || !is_pow2(cc.page_size))
 	{
@@ -241,8 +246,8 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 
 		tmp_hxkyst = bin2hex(xmemdup(cc.key, cc.keylen), cc.keylen);
 
-		hxkyst = xmalloc(HEXKEYSTR_LENGTH);
-		hxkyst_len = snprintf(hxkyst, HEXKEYSTR_LENGTH, "x'%s'", tmp_hxkyst);
+		hxkyst = xmalloc(HEXKEYSTR_LENGTH + 1);
+		hxkyst_len = snprintf(hxkyst, HEXKEYSTR_LENGTH + 1, "x'%s'", tmp_hxkyst);
 
 		free(tmp_hxkyst);
 		break;
@@ -284,6 +289,11 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 
 	if (!user.store_key)
 	{
+		if (kt == PK_BINKEY)
+		{
+			puts(hxkyst);
+		}
+
 		free(cc.key);
 		cc.key = NULL;
 		cc.keylen = 0;

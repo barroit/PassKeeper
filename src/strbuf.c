@@ -299,7 +299,7 @@ int strtou(const char *str, unsigned *res)
 	return 0;
 }
 
-int fprintf_ln(FILE *stream, const char *fmt, ...)
+int fprintfln(FILE *stream, const char *fmt, ...)
 {
 	int wch;
 	va_list ap;

@@ -1,1 +1,28 @@
-NOTHING TO READ ;)
+Naming Tests
+------------
+
+The test files are named as:
+
+	tNNNN-name-details.t
+
+where N is a decimal digit.
+
+First digit tells the family:
+
+	0 - reserved
+	1 - basic functions and executing flows
+	2 - main command and its options
+	3 - other main commands for this program (e.g. pk-init)
+	4 - commands for CLI
+	5 - other commands that may not related to the project purpose
+
+Second digit tells the particular command we are testing.
+
+Third digit (optionally) tells the particular switch or group of switches
+we are testing.
+
+Test generated files
+--------------------
+
+Always prefix the generated files. Identical file names (e.g. tmp/db) will
+definitely create conflicts.

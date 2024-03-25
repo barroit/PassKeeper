@@ -13,22 +13,31 @@ export BUILD_PREFIX="$build_prefix" # override BUILD_PREFIX
 export PKBIN="$build_prefix"/pk
 export TEST_BUILD_PREFIX="$build_prefix"
 export SRC_PREFIX="$BRTOOL_PREFIX"/src
-export TEST_SANDBOX_PREFIX="$TEST_PREFIX"/sandbox
+export TEST_TMP_PREFIX="$TEST_PREFIX"/tmp
+export PK_CRED_KY="$TEST_TMP_PREFIX"/key
+export PK_CRED_DB="$TEST_TMP_PREFIX"/db
 
 load_project_info
 
 if ! cmake -B $build_prefix -DPK_TEST=1 -DINSTALL_PREFIX=$INSTALL_PREFIX \
--DCMAKE_BUILD_TYPE=${build_type^} -DCMAKE_TARGET_PLATFORM=Penguin  > /dev/null
+-DCMAKE_BUILD_TYPE=${build_type^} -DCMAKE_TARGET_PLATFORM=Penguin
 then
 	die 'stop building'
 fi
 
-if ! cmake --build "$build_prefix" --parallel 25 > /dev/null
+if ! cmake --build "$build_prefix" --parallel 25
 then
 	die 'stop building'
 fi
+
+rm -rf "$TEST_TMP_PREFIX"/*
 
 echo "entering $TEST_PREFIX"
 cd $TEST_PREFIX
+echo
+echo "################################STARTTEST################################"
+echo
 
 prove -j25 ./
+
+rm -rf "$TEST_TMP_PREFIX"/*

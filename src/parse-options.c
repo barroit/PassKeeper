@@ -629,11 +629,11 @@ static enum parse_option_result usage_with_options(
 			line = sl.items[i].str;
 			if (!i)
 			{
-				fprintf_ln(stream, next_prefix, line);
+				fprintfln(stream, next_prefix, line);
 			}
 			else
 			{
-				fprintf_ln(stream, "%*s%s", (int)usage_length, "", line);
+				fprintfln(stream, "%*s%s", (int)usage_length, "", line);
 			}
 		}
 
@@ -719,7 +719,7 @@ static enum parse_option_result usage_with_options(
 			prev_pos += fprintf(stream, "--%s", negpos_name);
 
 			pad_usage(stream, prev_pos);
-			fprintf_ln(stream, "opposite of --no-%s", negpos_name);
+			fprintfln(stream, "opposite of --no-%s", negpos_name);
 		}
 
 		iter++;
