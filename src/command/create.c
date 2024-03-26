@@ -43,12 +43,13 @@ const char *const cmd_create_usages[] = {
 
 const struct option cmd_create_options[] = {
 	OPTION_STRING(0, "sitename", &record.sitename, "human readable name of a website"),
-	OPTION_STRING(0, "siteurl ",  &record.siteurl,  "url that used for disambiguation"),
+	OPTION_STRING(0, "siteurl",  &record.siteurl,  "url that used for disambiguation"),
 	OPTION_STRING(0, "username", &record.username, "identification that can be used to login"),
 	OPTION_STRING(0, "password", &record.password,  "secret phrase that can be used to login"),
-	OPTION_STRING(0, "authtext", &record.authtext,  "predefined question selected during account creation"),
-	OPTION_STRING(0, "bakcode ",  &record.bakcode, "backup code used for account recovery purposes"),
-	OPTION_STRING(0, "comment ",  &record.comment, "you just write what the fuck you want to"),
+	OPTION_GROUP(""),
+	OPTION_STRING(0, "guard", &record.authtext,  "text to help verify this account is yours"),
+	OPTION_STRING(0, "recovery",  &record.bakcode, "code for account recovery"),
+	OPTION_STRING(0, "comment",  &record.comment, "you just write what the fuck you want to"),
 	OPTION_END(),
 };
 

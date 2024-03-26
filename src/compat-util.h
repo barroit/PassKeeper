@@ -43,10 +43,12 @@
 
 #ifdef POSIX
 #define ENV_USERHOME "HOME"
-#define DIRSEP "/"
+#define DIRSEPSTR  "/"
+#define DIRSEPCHAR '/'
 #else
 #define ENV_USERHOME "USERPROFILE"
-#define DIRSEP "\\"
+#define DIRSEPSTR  "\\"
+#define DIRSEPCHAR '\\'
 #endif
 
 #define UNUSED __attribute__((unused))
@@ -92,6 +94,6 @@ char *pk_dirname(char *path);
 #include <timezoneapi.h>
 #endif
 
-int get_bias(long *bais);
+int get_bias(long *bias);
 
 #endif /* COMPACT_UTIL_H */

@@ -1,5 +1,6 @@
 use v5.38;
 use Test::More;
+use Env qw(TEST_BUILD_PREFIX);
 use IPC::Run 'run';
 
 my @data = (
@@ -14,23 +15,19 @@ my @data = (
 	['/usr/lib', '/usr'],
 );
 
-my $input;
-my $expect;
-
 my @cmd;
 my $output;
-
-my $bin = "$ENV{TEST_BUILD_PREFIX}/t1000-pk_dirname";
+my $PKBIN = "$TEST_BUILD_PREFIX/t1000-pk_dirname";
 
 foreach (@data)
 {
-	($input, $expect) = @$_;
-	@cmd = ($bin, $input);
+	my ($input, $expect) = @$_;
+	@cmd = ($PKBIN, $input);
 	run \@cmd, '>', \$output, '2>&1';
 	is($output, $expect, "test dirname with input '$input'");
 }
 
-@cmd = ($bin);
+@cmd = ($PKBIN);
 run \@cmd, '>', \$output;
 is($output, '.', "test dirname without input");
 

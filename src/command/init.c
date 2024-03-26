@@ -107,7 +107,7 @@ static const char *hmac_algorithms[] = {
 
 enum key_type
 {
-	USER_PASSPHRASE,
+	USER_PASSPHRASE = 1,
 	PK_BINKEY,
 	USER_BINKEY,
 };
@@ -170,6 +170,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	}
 
 	encrypt_db = !!user.key;
+	kt = 0;
 	if (!encrypt_db)
 	{
 		goto init_database;
@@ -369,8 +370,8 @@ init_failure:
 
 	sqlite3_close(db);
 
-	remove(db_path);
-	remove(ky_path);
+	unlink(db_path);
+	unlink(ky_path);
 
 	return 2;
 }

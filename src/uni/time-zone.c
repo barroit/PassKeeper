@@ -20,14 +20,14 @@
 **
 ****************************************************************************/
 
-int get_bias(long *bais)
+int get_bias(long *bias)
 {
 	time_t now, gmnow;
 
 	now = time(NULL);
 	gmnow = mktime(gmtime(&now));
 
-	*bais = (time_t)difftime(now, gmnow) / 3600;
+	*bias = (time_t)difftime(now, gmnow) / 3600;
 
 	return 0;
 }

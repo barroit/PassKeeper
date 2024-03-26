@@ -53,7 +53,7 @@ char *prefix_filename(const char *prefix, const char *filename)
 		filename += 2;
 	}
 
-	strbuf_printf(sb, DIRSEP"%s", filename);
+	strbuf_printf(sb, DIRSEPSTR"%s", filename);
 
 	return sb->buf;
 }

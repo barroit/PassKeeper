@@ -90,7 +90,7 @@ char *pk_dirname(char *path)
 
 	while (*iter)
 	{
-		if (*iter == '/')
+		if (*iter == DIRSEPCHAR)
 		{
 			prev_sep = next_sep;
 			next_sep = iter;
@@ -107,7 +107,7 @@ char *pk_dirname(char *path)
 	/* path is '/' */
 	else if (next_sep == path)
 	{
-		return "/";
+		return DIRSEPSTR;
 	}
 	else
 	{
@@ -123,7 +123,7 @@ char *pk_dirname(char *path)
 			/* path like '/usr/' */
 			if (prev_sep == path)
 			{
-				return "/";
+				return DIRSEPSTR;
 			}
 
 			plen = prev_sep - path; 
