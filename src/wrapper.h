@@ -23,12 +23,6 @@
 #ifndef WRAPPER_H
 #define WRAPPER_H
 
-int error(const char *err, ...) __attribute__((format(printf, 2, 3)));
-void die(const char *reason, ...) __attribute__((format(printf, 2, 3)));
-
-void bug_fl(const char *file, int line, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
-#define bug(...) bug_fl(__FILE__, __LINE__, __VA_ARGS__)
-
 static inline void *xmalloc(size_t size)
 {
 	void *ret;
@@ -121,14 +115,53 @@ static inline FILE *xfopen(const char *filename, const char *mode)
 
 static inline size_t xfwrite(const void *ptr, size_t size, size_t n, FILE *s)
 {
-	size_t nn;
+	size_t nr;
 
-	if ((nn = fwrite(ptr, size, n, s)) != n)
+	if ((nr = fwrite(ptr, size, n, s)) != n)
 	{
-		die("expected to write '%lu' objects to file, but actually wrote '%lu'", nn, n);
+		die("expected to write '%lu' objects to file, but actually wrote '%lu'", nr, n);
 	}
 
-	return nn;
+	return nr;
+}
+
+/**
+ * function prefixed by 'i' are safe to use in child process
+ */
+static inline ssize_t iwrite(const void *ptr, size_t size, size_t n)
+{
+	ssize_t nr;
+
+	while (1)
+	{
+		if ((nr = write(ptr, size, n)) == -1)
+		{
+			if (errno == EINTR)
+			{
+				continue;
+			}
+		}
+
+		return nr;
+	}
+}
+
+static inline ssize_t xopen(const void *ptr, size_t size, size_t n)
+{
+	ssize_t nr;
+
+	while (1)
+	{
+		if ((nr = write(ptr, size, n)) == -1)
+		{
+			if (errno == EINTR)
+			{
+				continue;
+			}
+		}
+
+		return nr;
+	}
 }
 
 static inline int msqlite3_open(const char *db_path, struct sqlite3 **db)

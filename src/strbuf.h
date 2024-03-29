@@ -63,8 +63,6 @@ int strtou(const char *str, unsigned *res);
 
 int fprintfln(FILE *stream, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
-#define printfln(...) fprintfln(stdout, __VA_ARGS__)
-
 /**
  * Replace `c1` with `c2` in `str` inplace.
  */

@@ -17,7 +17,7 @@ export INSTALL_PREFIX="$HOME"/.local
 export TEST_SRC_NAME=test
 export TEST_PREFIX="$BRTOOL_PREFIX"/"$TEST_SRC_NAME"
 
-export DOCS_PREFIX="$BRTOOL_PREFIX"/docs
+export DOCS_PREFIX="$BRTOOL_PREFIX"/docs 
 
 declare -A COMMANDS
 

@@ -128,7 +128,7 @@ enum option_parser_flag
 	.help = (h),					\
 }
 
-#define OPTION_BOOLEAN(s, l, v, h)			\
+#define OPTION_BOOLEAN_F(s, l, v, h, f)			\
 {							\
 	.type   = OPTION_SWITCH,			\
 	.alias  = (s),					\
@@ -136,7 +136,7 @@ enum option_parser_flag
 	.value  = (v),					\
 	.help   = (h),					\
 	.defval = 1,					\
-	.flags  = OPTION_NOARG | OPTION_ALLONEG,	\
+	.flags  = OPTION_NOARG | OPTION_ALLONEG | (f),	\
 }
 
 #define OPTION_UNSIGNED_F(s, l, v, a, h, f)		\
@@ -155,26 +155,25 @@ enum option_parser_flag
 
 #define OPTION_STRING(s, l, v, h) OPTION_STRING_F((s), (l), (v), 0, (h), 0)
 
+#define OPTION_BOOLEAN(s, l, v, h) OPTION_BOOLEAN_F((s), (l), (v), (h), 0)
+
 #define OPTION_UNSIGNED(s, l, v, h) OPTION_UNSIGNED_F((s), (l), (v), 0, (h), 0)
 
 #define OPTION_FILENAME(s, l, v, h) OPTION_FILENAME_F((s), (l), (v), (h), "path", OPTION_SHOWARGH)
 
-/**
- * same as OPTION_PATHNAME except the path needs to be available
- */
+#define OPTION_OPTARG(s, l, v, d, a, h) OPTION_OPTARG_F((s), (l), (v), (d), (a), (h), OPTION_SHOWARGH)
+
 #define OPTION_PATHNAME(s, l, v, h) OPTION_FILENAME_F((s), (l), (v), (h), "file", OPTION_REALPATH | OPTION_SHOWARGH)
 
-/**
- * same as OPTION_FILENAME but invisible to helper
- */
-#define OPTION_HIDDEN_PATHNAME(s, l, v) OPTION_FILENAME_F((s), (l), (v), 0, 0, OPTION_REALPATH | OPTION_HIDDEN)
-
-/**
- * for option (command) without em dash
- */
 #define OPTION_COMMAND(l, h) OPTION_STRING_F(0, (l), 0, 0, (h), OPTION_NOARG | OPTION_NOEMDASH)
 
-#define OPTION_OPTARG(s, l, v, d, a, h) OPTION_OPTARG_F((s), (l), (v), (d), (a), (h), OPTION_SHOWARGH)
+#define OPTION_HIDDEN_STRING(s, l, v) OPTION_STRING_F((s), (l), (v), 0, 0, OPTION_HIDDEN)
+
+#define OPTION_HIDDEN_BOOLEAN(s, l, v) OPTION_BOOLEAN_F((s), (l), (v), 0, OPTION_HIDDEN)
+
+#define OPTION_HIDDEN_FILENAME_F(s, l, v, f) OPTION_FILENAME_F((s), (l), (v), 0, 0, OPTION_HIDDEN | (f))
+
+#define OPTION_HIDDEN_PATHNAME(s, l, v) OPTION_HIDDEN_FILENAME_F((s), (l), (v), OPTION_REALPATH)
 
 #ifndef OPTION_USAGE_ALIGNMENT
 #define OPTION_USAGE_ALIGNMENT 23

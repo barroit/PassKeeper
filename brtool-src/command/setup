@@ -4,6 +4,9 @@ case "$1" in
 'coredump')
 	echo 'core' | sudo tee /proc/sys/kernel/core_pattern
 	;;
+'sshkey')
+	echo todo
+	;;
 *)
 	die "unknown setup action $1"
 	;;

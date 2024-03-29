@@ -34,7 +34,7 @@ target_link_directories(pklib PUBLIC ${SQLCIPHER_LIBRARY_DIRS} ${OPENSSL_LIBRARY
 target_compile_definitions(pklib PUBLIC SQLITE_HAS_CODEC)
 
 target_include_directories(pklib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
-target_precompile_headers(pklib PUBLIC compat-util.h wrapper.h)
+target_precompile_headers(pklib PUBLIC compat-util.h message.h wrapper.h)
 
 file(GLOB pk_source command/*.c)
 add_executable(pk passkeeper.c ${pk_source})

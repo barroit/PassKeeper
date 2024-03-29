@@ -40,6 +40,14 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <sqlite3.h>
+#include <sys/wait.h>
+
+#define PK_CRED_DB	"PK_CRED_DB"
+#define PK_CRED_KY	"PK_CRED_KY"
+#define PK_EDITOR	"PK_EDITOR"
+#define PK_SPINNER	"PK_SPINNER"
+#define PK_CRED_DB_NM	".pk-credfl"
+#define PK_CRED_KY_NM	".pk-credky"
 
 #ifdef POSIX
 #define ENV_USERHOME "HOME"
@@ -95,5 +103,24 @@ char *pk_dirname(char *path);
 #endif
 
 int get_bias(long *bias);
+
+#ifdef POSIX
+#define DEFAULT_EDITOR "vi"
+#else
+#define DEFAULT_EDITOR "notepad"
+#endif
+
+#ifndef POSIX
+#include <io.h>
+#endif
+
+#include <fcntl.h>
+
+#ifdef POSIX
+#define DEVNULL "/dev/null"
+#else
+#define DEVNULL "nul"
+#endif
+
 
 #endif /* COMPACT_UTIL_H */

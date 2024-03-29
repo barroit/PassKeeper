@@ -22,6 +22,7 @@
 
 #include "parse-options.h"
 #include "strbuf.h"
+#include "exteditor.h"
 
 static struct
 {
@@ -35,6 +36,8 @@ static struct
 	// const char *sqltime
 	// const char *modtime,
 } record;
+
+static bool use_editor;
 
 const char *const cmd_create_usages[] = {
 	"pk create <fields>",
@@ -50,13 +53,20 @@ const struct option cmd_create_options[] = {
 	OPTION_STRING(0, "guard", &record.authtext,  "text to help verify this account is yours"),
 	OPTION_STRING(0, "recovery",  &record.bakcode, "code for account recovery"),
 	OPTION_STRING(0, "comment",  &record.comment, "you just write what the fuck you want to"),
+	OPTION_GROUP(""),
+	OPTION_BOOLEAN('e', "nano", &use_editor, "use editor"),
 	OPTION_END(),
 };
 
 int cmd_create(int argc, const char **argv, const char *prefix)
 {
 	argc = parse_options(argc, argv, prefix, cmd_create_options, cmd_create_usages, PARSER_ABORT_NON_OPTION);
-	// re
+	// edit_file("file");
+
+	fputs("test", stdout);
+	fflush(stdout);
+	sleep(1);
+	fputs("\r    \r", stdout);
 
 	return 0;
 }

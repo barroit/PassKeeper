@@ -2,6 +2,7 @@
     "files.associations": {
         ".gdb*": "plaintext",
         "gdb*": "plaintext",
+        "cfgmap": "plaintext",
         ".?gdb*": "plaintext",
         "command.h": "c",
         "stddef.h": "c",
@@ -23,7 +24,10 @@
         "libgen.h": "c",
         "stat.h": "c",
         "sha.h": "c",
-        "credky.h": "c"
+        "credky.h": "c",
+        "err.h": "c",
+        "stdarg.h": "c",
+        "process.h": "c"
     },
     "fileHeaderComment.parameter": {
         "*": {

@@ -62,6 +62,8 @@ static struct
 {
 	const char *db_path;
 	const char *key_path;
+	const char *editor;
+	const char *spinner_style;
 } environment;
 
 const char *const cmd_pk_usages[] = {
@@ -72,6 +74,8 @@ const char *const cmd_pk_usages[] = {
 const struct option cmd_pk_options[] = {
 	OPTION_HIDDEN_PATHNAME(0, "db-path", &environment.db_path),
 	OPTION_HIDDEN_PATHNAME(0, "key-path", &environment.key_path),
+	OPTION_HIDDEN_STRING(0, "editor", &environment.editor),
+	OPTION_HIDDEN_STRING(0, "spinner", &environment.spinner_style),
 	OPTION_COMMAND("count",   "Count the number of records"),
 	OPTION_COMMAND("create",  "Create a record"),
 	OPTION_COMMAND("delete",  "Delete a record"),
@@ -196,6 +200,16 @@ static int handle_options(int argc, const char **argv, const char *prefix)
 	if (environment.key_path)
 	{
 		setenv(PK_CRED_KY, environment.key_path, 1);
+	}
+
+	if (environment.spinner_style)
+	{
+		setenv(PK_SPINNER, environment.spinner_style, 1);
+	}
+
+	if (environment.editor)
+	{
+		setenv(PK_EDITOR, environment.editor, 1);
 	}
 
 	return argc;

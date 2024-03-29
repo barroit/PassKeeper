@@ -43,6 +43,17 @@ static void vreportf(const char *prefix, const char *fmt, va_list ap)
 	fputs(buf_head, stderr);
 }
 
+int warn(const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	vreportf("warning: ", fmt, ap);
+	va_end(ap);
+
+	return 0;
+}
+
 int error(const char *fmt, ...)
 {
 	va_list ap;

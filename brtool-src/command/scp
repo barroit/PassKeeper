@@ -7,7 +7,7 @@ then
 	die "unknown build type: $1"
 fi
 
-executable=$(find $BUILD_PREFIX -maxdepth 2 -type f -regextype posix-extended -regex ".*/$1/.+\.exe$")
+executable=$(find $BUILD_PREFIX -maxdepth 1 -type f -regextype posix-extended -regex ".*/$1/.+\.exe$")
 
 if [[ -z "$executable" ]]
 then
