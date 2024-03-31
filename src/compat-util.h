@@ -122,5 +122,13 @@ int get_bias(long *bias);
 #define DEVNULL "nul"
 #endif
 
+#ifndef MAX_IO_SIZE
+#define MAX_IO_SIZE_DEFAULT (8 * 1024 * 1024)
+#if defined(SSIZE_MAX) && (SSIZE_MAX < MAX_IO_SIZE_DEFAULT)
+#define MAX_IO_SIZE SSIZE_MAX
+#else
+#define MAX_IO_SIZE MAX_IO_SIZE_DEFAULT
+#endif
+#endif /* MAX_IO_SIZE */
 
 #endif /* COMPACT_UTIL_H */

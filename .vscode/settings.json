@@ -27,7 +27,10 @@
         "credky.h": "c",
         "err.h": "c",
         "stdarg.h": "c",
-        "process.h": "c"
+        "process.h": "c",
+        "poll.h": "c",
+        "config.h": "c",
+        "malloc.h": "c"
     },
     "fileHeaderComment.parameter": {
         "*": {

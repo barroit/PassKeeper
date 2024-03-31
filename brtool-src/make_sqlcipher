@@ -13,9 +13,9 @@ then
 	exit 0
 fi
 
-cd $SOURCE_PREFIX
+cd $BRTOOL_LIBSRC_PREFIX
 
-sqlcipher_src="$SOURCE_PREFIX"/sqlcipher
+sqlcipher_src="$BRTOOL_LIBSRC_PREFIX"/sqlcipher
 
 if [[ ! -d $sqlcipher_src ]]
 then
@@ -24,14 +24,16 @@ fi
 
 cd $sqlcipher_src
 
-flags="--disable-tcl --enable-tempstore=yes --prefix="$INSTALL_PREFIX""
-cflags="-I"$INSTALL_PREFIX"/include -DSQLITE_HAS_CODEC -DSQLCIPHER_CRYPTO_OPENSSL -w -O3 -DNDEBUG"
-ldflags="-L"$INSTALL_PREFIX"/lib64 -lcrypto"
+git checkout $(get_project_info sqlcipher_stable)
+
+flags="--disable-tcl --enable-tempstore=yes --prefix=$BRTOOL_INSTALL_PREFIX"
+cflags="-I$BRTOOL_INSTALL_PREFIX/include -DSQLITE_HAS_CODEC"
+ldflags="-L$BRTOOL_INSTALL_PREFIX/lib64 -lcrypto"
 
 source "$BRTOOL_SRC_PREFIX"/uihandle
 
 # we need mksourceid for build windows executable
-if [[ ! -s "$sqlcipher_src"/mksourceid || $target_platform != 'window' ]]
+if [[ $target_platform != 'window' ]]
 then
 	process_start 'configuring sqlcipher for penguin'
 	process_exec "./configure $flags CFLAGS='$cflags' LDFLAGS='$ldflags'"
@@ -42,56 +44,72 @@ then
 	process_end
 fi
 
+if [[ ! -s "$sqlcipher_src"/mksourceid ]]
+then
+	process_start 'configuring mksourceid for sqlcipher'
+	process_exec "./configure"
+	process_end
+
+	process_start 'building mksourceid for sqlcipher'
+	process_exec 'make mksourceid'
+	process_end
+fi
+# ../configure --disable-tcl --enable-tempstore=yes LDFLAGS="-lcrypto" CFLAGS="-DSQLITE_HAS_CODEC"
+# ../configure --disable-tcl --enable-tempstore=yes --prefix="$HOME/Workspace/PassKeeper/buildext" --host=x86_64-w64-mingw32 --with-crypto-lib=none config_TARGET_EXEEXT=.exe LDFLAGS="-L$HOME/Workspace/PassKeeper/buildext/lib64 -lcrypto -lcrypt32 -lws2_32" CFLAGS="-I$HOME/Workspace/PassKeeper/buildext/include -DSQLITE_HAS_CODEC -DSQLCIPHER_CRYPTO_OPENSSL"
+
+# ./Configure mingw64 no-apps no-shared no-docs no-tests --cross-compile-prefix=x86_64-w64-mingw32- --prefix=$HOME/Workspace/PassKeeper/buildext
 if [[ $target_platform == 'window' ]]
 then
 	flags+=" --host=x86_64-w64-mingw32 --with-crypto-lib=none config_TARGET_EXEEXT=.exe"
 	ldflags+=" -lcrypt32 -lws2_32"
 
-	process_start 'configuring sqlcipher for windows'
-	process_exec "./configure $flags CFLAGS=\"$cflags\" LDFLAGS=\"$ldflags\""
+	# do this before make clean
+	process_start 'configuring sqlcipher for windows' 
+	process_exec "./configure $flags CFLAGS='$cflags' LDFLAGS='$ldflags'"
 	process_end
 
 	# remove penguin build but keep mksourceid
 	make clean > /dev/null
 
-	process_start 'building sqlcipher'
-	process_exec 'make -j25'
-	process_end
+	# process_start 'building sqlcipher'
+	# process_exec 'make -j25'
+	# process_end
+	make
 fi
 
-if ! grep -qs 'uninstall' 'Makefile'
-then
-	echo '
-uninstall:
-	rm -f $(DESTDIR)$(libdir)/libsqlcipher.la
-	rm -f $(DESTDIR)$(bindir)/sqlcipher$(TEXE)
-	rm -f $(DESTDIR)$(includedir)/sqlite3.h
-	rm -f $(DESTDIR)$(includedir)/sqlite3ext.h
-	rm -f $(DESTDIR)$(pkgconfigdir)/sqlcipher.pc' >> Makefile
-fi
+# if ! grep -qs 'uninstall' 'Makefile'
+# then
+# 	echo '
+# uninstall:
+# 	rm -f $(DESTDIR)$(libdir)/libsqlcipher.la
+# 	rm -f $(DESTDIR)$(bindir)/sqlcipher$(TEXE)
+# 	rm -f $(DESTDIR)$(includedir)/sqlite3.h
+# 	rm -f $(DESTDIR)$(includedir)/sqlite3ext.h
+# 	rm -f $(DESTDIR)$(pkgconfigdir)/sqlcipher.pc' >> Makefile
+# fi
 
-if ! grep -qs 'header_install' 'Makefile'
-then
-	echo '
-header_install: sqlite3.h sqlite3ext.h
-	$(INSTALL) -d $(DESTDIR)$(includedir)
-	$(INSTALL) -m 0644 sqlite3.h $(DESTDIR)$(includedir)
-	$(INSTALL) -m 0644 $(TOP)/src/sqlite3ext.h $(DESTDIR)$(includedir)' >> Makefile
-fi
+# if ! grep -qs 'header_install' 'Makefile'
+# then
+# 	echo '
+# header_install: sqlite3.h sqlite3ext.h
+# 	$(INSTALL) -d $(DESTDIR)$(includedir)
+# 	$(INSTALL) -m 0644 sqlite3.h $(DESTDIR)$(includedir)
+# 	$(INSTALL) -m 0644 $(TOP)/src/sqlite3ext.h $(DESTDIR)$(includedir)' >> Makefile
+# fi
 
-if ! grep -qs 'pc_install' 'Makefile'
-then
-	echo '
-pc_install: sqlcipher.pc
-	$(INSTALL) -d $(DESTDIR)$(pkgconfigdir)
-	$(INSTALL) -m 0644 sqlcipher.pc $(DESTDIR)$(pkgconfigdir)' >> Makefile
-fi
+# if ! grep -qs 'pc_install' 'Makefile'
+# then
+# 	echo '
+# pc_install: sqlcipher.pc
+# 	$(INSTALL) -d $(DESTDIR)$(pkgconfigdir)
+# 	$(INSTALL) -m 0644 sqlcipher.pc $(DESTDIR)$(pkgconfigdir)' >> Makefile
+# fi
 
-process_start 'installing sqlcipher'
-process_exec 'make lib_install'
-process_exec 'make header_install'
-process_exec 'make pc_install'
-process_end
+# process_start 'installing sqlcipher'
+# process_exec 'make lib_install'
+# process_exec 'make header_install'
+# process_exec 'make pc_install'
+# process_end
 
-update_depstat_record 'sqlcipher' "$target_platform"
+# update_depstat_record 'sqlcipher' "$target_platform"
 process_cleanup

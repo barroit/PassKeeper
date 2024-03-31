@@ -5,3 +5,4 @@ test/build/
 test/tmp/
 docs/*.html
 docs/*.1
+ext/

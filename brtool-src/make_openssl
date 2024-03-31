@@ -13,9 +13,9 @@ then
 	exit 0
 fi
 
-cd $SOURCE_PREFIX
+cd $BRTOOL_LIBSRC_PREFIX
 
-openssl_src="$SOURCE_PREFIX"/openssl
+openssl_src="$BRTOOL_LIBSRC_PREFIX"/openssl
 
 if [[ ! -d $openssl_src ]]
 then
@@ -24,8 +24,10 @@ fi
 
 cd $openssl_src
 
+git checkout -q $(get_project_info openssl_stable) > /dev/null
+
 target='linux-x86_64'
-flag="--prefix=$INSTALL_PREFIX"
+flag="--prefix=$BRTOOL_INSTALL_PREFIX"
 feature='no-apps no-shared no-legacy no-deprecated no-ui-console no-stdio'
 
 if [[ $target_platform == 'window' ]]

@@ -128,41 +128,7 @@ static inline size_t xfwrite(const void *ptr, size_t size, size_t n, FILE *s)
 /**
  * function prefixed by 'i' are safe to use in child process
  */
-static inline ssize_t iwrite(const void *ptr, size_t size, size_t n)
-{
-	ssize_t nr;
-
-	while (1)
-	{
-		if ((nr = write(ptr, size, n)) == -1)
-		{
-			if (errno == EINTR)
-			{
-				continue;
-			}
-		}
-
-		return nr;
-	}
-}
-
-static inline ssize_t xopen(const void *ptr, size_t size, size_t n)
-{
-	ssize_t nr;
-
-	while (1)
-	{
-		if ((nr = write(ptr, size, n)) == -1)
-		{
-			if (errno == EINTR)
-			{
-				continue;
-			}
-		}
-
-		return nr;
-	}
-}
+ssize_t iwrite(int fd, const void *buf, size_t len);
 
 static inline int msqlite3_open(const char *db_path, struct sqlite3 **db)
 {

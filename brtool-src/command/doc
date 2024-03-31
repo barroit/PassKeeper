@@ -5,6 +5,6 @@ target=${1:-all}
 
 load_project_info
 
-cd "$DOCS_PREFIX"
+cd "$BRTOOL_DOCS_PREFIX"
 
 make "$target" -j25

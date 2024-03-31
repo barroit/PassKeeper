@@ -1,0 +1,24 @@
+#!/usr/bin/bash
+
+openssl_dir=$HOME/Source/openssl
+install_prefix=$HOME/.local
+
+cd $openssl_dir
+
+feature='no-apps no-shared no-docs no-tests no-legacy no-threads no-ssl no-ssl-trace no-thread-pool no-stdio no-ui-console no-engine no-sock no-uplink no-deprecated no-dynamic-engine'
+target='linux-x86_64'
+flag="--prefix=$install_prefix"
+
+target=mingw64
+flag+=' --cross-compile-prefix=x86_64-w64-mingw32-'
+
+if [[ -f 'Makefile' ]]
+then
+	make clean
+fi
+
+./Configure $target $feature $flag CFLAGS=-Os
+
+make
+
+make install_sw

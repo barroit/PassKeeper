@@ -5,9 +5,9 @@ type="${1:-build}"
 
 case "$type" in
 'build')
-	for build_prefix in $(ls -F "$BUILD_PREFIX" | grep -oP '.*(?=/)')
+	for build_prefix in $(ls -F "$BRTOOL_BUILD_PREFIX" | grep -oP '.*(?=/)')
 	do
-		build_prefix="$BUILD_PREFIX"/"$build_prefix"
+		build_prefix="$BRTOOL_BUILD_PREFIX"/"$build_prefix"
 
 		if [[ -s "$build_prefix"/Makefile ]]
 		then

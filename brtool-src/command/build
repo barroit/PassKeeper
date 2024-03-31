@@ -4,12 +4,12 @@
 build_type="${1:-debug}"
 target_platform="${2:-penguin}"
 
-if ! find_array_element "$build_type" "$BUILD_TYPES"
+if ! find_array_element "$build_type" "$BRTOOL_BUILD_TYPES"
 then
 	die "build type '$build_type' not found"
 fi
 
-build_prefix="$BUILD_PREFIX"/"$build_type"
+build_prefix="$BRTOOL_BUILD_PREFIX"/"$build_type"
 
 source "$BRTOOL_SRC_PREFIX"/depstat
 
@@ -23,6 +23,9 @@ then
 	die 'stop building'
 fi
 
+exit 1
+load_project_info
+
 if ! depstat_match_prev 'cmake' "$target_platform"
 then
 	rm -rf $build_prefix
@@ -31,11 +34,9 @@ fi
 echo "-- Build type: $build_type"
 echo "-- Target platform: $target_platform"
 
-load_project_info
-
 cmake -B $build_prefix \
 -DCMAKE_TARGET_PLATFORM=${target_platform^} \
--DCMAKE_BUILD_TYPE=${build_type^} -DINSTALL_PREFIX=$INSTALL_PREFIX
+-DCMAKE_BUILD_TYPE=${build_type^} -DINSTALL_PREFIX=$BRTOOL_INSTALL_PREFIX
 
 cmake --build "$build_prefix" --parallel 25
 

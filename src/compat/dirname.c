@@ -20,43 +20,6 @@
 **
 ****************************************************************************/
 
-char *pk_strchrnul(const char *s, int c)
-{
-	while (*s && *s != c)
-	{
-		s++;
-	}
-
-	return (char *)s;
-}
-
-int pk_setenv(const char *name, const char *value, int replace)
-{
-	if (name == NULL || value == NULL || strchr(name, '='))
-	{
-		return -1;
-	}
-
-	if (getenv(name) && !replace)
-	{
-		return 0;
-	}
-
-	size_t ll, rl;
-	char *buf;
-
-	ll = strlen(name);
-	rl = strlen(value);
-	buf = xmalloc(ll + rl + 2);
-
-	memcpy(buf, name, ll);
-	buf[ll++] = '=';
-	memcpy(buf + ll, value, rl);
-	buf[ll + rl] = 0;
-
-	return putenv(buf);
-}
-
 /**
  * The dirname() function shall take a pointer to a character string that
  * contains a pathname, and return a pointer to a string that is a

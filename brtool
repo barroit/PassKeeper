@@ -5,19 +5,19 @@ export BRTOOL_PREFIX=$(dirname $(realpath $0))
 export BRTOOL_SRC_PREFIX="$BRTOOL_PREFIX"/brtool-src
 export BRTOOL_COMMAND_PREFIX="$BRTOOL_SRC_PREFIX"/command
 
-export BUILD_PREFIX="$BRTOOL_PREFIX"/build
-export BRTOOL_DEPSTAT_RECORD="$BUILD_PREFIX"/dependency.status
+export BRTOOL_BUILD_PREFIX="$BRTOOL_PREFIX"/build
+export BRTOOL_DEPSTAT_RECORD="$BRTOOL_BUILD_PREFIX"/dependency.status
 
-export BUILD_TYPES='debug release'
-export TARGET_PLATFORMS='penguin window'
+export BRTOOL_BUILD_TYPES='debug release'
+export BRTOOL_TARGET_PLATFORMS='penguin window'
 
-export SOURCE_PREFIX="$HOME"/Source
-export INSTALL_PREFIX="$HOME"/.local
+export BRTOOL_LIBSRC_PREFIX="$HOME"/Source
+export BRTOOL_INSTALL_PREFIX="$HOME"/.local
 
-export TEST_SRC_NAME=test
-export TEST_PREFIX="$BRTOOL_PREFIX"/"$TEST_SRC_NAME"
+export BRTOOL_TEST_DIRNAME=test
+export BRTOOL_TEST_PREFIX="$BRTOOL_PREFIX"/"$BRTOOL_TEST_DIRNAME"
 
-export DOCS_PREFIX="$BRTOOL_PREFIX"/docs 
+export BRTOOL_DOCS_PREFIX="$BRTOOL_PREFIX"/docs 
 
 declare -A COMMANDS
 

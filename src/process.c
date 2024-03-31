@@ -22,67 +22,67 @@
 
 #include "process.h"
 
-enum child_error_status
-{
-	CHILD_ERROR_DUP2,
-	CHILD_ERROR_ERRNO,
-}
+// enum child_error_status
+// {
+// 	CHILD_ERROR_DUP2,
+// 	CHILD_ERROR_ERRNO,
+// };
 
-struct child_error
-{
-	int err;
-	int syserr;
-}
+// struct child_error
+// {
+// 	int err;
+// 	int syserr;
+// };
 
-static int child_notifier = -1;
+// static int child_notifier = -1;
 
-static void child_die(enum child_error_status status)
-{
-	struct child_error field;
+// static void child_die(enum child_error_status status)
+// {
+// 	struct child_error field;
 
-	field.err = status;
-	field.syserr = errno;
+// 	field.err = status;
+// 	field.syserr = errno;
 
-	iwrite(child_notifier, &field, sizeof(struct child_error));
-	_exit(EXIT_FAILURE);
-}
+// 	iwrite(child_notifier, &field, sizeof(struct child_error));
+// 	_exit(EXIT_FAILURE);
+// }
 
-static inline void xdup2(int fd1, int fd2)
-{
-	if (dup2(fd1, fd2))
-	{
-		child_die(CHILD_ERROR_DUP2);
-	}
-}
+// static inline void xdup2(int fd1, int fd2)
+// {
+// 	if (dup2(fd1, fd2))
+// 	{
+// 		child_die(CHILD_ERROR_DUP2);
+// 	}
+// }
 
-int start_process(struct process_ctx *ctx, procfn_t cb)
-{
-	ctx->pid = fork();
-	open(DEVNULL, )
+// int start_process(struct process_ctx *ctx, procfn_t cb)
+// {
+// 	ctx->pid = fork();
+// 	open(DEVNULL, )
 
-	if (ctx->pid == 0)
-	{
-		if (ctx->fildes_flags & NO_STDIN)
-		{
-			xdup2()
-		}
+// 	if (ctx->pid == 0)
+// 	{
+// 		if (ctx->fildes_flags & NO_STDIN)
+// 		{
+// 			xdup2()
+// 		}
 
-		if (ctx->fildes_flags & NO_STDOUT)
-		{
-			//
-		}
+// 		if (ctx->fildes_flags & NO_STDOUT)
+// 		{
+// 			//
+// 		}
 
-		if (ctx->fildes_flags & NO_STDERR)
-		{
-			//
-		}
+// 		if (ctx->fildes_flags & NO_STDERR)
+// 		{
+// 			//
+// 		}
 		
-		int rescode;
+// 		int rescode;
 
-		rescode = cb();
+// 		rescode = cb();
 
-		_exit(rescode);
-	}
+// 		_exit(rescode);
+// 	}
 
-	return 0;
-}
+// 	return 0;
+// }
