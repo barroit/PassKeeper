@@ -1,18 +1,16 @@
-#/usr/bin/bash
-
-temp_stderr=$(mktemp)
-exec 3>/dev/null
-failed=0
+current_time()
+{
+	date +%s%N | cut -b1-13
+}
 
 spinner()
 {
-	local pid=$!
 	local spin='-\|/'
 	local i=0
 
-	while kill -0 $pid 2>/dev/null
+	while kill -0 "$1" 2>/dev/null
 	do
-		i=$(((i + 1) % 4))
+		i=$(( (i + 1) % 4 ))
 		printf '%s\b' "${spin:$i:1}"
 		sleep .2
 	done
@@ -23,25 +21,36 @@ process_start()
 	printf -- '-- %s... ' "$*"
 }
 
-process_exec() {
-	eval "$*" 2> >(grep -v "WARNING" > $temp_stderr) >&3 & spinner
+process_exec()
+{
+	process_exec_starts_at=$(current_time)
+
+	eval $* > /dev/null 2>&1 &
+	local cmd_pid=$!
+
+	spinner "$cmd_pid"
+
+	wait "$cmd_pid"
+
+	return $?
 }
 
 process_end()
 {
-	if [[ -s $temp_stderr ]]
-	then
-		echo 'no'
-		cat $temp_stderr >&2
-		truncate -s 0 $temp_stderr
-		failed=1
-	else
-		echo 'ok'
-	fi
-}
+	local rescode=$?
 
-process_cleanup()
-{
-	rm $temp_stderr
-	exit $failed
+	if [[ $rescode != 0 ]]
+	then
+		echo "no (result: $rescode)"
+
+		if [[ $rescode -eq 77 || $rescode -eq 2 ]]
+		then
+			echo 'error: compiler internal failure, try to adjust jobs or run this command again'
+		fi
+
+		exit $rescode
+	else
+		elapsed_time="$(bc <<< "scale=1; ($(current_time) - $process_exec_starts_at) / 1000")"
+		printf "ok (%.1fs)\n" "$elapsed_time"
+	fi
 }

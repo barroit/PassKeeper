@@ -2,42 +2,51 @@
 
 build_type=${1:-debug}
 
-if ! find_array_element "$build_type" "$BRTOOL_BUILD_TYPES"
+if ! find_scalar_word "$build_type" "$BRTOOL_BUILD_PROFILES"
 then
 	die "unknown build type '$build_type' to run this suit"
 fi
 
-build_prefix="$BRTOOL_TEST_PREFIX"/build
+build_prefix="$TEST_SOURCE_PREFIX"/build
 
 export BRTOOL_BUILD_PREFIX="$build_prefix" # override BRTOOL_BUILD_PREFIX
 export PKBIN="$build_prefix"/pk
 export TEST_BUILD_PREFIX="$build_prefix"
-export SRC_PREFIX="$BRTOOL_PREFIX"/src
-export TEST_TMP_PREFIX="$BRTOOL_TEST_PREFIX"/tmp
+export SRC_PREFIX="$PROJECT_PREFIX"/src
+export TEST_TMP_PREFIX="$TEST_SOURCE_PREFIX"/tmp
 export PK_CRED_KY="$TEST_TMP_PREFIX"/key
 export PK_CRED_DB="$TEST_TMP_PREFIX"/db
 
+export PKG_CONFIG_PATH="${LIBRARY_INSTALL_PREFIX}/lib64/pkgconfig:\
+${LIBRARY_INSTALL_PREFIX}/lib/pkgconfig"
+
 load_project_info
 
-if ! cmake -B $build_prefix -DPK_TEST=1 -DINSTALL_PREFIX=$BRTOOL_INSTALL_PREFIX \
--DCMAKE_BUILD_TYPE=${build_type^} -DCMAKE_TARGET_PLATFORM=Penguin
+mkdir -p "$build_prefix"
+cd "$build_prefix"
+
+if ! cmake "$PROJECT_PREFIX" -DPK_TEST=1 -DCMAKE_BUILD_TYPE="${build_type^}" \
+-DCMAKE_TOOLCHAIN_FILE="$CMAKE_MODULE_PREFIX"/GCC.cmake
 then
 	die 'stop building'
 fi
 
-if ! cmake --build "$build_prefix" --parallel 25
+if ! make -j25
 then
 	die 'stop building'
 fi
 
-rm -rf "$TEST_TMP_PREFIX"/*
+if [[ $(ls -1q "$TEST_TMP_PREFIX" | wc -l) -gt 0 ]]
+then
+	rm -r "$TEST_TMP_PREFIX"/*
+fi
 
-echo "entering $BRTOOL_TEST_PREFIX"
-cd $BRTOOL_TEST_PREFIX
+echo "entering $TEST_SOURCE_PREFIX"
+cd $TEST_SOURCE_PREFIX
 echo
 echo "################################STARTTEST################################"
 echo
 
 prove -j25 ./
 
-rm -rf "$TEST_TMP_PREFIX"/*
+rm -r "$TEST_TMP_PREFIX"/*

@@ -26,7 +26,7 @@
 
 static inline bool is_absolute_path(const char *path)
 {
-#ifdef POSIX
+#ifdef LINUX
 	return *path && *path == '/';
 #else
 	return *path && in_range(*path, 'A', 'Z', true) && path[1] == ':';
@@ -58,7 +58,7 @@ char *prefix_filename(const char *prefix, const char *filename)
 	return sb->buf;
 }
 
-#ifdef POSIX
+#ifdef LINUX
 /* check b1 has b2 if a1 has a2 */
 #define check_if_has(a1, a2, b1, b2) (((a1) & (a2)) ? ((b1) & (b2)) : 1)
 

@@ -2,9 +2,9 @@
 
 build_type=${1:-debug}
 
-if ! find_array_element "$1" "$BRTOOL_BUILD_TYPES"
+if ! find_scalar_word "$build_type" "$BRTOOL_BUILD_PROFILES"
 then
-	die "unknown build type: $1"
+	die "unknown build type: $build_type"
 fi
 
 executable=$(find $BRTOOL_BUILD_PREFIX -maxdepth 1 -type f -regextype posix-extended -regex ".*/$1/.+\.exe$")

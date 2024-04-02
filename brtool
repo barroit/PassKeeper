@@ -1,23 +1,25 @@
 #!/usr/bin/bash
 
-export BRTOOL_PREFIX=$(dirname $(realpath $0))
+export PROJECT_PREFIX=$(dirname $(realpath $0))
 
-export BRTOOL_SRC_PREFIX="$BRTOOL_PREFIX"/brtool-src
-export BRTOOL_COMMAND_PREFIX="$BRTOOL_SRC_PREFIX"/command
+export BRTOOL_SOURCE_PREFIX="$PROJECT_PREFIX"/brtool-src
+export BRTOOL_COMMAND_PREFIX="$BRTOOL_SOURCE_PREFIX"/command
 
-export BRTOOL_BUILD_PREFIX="$BRTOOL_PREFIX"/build
+export BRTOOL_BUILD_PREFIX="$PROJECT_PREFIX"/build
 export BRTOOL_DEPSTAT_RECORD="$BRTOOL_BUILD_PREFIX"/dependency.status
 
-export BRTOOL_BUILD_TYPES='debug release'
-export BRTOOL_TARGET_PLATFORMS='penguin window'
+export BRTOOL_BUILD_PROFILES='debug release'
+export BRTOOL_PROGRAM_HOSTS='penguin window'
 
-export BRTOOL_LIBSRC_PREFIX="$HOME"/Source
-export BRTOOL_INSTALL_PREFIX="$HOME"/.local
+export LIBRARY_SOURCE_PREFIX="$PROJECT_PREFIX"/ext
+export LIBRARY_INSTALL_PREFIX="$LIBRARY_SOURCE_PREFIX"/build
 
-export BRTOOL_TEST_DIRNAME=test
-export BRTOOL_TEST_PREFIX="$BRTOOL_PREFIX"/"$BRTOOL_TEST_DIRNAME"
+export TEST_SOURCE_DIRNAME=test
+export TEST_SOURCE_PREFIX="$PROJECT_PREFIX"/"$TEST_SOURCE_DIRNAME"
 
-export BRTOOL_DOCS_PREFIX="$BRTOOL_PREFIX"/docs 
+export DOCS_SOURCE_PREFIX="$PROJECT_PREFIX"/docs 
+
+export CMAKE_MODULE_PREFIX="$PROJECT_PREFIX"/cmake
 
 declare -A COMMANDS
 
@@ -26,14 +28,13 @@ do
 	COMMANDS["$cmdname"]="$BRTOOL_COMMAND_PREFIX"/"$cmdname"
 done
 
-source "$BRTOOL_SRC_PREFIX"/util
+source "$BRTOOL_SOURCE_PREFIX"/util
 
 command="${1:-build}"
 
-if ! find_array_element "$command" "${COMMANDS[@]}"
+if [[ -z "${COMMANDS[$command]}" ]]
 then
 	die "command '$command' not found, see ./brtool help"
-	echo 1
 fi
 
-command "${COMMANDS[$command]}" ${*:2}
+bash "${COMMANDS[$command]}" ${*:2}

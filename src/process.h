@@ -27,12 +27,12 @@
 #define NO_STDOUT 1 << 1
 #define NO_STDERR 1 << 2
 
-typedef int (*procfn_t)(void);
+// typedef int (*procfn_t)(void);
 
-struct process_ctx
-{
-	pid_t pid;
-	unsigned fildes_flags;
-};
+// struct process_ctx
+// {
+// 	pid_t pid;
+// 	unsigned fildes_flags;
+// };
 
 #endif /* PROCESS_H */

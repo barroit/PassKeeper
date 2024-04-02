@@ -1,18 +1,18 @@
 {
-    "configurations": [
-        {
-            "name": "linux",
-            "defines": [
-                "${default}",
-                "POSIX",
-                "SQLITE_HAS_CODEC"
-            ],
-            "forcedInclude": [
-                "${workspaceFolder}/src/compat-util.h",
-                "${workspaceFolder}/src/wrapper.h",
-                "${workspaceFolder}/cmake/project-config.h"
-            ]
-        }
-    ],
-    "version": 4
+	"configurations": [
+		{
+			"name": "linux",
+			"defines": [
+				"${default}",
+				"POSIX",
+				"SQLITE_HAS_CODEC"
+			],
+			"forcedInclude": [
+				"${workspaceFolder}/src/compat-util.h",
+				"${workspaceFolder}/src/wrapper.h",
+				"${workspaceFolder}/cmake/project-config.h"
+			]
+		}
+	],
+	"version": 4
 }

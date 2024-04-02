@@ -7,21 +7,24 @@ case "$type" in
 'build')
 	for build_prefix in $(ls -F "$BRTOOL_BUILD_PREFIX" | grep -oP '.*(?=/)')
 	do
-		build_prefix="$BRTOOL_BUILD_PREFIX"/"$build_prefix"
+		cd "$BRTOOL_BUILD_PREFIX"/"$build_prefix"
 
-		if [[ -s "$build_prefix"/Makefile ]]
+		if [[ -s Makefile ]]
 		then
-			cmake --build "$build_prefix" --target clean
+			make clean
 		fi
 	done
 	;;
+'depstat')
+	> "$BRTOOL_DEPSTAT_RECORD"
+	;;
 'coredump')
-	rm -rf "$BRTOOL_PREFIX"/core.*
+	rm "$PROJECT_PREFIX"/core.*
 	;;
 'draft')
-	rm -rf "$BRTOOL_PREFIX"/draft.*
+	rm "$PROJECT_PREFIX"/draft.*
 	;;
 *)
-	die "cannot found '$1' in: [build | coredump | draft]"
+	die "cannot found '$type' in: [build | coredump | draft]"
 	;;
 esac

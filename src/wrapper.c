@@ -20,23 +20,23 @@
 **
 ****************************************************************************/
 
-#include "compat/poll.h"
+// #include "compat/poll.h"
 
-static int handle_nonblock(int fd, short poll_events, int err)
-{
-	struct pollfd pfd;
+// static int handle_nonblock(int fd, short poll_events, int err)
+// {
+// 	struct pollfd pfd;
 
-	if (err != EAGAIN && err != EWOULDBLOCK)
-	{
-		return 0;
-	}
+// 	if (err != EAGAIN && err != EWOULDBLOCK)
+// 	{
+// 		return 0;
+// 	}
 
-	pfd.fd = fd;
-	pfd.events = poll_events;
+// 	pfd.fd = fd;
+// 	pfd.events = poll_events;
 
-	poll(&pfd, 1, -1);
-	return 1;
-}
+// 	poll(&pfd, 1, -1);
+// 	return 1;
+// }
 
 ssize_t iwrite(int fd, const void *buf, size_t len)
 {
@@ -55,10 +55,10 @@ ssize_t iwrite(int fd, const void *buf, size_t len)
 				continue;
 			}
 
-			if (handle_nonblock(fd, POLLOUT, errno))
-			{
-				continue;
-			}
+			// if (handle_nonblock(fd, POLLOUT, errno))
+			// {
+			// 	continue;
+			// }
 		}
 
 		return nr;

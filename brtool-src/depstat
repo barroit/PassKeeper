@@ -1,6 +1,4 @@
-#!/usr/bin/bash
 # depstat stands for dependency status
-# you should NEVER execute this file manually, or you may get unexpected side effects
 
 depstat_match_prev()
 {
@@ -12,7 +10,16 @@ depstat_match_prev()
 	fi
 }
 
-export -f depstat_match_prev
+skip_matched_depstat()
+{
+	if depstat_match_prev "$1" "$PROGRAM_HOST"
+	then
+		echo "skipped building $1"
+		exit 0
+	fi
+}
+
+export -f depstat_match_prev skip_matched_depstat
 
 update_depstat_record()
 {
@@ -24,9 +31,9 @@ update_depstat_record()
 
 	if [[ -z "$(get_pair_value "$1" "$BRTOOL_DEPSTAT_RECORD")" ]]
 	then
-		echo "$1"="$2" >> "$BRTOOL_DEPSTAT_RECORD"
+		echo "$1"=""$PROGRAM_HOST"" >> "$BRTOOL_DEPSTAT_RECORD"
 	else
-		sed -i "s/^\($1=\).*/\1$2/" "$BRTOOL_DEPSTAT_RECORD"
+		sed -i "s/^\($1=\).*/\1"$PROGRAM_HOST"/" "$BRTOOL_DEPSTAT_RECORD"
 	fi
 }
 

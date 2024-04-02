@@ -3,5 +3,6 @@ author=Jiamu Sun
 contact=barroit@linux.com
 projname=BR passkeeper
 license_noties=Copyright (C) 2023, 2024 Jiamu Sun\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n
-openssl_stable=a7e9928
-sqlcipher_stable=befb070
+
+openssl_stable=openssl-3.2.1
+sqlcipher_stable=v4.5.6

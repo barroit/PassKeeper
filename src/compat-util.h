@@ -40,7 +40,6 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <sqlite3.h>
-#include <sys/wait.h>
 
 #define PK_CRED_DB	"PK_CRED_DB"
 #define PK_CRED_KY	"PK_CRED_KY"
@@ -49,7 +48,7 @@
 #define PK_CRED_DB_NM	".pk-credfl"
 #define PK_CRED_KY_NM	".pk-credky"
 
-#ifdef POSIX
+#ifdef LINUX
 #define ENV_USERHOME "HOME"
 #define DIRSEPSTR  "/"
 #define DIRSEPCHAR '/'
@@ -61,12 +60,6 @@
 
 #define UNUSED __attribute__((unused))
 
-// #define POSIX_ONLY
-
-// #ifndef POSIX
-// #define POSIX_ONLY static
-// #endif
-
 #ifdef NO_STRCHRNUL
 char *pk_strchrnul(const char *s, int c);
 #define strchrnul pk_strchrnul
@@ -77,26 +70,30 @@ int pk_setenv(const char *name, const char *value, int replace);
 #define setenv pk_setenv
 #endif
 
-#ifdef POSIX
-#include <libgen.h>
-#endif
-
 #ifdef NO_DIRNAME
 char *pk_dirname(char *path);
 #define dirname pk_dirname
+#else
+#include <libgen.h>
 #endif
 
-#if defined(POSIX) || defined(PKTEST) /* for test */
+#if defined(LINUX) || defined(PKTEST) /* for test */
 #define mkdir(path) mkdir((path), 0775)
 #endif
 
-#ifdef POSIX
+#ifdef LINUX
 #define test_file_permission(p, s, m) test_file_permission_st(s, m)
 #else
 #define test_file_permission(p, s, m) test_file_permission_ch(p, m)
 #endif
 
-#ifdef POSIX
+#ifdef LINUX
+#include <time.h>
+#else
+#include <timezoneapi.h>
+#endif
+
+#ifdef LINUX
 #include <time.h>
 #else
 #include <timezoneapi.h>
@@ -104,19 +101,23 @@ char *pk_dirname(char *path);
 
 int get_bias(long *bias);
 
-#ifdef POSIX
+#ifdef LINUX
 #define DEFAULT_EDITOR "vi"
 #else
 #define DEFAULT_EDITOR "notepad"
 #endif
 
-#ifndef POSIX
+#ifdef WINDOWS_NATIVE
 #include <io.h>
+#endif
+
+#ifdef LINUX
+#include <sys/wait.h>
 #endif
 
 #include <fcntl.h>
 
-#ifdef POSIX
+#ifdef LINUX
 #define DEVNULL "/dev/null"
 #else
 #define DEVNULL "nul"

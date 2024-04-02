@@ -1,5 +1,3 @@
-#!/usr/bin/bash
-
 die()
 {
 	echo "$*" >&2
@@ -8,54 +6,50 @@ die()
 
 export -f die
 
-find_array_element()
+find_scalar_word()
 {
-	for el in "$2"
+	for word in $2
 	do
-		if [[ "$el" == "$1" ]]
+		if [[ "$word" == "$1" ]]
 		then
-			return 1
+			return 0
 		fi
 	done
 
-	return 0
+	return 1
 }
 
-export -f find_array_element
+export -f find_scalar_word
 
 get_pair_value()
 {
 	grep -oP "^$1=.+" "$2" | cut -d '=' -f2
 }
 
-export -f get_pair_value
-
 get_remote_info()
 {
-	get_pair_value "$1" "$BRTOOL_PREFIX"/remote.info
+	get_pair_value "$1" "$PROJECT_PREFIX"/remote.info
 }
-
-export -f get_remote_info
-
-if [[ ! -s "$BRTOOL_PREFIX"/remote.info ]]
-then
-	die "$BRTOOL_PREFIX/remote.info: file not exists"
-fi
 
 get_project_info()
 {
-	get_pair_value "$1" "$BRTOOL_PREFIX"/project.info
+	get_pair_value "$1" "$PROJECT_PREFIX"/project.info
 }
 
-export -f get_project_info
+export -f get_pair_value get_remote_info get_project_info
 
-if [[ ! -s "$BRTOOL_PREFIX"/project.info ]]
-then
-	die "$BRTOOL_PREFIX/project.info: file not exists"
-fi
+request_project_info()
+{
+	if [[ ! -s "$PROJECT_PREFIX"/project.info ]]
+	then
+		die "$PROJECT_PREFIX/project.info: file not exists"
+	fi
+}
 
 load_project_info()
 {
+	request_project_info
+
 	export ARCHITECTURE=$(uname -m)
 	export BUILD_COMMIT=$(git rev-parse HEAD)
 
@@ -66,4 +60,30 @@ load_project_info()
 	export PK_LICENSE_NOTIES=$(get_project_info license_noties)
 }
 
-export -f load_project_info
+export -f request_project_info load_project_info
+
+prepare_extsrc()
+{
+	srcname="$1"
+	upstream="$2"
+
+	cd "$LIBRARY_SOURCE_PREFIX"
+
+	src="$LIBRARY_SOURCE_PREFIX"/"$srcname"
+
+	if ! git --git-dir "$src"/.git rev-parse --git-dir > /dev/null 2>&1
+	then
+		echo "cloning $srcname"
+		git clone -q "$upstream"
+	fi
+
+	cd "$src"
+
+	request_project_info
+	git switch -dq tags/$(get_project_info "$srcname"_stable)
+
+	mkdir -p build
+	cd build
+}
+
+export -f prepare_extsrc

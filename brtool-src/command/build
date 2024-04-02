@@ -1,43 +1,55 @@
-#!/usr/bin/bash
-# you should NEVER execute this file manually, or you may get unexpected side effects
+export BUILD_PROFILE="${1:-debug}"
+export PROGRAM_HOST="${2:-penguin}"
 
-build_type="${1:-debug}"
-target_platform="${2:-penguin}"
-
-if ! find_array_element "$build_type" "$BRTOOL_BUILD_TYPES"
+if ! find_scalar_word "$BUILD_PROFILE" "$BRTOOL_BUILD_PROFILES"
 then
-	die "build type '$build_type' not found"
+	die "build type '$BUILD_PROFILE' not found"
 fi
 
-build_prefix="$BRTOOL_BUILD_PREFIX"/"$build_type"
-
-source "$BRTOOL_SRC_PREFIX"/depstat
-
-if ! command "$BRTOOL_SRC_PREFIX"/make_openssl "$target_platform"
+if ! find_scalar_word "$PROGRAM_HOST" "$BRTOOL_PROGRAM_HOSTS"
 then
-	die 'stop building'
+	die "build type '$PROGRAM_HOST' not found"
 fi
 
-if ! command "$BRTOOL_SRC_PREFIX"/make_sqlcipher "$target_platform"
+build_prefix="$BRTOOL_BUILD_PREFIX"/"$BUILD_PROFILE"
+
+source "$BRTOOL_SOURCE_PREFIX"/depstat
+
+if ! bash "$BRTOOL_SOURCE_PREFIX"/make_openssl
 then
 	die 'stop building'
 fi
 
-exit 1
+if ! bash "$BRTOOL_SOURCE_PREFIX"/make_sqlcipher
+then
+	die 'stop building'
+fi
+
 load_project_info
 
-if ! depstat_match_prev 'cmake' "$target_platform"
+if ! depstat_match_prev 'cmake' "$PROGRAM_HOST" && [[ -d "$build_prefix" ]]
 then
-	rm -rf $build_prefix
+	rm -r $build_prefix/*
 fi
 
-echo "-- Build type: $build_type"
-echo "-- Target platform: $target_platform"
+echo "-- Build profile: $BUILD_PROFILE"
+echo "-- Host name: $PROGRAM_HOST"
 
-cmake -B $build_prefix \
--DCMAKE_TARGET_PLATFORM=${target_platform^} \
--DCMAKE_BUILD_TYPE=${build_type^} -DINSTALL_PREFIX=$BRTOOL_INSTALL_PREFIX
+export PKG_CONFIG_PATH="${LIBRARY_INSTALL_PREFIX}/lib64/pkgconfig:\
+${LIBRARY_INSTALL_PREFIX}/lib/pkgconfig"
 
-cmake --build "$build_prefix" --parallel 25
+mkdir -p "$build_prefix"
+cd "$build_prefix"
 
-update_depstat_record 'cmake' "$target_platform"
+if [[ "$PROGRAM_HOST" == 'window' ]]
+then
+	cmake_options="-DCMAKE_TOOLCHAIN_FILE='$CMAKE_MODULE_PREFIX/MinGW-w64.cmake'"
+else
+	cmake_options="-DCMAKE_TOOLCHAIN_FILE='$CMAKE_MODULE_PREFIX/GCC.cmake'"
+fi
+
+cmake "$PROJECT_PREFIX" -DCMAKE_BUILD_TYPE="${BUILD_PROFILE^}" "$cmake_options"
+
+make -j25
+
+update_depstat_record 'cmake' "$PROGRAM_HOST"

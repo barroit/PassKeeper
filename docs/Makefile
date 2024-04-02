@@ -24,6 +24,6 @@ manpage: $(MANPAGE)
 
 
 clean:
-	rm -f $(HTML) $(MANPAGE)
+	rm $(HTML) $(MANPAGE)
 
 .PHONY: all manpage clean
