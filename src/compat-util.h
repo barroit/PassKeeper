@@ -36,6 +36,7 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <assert.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
@@ -93,12 +94,6 @@ char *pk_dirname(char *path);
 #include <timezoneapi.h>
 #endif
 
-#ifdef LINUX
-#include <time.h>
-#else
-#include <timezoneapi.h>
-#endif
-
 int get_bias(long *bias);
 
 #ifdef LINUX
@@ -131,5 +126,9 @@ int get_bias(long *bias);
 #define MAX_IO_SIZE MAX_IO_SIZE_DEFAULT
 #endif
 #endif /* MAX_IO_SIZE */
+
+#ifdef WINDOWS_NATIVE
+#define GetTickCount64 GetTickCount
+#endif
 
 #endif /* COMPACT_UTIL_H */

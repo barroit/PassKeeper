@@ -20,7 +20,7 @@
 **
 ****************************************************************************/
 
-#include "process.h"
+#include "pkproc.h"
 
 void run_default_spinner(FILE *stream, useconds_t period)
 {

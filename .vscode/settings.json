@@ -30,7 +30,10 @@
 		"process.h": "c",
 		"poll.h": "c",
 		"config.h": "c",
-		"malloc.h": "c"
+		"malloc.h": "c",
+		"stdio.h": "c",
+		"stdlib.h": "c",
+		"errno.h": "c"
 	},
 	"fileHeaderComment.parameter": {
 		"*": {

@@ -25,7 +25,7 @@ process_exec()
 {
 	process_exec_starts_at=$(current_time)
 
-	eval $* > /dev/null 2>&1 &
+	eval $* > "$LIBRARY_BUILD_LOG" 2>&1 &
 	local cmd_pid=$!
 
 	spinner "$cmd_pid"
@@ -42,12 +42,7 @@ process_end()
 	if [[ $rescode != 0 ]]
 	then
 		echo "no (result: $rescode)"
-
-		if [[ $rescode -eq 77 || $rescode -eq 2 ]]
-		then
-			echo 'error: compiler internal failure, try to adjust jobs or run this command again'
-		fi
-
+		echo "log generated at $LIBRARY_BUILD_LOG"
 		exit $rescode
 	else
 		elapsed_time="$(bc <<< "scale=1; ($(current_time) - $process_exec_starts_at) / 1000")"

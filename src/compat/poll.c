@@ -21,6 +21,7 @@
 /* Tell gcc not to warn about the (nfd < 0) tests, below.  */
 #if (__GNUC__ == 4 && 3 <= __GNUC_MINOR__) || 4 < __GNUC__
 # pragma GCC diagnostic ignored "-Wtype-limits"
+# pragma GCC diagnostic ignored "-Wsign-compare"
 #endif
 
 #if defined(WIN32)

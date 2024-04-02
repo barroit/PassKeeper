@@ -4,13 +4,13 @@
 			"name": "linux",
 			"defines": [
 				"${default}",
-				"POSIX",
+				"LINUX",
 				"SQLITE_HAS_CODEC"
 			],
 			"forcedInclude": [
 				"${workspaceFolder}/src/compat-util.h",
 				"${workspaceFolder}/src/wrapper.h",
-				"${workspaceFolder}/cmake/project-config.h"
+				"${workspaceFolder}/project-config.h"
 			]
 		}
 	],

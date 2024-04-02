@@ -21,11 +21,7 @@ then
 	if [[ ! -s mksourceid ]]
 	then
 		process_start 'configuring mksourceid for sqlcipher'
-		process_exec "../configure --enable-releasemode --with-crypto-lib=none"
-		process_end
-	
-		process_start 'building mksourceid for sqlcipher'
-		process_exec 'make mksourceid'
+		process_exec "gcc -g -O2 -DSQLCIPHER_CRYPTO_OPENSSL -o mksourceid ../tool/mksourceid.c"
 		process_end
 	fi
 

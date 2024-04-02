@@ -20,47 +20,69 @@
 **
 ****************************************************************************/
 
-#include "compat/poll.h"
+#include "pkproc.h"
 
-static int handle_nonblock(int fd, short poll_events, int err)
+enum child_error_status
 {
-	struct pollfd pfd;
+	CHILD_ERROR_DUP2,
+	CHILD_ERROR_ERRNO,
+};
 
-	if (err != EAGAIN && err != EWOULDBLOCK)
-	{
-		return 0;
-	}
+struct child_error
+{
+	int err;
+	int syserr;
+};
 
-	pfd.fd = fd;
-	pfd.events = poll_events;
+static int child_notifier = -1;
 
-	poll(&pfd, 1, -1);
-	return 1;
+static void child_die(enum child_error_status status)
+{
+	struct child_error field;
+
+	field.err = status;
+	field.syserr = errno;
+
+	iwrite(child_notifier, &field, sizeof(struct child_error));
+	_exit(EXIT_FAILURE);
 }
 
-ssize_t iwrite(int fd, const void *buf, size_t len)
+static inline void xdup2(int fd1, int fd2)
 {
-	ssize_t nr;
-	if (len > MAX_IO_SIZE)
+	if (dup2(fd1, fd2))
 	{
-		len = MAX_IO_SIZE;
+		child_die(CHILD_ERROR_DUP2);
 	}
+}
 
-	while (1)
+int start_process(struct process_ctx *ctx, procfn_t cb)
+{
+	// ctx->pid = fork();
+	// open(DEVNULL, )
+
+	if (ctx->pid == 0)
 	{
-		if ((nr = write(fd, buf, len)) == -1)
+		if (ctx->fildes_flags & NO_STDIN)
 		{
-			if (errno == EINTR)
-			{
-				continue;
-			}
-
-			if (handle_nonblock(fd, POLLOUT, errno))
-			{
-				continue;
-			}
+			// xdup2()
 		}
 
-		return nr;
+		if (ctx->fildes_flags & NO_STDOUT)
+		{
+			//
+		}
+
+		if (ctx->fildes_flags & NO_STDERR)
+		{
+			//
+		}
+		
+		int rescode;
+
+		rescode = cb();
+
+		_exit(rescode);
 	}
+
+	return 0;
 }

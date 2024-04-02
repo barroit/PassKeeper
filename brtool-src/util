@@ -67,6 +67,7 @@ prepare_extsrc()
 	srcname="$1"
 	upstream="$2"
 
+	mkdir -p "$LIBRARY_SOURCE_PREFIX"
 	cd "$LIBRARY_SOURCE_PREFIX"
 
 	src="$LIBRARY_SOURCE_PREFIX"/"$srcname"

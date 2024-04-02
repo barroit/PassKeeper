@@ -20,19 +20,19 @@
 **
 ****************************************************************************/
 
-#ifndef PROCESS_H
-#define PROCESS_H
+#ifndef PKPROC_H
+#define PKPROC_H
 
 #define NO_STDIN  1 << 0
 #define NO_STDOUT 1 << 1
 #define NO_STDERR 1 << 2
 
-// typedef int (*procfn_t)(void);
+typedef int (*procfn_t)(void);
 
-// struct process_ctx
-// {
-// 	pid_t pid;
-// 	unsigned fildes_flags;
-// };
+struct process_ctx
+{
+	pid_t pid;
+	unsigned fildes_flags;
+};
 
-#endif /* PROCESS_H */
+#endif /* PKPROC_H */
