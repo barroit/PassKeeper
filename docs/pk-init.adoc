@@ -6,7 +6,8 @@ pk-init - Initialize database for storing user credentials
 
 == SYNOPSIS
 
-*pk init* [--encrypt[=<key>]] [--[no-]remember] [<options>]
+[verse]
+pk init [--encrypt[=<key>]] [--[no-]remember] [<options>]
 
 == DESCRIPTION
 

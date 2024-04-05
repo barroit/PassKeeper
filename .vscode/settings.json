@@ -3,41 +3,7 @@
 		".gdb*": "plaintext",
 		"gdb*": "plaintext",
 		"cfgmap": "plaintext",
-		".?gdb*": "plaintext",
-		"command.h": "c",
-		"stddef.h": "c",
-		"strlist.h": "c",
-		"typeinfo": "c",
-		"type_traits": "c",
-		"stdbool.h": "c",
-		"parse-options.h": "c",
-		"*.in": "c",
-		"strbuf.h": "c",
-		"unistd.h": "c",
-		"limits.h": "c",
-		"usage.h": "c",
-		"filesys.h": "c",
-		"assert.h": "c",
-		"sqlite3.h": "c",
-		"rand.h": "c",
-		"rawnumop.h": "c",
-		"libgen.h": "c",
-		"stat.h": "c",
-		"sha.h": "c",
-		"credky.h": "c",
-		"err.h": "c",
-		"stdarg.h": "c",
-		"process.h": "c",
-		"poll.h": "c",
-		"config.h": "c",
-		"malloc.h": "c",
-		"stdio.h": "c",
-		"stdlib.h": "c",
-		"errno.h": "c",
-		"pkproc.h": "c",
-		"*.inc": "c",
-		"message.h": "c",
-		"system_error": "c"
+		"signal.h": "c"
 	},
 	"fileHeaderComment.parameter": {
 		"*": {
@@ -47,5 +13,8 @@
 			"project": "PassKeeper",
 			"year": "2023, 2024"
 		}
+	},
+	"C_Cpp.files.exclude": {
+		"ext/**": true
 	}
 }

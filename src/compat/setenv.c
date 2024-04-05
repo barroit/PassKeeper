@@ -20,29 +20,59 @@
 **
 ****************************************************************************/
 
-int pk_setenv(const char *name, const char *value, int replace)
+/**
+ * The setenv() function shall update or add a variable in the environment of
+ * the calling process. The envname argument points to a string containing
+ * the name of an environment variable to be added or altered. The
+ * environment variable shall be set to the value to which envval points. The
+ * function shall fail if envname points to a string which contains an '='
+ * character. If the environment variable named by envname already exists and
+ * the value of overwrite is non-zero, the function shall return success and
+ * the environment shall be updated. If the environment variable named by
+ * envname already exists and the value of overwrite is zero, the function
+ * shall return success and the environment shall remain unchanged.
+ * 
+ * Upon successful completion, zero shall be returned. Otherwise, -1 shall be
+ * returned, errno set to indicate the error, and the environment shall be
+ * unchanged.
+ * 
+ * The setenv() function shall fail if:
+ * [EINVAL]
+ *     The envname argument points to an empty string or points to a string
+ *     containing an '=' character.
+ * [ENOMEM]
+ *     Insufficient memory was available to add a variable or its value to
+ *     the environment.
+ */
+int pk_setenv(const char *envname, const char *envval, int overwrite)
 {
-	if (name == NULL || value == NULL || strchr(name, '='))
+	if (envname == NULL || *envname == 0 || strchr(envname, '='))
 	{
+		errno = EINVAL;
 		return -1;
 	}
 
-	if (getenv(name) && !replace)
+	if (getenv(envname) && !overwrite)
 	{
 		return 0;
 	}
 
-	size_t ll, rl;
+	size_t envname_len, envval_len;
 	char *buf;
 
-	ll = strlen(name);
-	rl = strlen(value);
-	buf = xmalloc(ll + rl + 2);
+	envname_len = strlen(envname);
+	envval_len = strlen(envval);
+	if ((buf = malloc(envname_len + envval_len + 2)) == NULL)
+	{
+		errno = ENOMEM;
+		return -1;
+	}
 
-	memcpy(buf, name, ll);
-	buf[ll++] = '=';
-	memcpy(buf + ll, value, rl);
-	buf[ll + rl] = 0;
+	memcpy(buf, envname, envname_len);
+	buf[envname_len] = '=';
+	memcpy(buf + envname_len, envval, envval_len);
+	buf[envname_len + envval_len + 1] = 0;
 
-	return putenv(buf);
+	putenv(buf);
+	return 0;
 }

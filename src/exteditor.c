@@ -53,28 +53,10 @@ static const char *get_editor(void)
 }
 
 static const char *graphical_editors[] = { "gedit", "kate", "code", NULL };
-static const char *terminal_editors[] = { "vim", "emacs", "nano", NULL };
 
-static bool is_graphical_editor(const char *editor)
+static inline bool is_graphical_editor(const char *editor)
 {
-	if (!strcmp(editor, getenv("VISUAL")))
-	{
-		return true;
-	}
-	else if (string_in_array(editor, terminal_editors))
-	{
-		return false;
-	}
-	else if (string_in_array(editor, graphical_editors))
-	{
-		return false;
-	}
-	else
-	{
-		/* assuming the user knows what they are doing */
-		return true;
-	}
-
+	return string_in_array(editor, graphical_editors);
 }
 
 static int launch_editor(const void *args0)
@@ -118,19 +100,20 @@ int edit_file(const char *tmp_file)
 	signal(SIGQUIT, SIG_IGN);
 
 	spinner_style = getenv(PK_SPINNER);
-	show_spinner = spinner_style && is_graphical_editor(editor);
+	show_spinner = (is_graphical_editor(editor) && spinner_style) ||
+			strcmp(spinner_style, "0");
 
-	if (show_spinner)
+	if (show_spinner && run_spinner(&spinner_ctx, spinner_style) != 0)
 	{
-		run_spinner(spinner_style, stdout, DEFAULT_SPINNER_PERIOD);
+		show_spinner = false;
 	}
 
-	finish_process(&editor_ctx);
+	finish_process(&editor_ctx, false);
 
 	if (show_spinner)
 	{
 		kill(spinner_ctx.pid, SIGTERM);
-		finish_process(&spinner_ctx);
+		finish_process(&spinner_ctx, true);
 	}
 
 	signal(SIGINT, SIG_DFL);

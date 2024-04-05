@@ -20,46 +20,31 @@
 **
 ****************************************************************************/
 
-#include "pkproc.h"
-
-int run_default_spinner(const void *period_mult0)
+/**
+ * The unsetenv() function shall remove an environment variable from the
+ * environment of the calling process. The name argument points to a string,
+ * which is the name of the variable to be removed. The named argument shall
+ * not contain an '=' character. If the named variable does not exist in the
+ * current environment, the environment shall be unchanged and the function
+ * is considered to have completed successfully.
+ * 
+ * Upon successful completion, zero shall be returned. Otherwise, -1 shall be
+ * returned, errno set to indicate the error, and the environment shall be
+ * unchanged.
+ * 
+ * The unsetenv() function shall fail if:
+ * [EINVAL]
+ *     The name argument points to an empty string, or points to a string
+ *     containing an '=' character.
+ */
+int pk_unsetenv(const char *name)
 {
-	useconds_t period_mult;
-	int i;
-	const char *snch[] = { "\\\b", "|\b", "/\b", "-\b" };
-
-	period_mult = *(useconds_t *)period_mult0;
-	for (i = 0; ; i = (i + 1) % 4)
+	if (*name == 0 || strchr(name, '='))
 	{
-		write(STDOUT_FILENO, snch[i], 2);
-		usleep(period_mult);
+		errno = EINVAL;
+		return -1;
 	}
 
-	return 0; /* fake return */
-}
-
-static int run_kawaii_spinner(const void *period_mult0)
-{
-	useconds_t period_mult = *(useconds_t *)period_mult0;
-
-	return period_mult;
-}
-
-int run_spinner(struct process_info *ctx, const char *style)
-{
-	useconds_t period;
-	procfn_t spinner_func;
-
-	if (!strcmp(style, "kawaii"))
-	{
-		period = DEFAULT_SPINNER_PERIOD * 100;
-		spinner_func = run_kawaii_spinner;
-	}
-	else
-	{
-		period = DEFAULT_SPINNER_PERIOD * 85;
-		spinner_func = run_default_spinner;
-	}
-
-	return start_process(ctx, spinner_func, &period);
+	putenv(strdup(name));
+	return 0;
 }

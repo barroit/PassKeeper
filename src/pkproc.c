@@ -32,16 +32,11 @@ static int errnot_fd = -1;
 
 static void child_die(enum child_error_status status)
 {
-	int errobj[2] = {
-		status,
-		errno,
-	};
-
-	iwrite(errnot_fd, errobj, sizeof(errobj));
+	iwrite(errnot_fd, (int []){ status, errno }, sizeof(int [2]));
 	_exit(EXIT_FAILURE);
 }
 
-static inline void idup2(int fd1, int fd2)
+static void idup2(int fd1, int fd2)
 {
 	if (dup2(fd1, fd2) < 0)
 	{
@@ -49,17 +44,7 @@ static inline void idup2(int fd1, int fd2)
 	}
 }
 
-static inline void set_cloexec(int fd)
-{
-	int flags;
-
-	if ((flags = fcntl(fd, F_GETFD)) >= 0)
-	{
-		fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
-	}
-}
-
-int finish_process(struct process_info *ctx)
+int finish_process(struct process_info *ctx, bool raised)
 {
 	pid_t wpid;
 	int status, rescode;
@@ -90,7 +75,8 @@ int finish_process(struct process_info *ctx)
 		{
 			rescode = WTERMSIG(status);
 
-			if (rescode != SIGINT && rescode != SIGQUIT && rescode != SIGPIPE)
+			if (!raised && rescode != SIGINT &&
+				rescode != SIGQUIT && rescode != SIGPIPE)
 			{
 				error("%s died (signal %d)", ctx->program, rescode);
 				rescode += 128;
@@ -111,7 +97,7 @@ int start_process(struct process_info *ctx, procfn_t procfn, const void *args)
 {
 	int buf[2];
 	int nulfd, errnot_pipe[2];
-	int rescode, errnum;
+	int errnum;
 
 	nulfd = xopen(DEVNULL, O_WRONLY | O_CLOEXEC);
 
@@ -121,14 +107,12 @@ int start_process(struct process_info *ctx, procfn_t procfn, const void *args)
 		errnot_pipe[1] = -1;
 	}
 
-	// TODO fork() does not exist on windows
-	ctx->pid = fork();
+	// ctx->pid = fork();
 	errnum = errno;
 
 	if (ctx->pid == 0)
 	{
 		close(errnot_pipe[0]);
-		set_cloexec(errnot_pipe[1]);
 
 		errnot_fd = errnot_pipe[1];
 
@@ -147,8 +131,8 @@ int start_process(struct process_info *ctx, procfn_t procfn, const void *args)
 			idup2(nulfd, STDERR_FILENO);
 		}
 
-		rescode = procfn(args);
-		_exit(rescode);
+		close(errnot_pipe[1]);
+		_exit(procfn(args));
 	}
 
 	if (ctx->pid < 0)
@@ -160,7 +144,7 @@ int start_process(struct process_info *ctx, procfn_t procfn, const void *args)
 	if (iread(errnot_pipe[0], buf, sizeof(buf)) == sizeof(buf))
 	{
 		/* failure occurred between fork() and _exit() */
-		finish_process(ctx);
+		finish_process(ctx, false);
 		errnum = errno;
 		ctx->pid = -1;
 	}

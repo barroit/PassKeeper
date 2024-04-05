@@ -154,6 +154,7 @@ enum option_parser_flag
 #define OPTUINT_UNCHANGED(v) ((v) == OPTUINT_INIT)
 
 #define OPTION_STRING(s, l, v, h) OPTION_STRING_F((s), (l), (v), 0, (h), 0)
+#define OPTION_HIDDEN_STRING(s, l, v) OPTION_STRING_F((s), (l), (v), 0, 0, OPTION_HIDDEN)
 
 #define OPTION_BOOLEAN(s, l, v, h) OPTION_BOOLEAN_F((s), (l), (v), (h), 0)
 
@@ -161,21 +162,14 @@ enum option_parser_flag
 
 #define OPTION_FILENAME(s, l, v, h) OPTION_FILENAME_F((s), (l), (v), (h), "path", OPTION_SHOWARGH)
 
-#define OPTION_OPTARG(s, l, v, d, a, h) OPTION_OPTARG_F((s), (l), (v), (d), (a), (h), OPTION_SHOWARGH)
-
 #define OPTION_PATHNAME(s, l, v, h) OPTION_FILENAME_F((s), (l), (v), (h), "file", OPTION_REALPATH | OPTION_SHOWARGH)
+#define OPTION_HIDDEN_PATHNAME(s, l, v) OPTION_FILENAME_F((s), (l), (v), 0, 0, OPTION_HIDDEN | OPTION_REALPATH)
+
+#define OPTION_OPTARG(s, l, v, d, a, h) OPTION_OPTARG_F((s), (l), (v), (d), (a), (h), OPTION_SHOWARGH)
+#define OPTION_HIDDEN_OPTARG(s, l, v, d) OPTION_OPTARG_F((s), (l), (v), (d), 0, 0, OPTION_HIDDEN)
+#define OPTION_HIDDEN_OPTARG_ALLONEG(s, l, v, d) OPTION_OPTARG_F((s), (l), (v), (d), 0, 0, OPTION_HIDDEN | OPTION_ALLONEG)
 
 #define OPTION_COMMAND(l, h) OPTION_STRING_F(0, (l), 0, 0, (h), OPTION_NOARG | OPTION_NOEMDASH)
-
-#define OPTION_HIDDEN_STRING_F(s, l, v, f) OPTION_STRING_F((s), (l), (v), 0, 0, OPTION_HIDDEN)
-
-#define OPTION_HIDDEN_STRING(s, l, v) OPTION_HIDDEN_STRING_F((s), (l), (v), 0)
-
-#define OPTION_HIDDEN_BOOLEAN(s, l, v) OPTION_BOOLEAN_F((s), (l), (v), 0, OPTION_HIDDEN)
-
-#define OPTION_HIDDEN_FILENAME_F(s, l, v, f) OPTION_FILENAME_F((s), (l), (v), 0, 0, OPTION_HIDDEN | (f))
-
-#define OPTION_HIDDEN_PATHNAME(s, l, v) OPTION_HIDDEN_FILENAME_F((s), (l), (v), OPTION_REALPATH)
 
 #ifndef OPTION_USAGE_ALIGNMENT
 #define OPTION_USAGE_ALIGNMENT 23

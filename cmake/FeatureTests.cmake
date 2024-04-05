@@ -11,6 +11,11 @@ if(NOT have_setenv)
 	add_compile_definitions(NO_SETENV)
 endif()
 
+check_symbol_exists(setenv stdlib.h have_unsetenv)
+if(NOT have_unsetenv)
+	add_compile_definitions(NO_UNSETENV)
+endif()
+
 check_symbol_exists(strchrnul string.h have_strchrnul)
 if(NOT have_strchrnul)
 	add_compile_definitions(NO_STRCHRNUL)

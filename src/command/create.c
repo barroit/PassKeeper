@@ -58,10 +58,13 @@ const struct option cmd_create_options[] = {
 	OPTION_END(),
 };
 
+int run_default_spinner(const void *period_mult0);
+
 int cmd_create(int argc, const char **argv, const char *prefix)
 {
 	argc = parse_options(argc, argv, prefix, cmd_create_options, cmd_create_usages, PARSER_ABORT_NON_OPTION);
 	edit_file("test.file");
+	// run_default_spinner(&(useconds_t){ DEFAULT_SPINNER_PERIOD * 85 });
 
 	return 0;
 }

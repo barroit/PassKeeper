@@ -4,7 +4,7 @@ use Env qw(PKBIN);
 use IPC::Run 'run';
 
 my @commands = ('count', 'create', 'delete', 'help', 'init', 'read', 'update', 'version');
-my $general_message = qr/^usage: pk .*\n\n/;
+my $general_message = qr/^usage: pk .*/;
 my @cmd;
 my $output;
 

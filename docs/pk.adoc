@@ -1,0 +1,22 @@
+= pk(1)
+
+== NAME
+
+pk - A secure tool for storing and managing all your passwords
+
+== SYNOPSIS
+
+[verse]
+pk [--db-path <file>] [--key-path <file>] [--editor <name>]
+   [--[no]-spinner[=<style>]] <command> [<args>]
+
+== DESCRIPTION
+
+...
+
+== OPTIONS
+
+--db-path::
+	...
++
+...

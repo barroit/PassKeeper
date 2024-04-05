@@ -64,11 +64,13 @@ static struct
 	const char *key_path;
 	const char *editor;
 	const char *spinner_style;
-} environment;
+} environment = {
+	.spinner_style = "0",
+};
 
 const char *const cmd_pk_usages[] = {
-	"pk [--db-path <file>] [--key-path <file>] [--[no]-spinner[=<style>] \n"
-	"   <command> [<args>]",
+	"pk [--db-path <file>] [--key-path <file>] [--editor <name>] \n"
+	"   [--[no]-spinner[=<style>]] <command> [<args>]",
 	NULL,
 };
 
@@ -76,7 +78,7 @@ const struct option cmd_pk_options[] = {
 	OPTION_HIDDEN_PATHNAME(0, "db-path", &environment.db_path),
 	OPTION_HIDDEN_PATHNAME(0, "key-path", &environment.key_path),
 	OPTION_HIDDEN_STRING(0, "editor", &environment.editor),
-	OPTION_HIDDEN_STRING(0, "spinner", &environment.spinner_style),
+	OPTION_HIDDEN_OPTARG_ALLONEG(0, "spinner", &environment.spinner_style, "default"),
 	OPTION_COMMAND("count",   "Count the number of records"),
 	OPTION_COMMAND("create",  "Create a record"),
 	OPTION_COMMAND("delete",  "Delete a record"),
@@ -206,6 +208,10 @@ static int handle_options(int argc, const char **argv, const char *prefix)
 	if (environment.spinner_style)
 	{
 		setenv(PK_SPINNER, environment.spinner_style, 1);
+	}
+	else
+	{
+		unsetenv(PK_SPINNER);
 	}
 
 	if (environment.editor)

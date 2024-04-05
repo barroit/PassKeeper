@@ -38,12 +38,12 @@ struct process_info
 
 int start_process(struct process_info *ctx, procfn_t procfn, const void *args);
 
-int finish_process(struct process_info *ctx);
+int finish_process(struct process_info *ctx, bool raised);
 
 int edit_file(const char *tmp_file);
 
-#define DEFAULT_SPINNER_PERIOD 10
+#define DEFAULT_SPINNER_PERIOD 1000 * 10 /* in 10 milliseconds */
 
-void run_spinner(const char *style, FILE *stream, useconds_t period);
+int run_spinner(struct process_info *ctx, const char *style);
 
 #endif /* PKPROC_H */

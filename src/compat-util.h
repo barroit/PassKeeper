@@ -41,6 +41,7 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <sqlite3.h>
+#include <signal.h>
 
 #define PK_CRED_DB	"PK_CRED_DB"
 #define PK_CRED_KY	"PK_CRED_KY"
@@ -67,8 +68,14 @@ char *pk_strchrnul(const char *s, int c);
 #endif
 
 #ifdef NO_SETENV
-int pk_setenv(const char *name, const char *value, int replace);
+int pk_setenv(const char *name, const char *value, int replace)
+	__attribute__((nonnull(2)));
 #define setenv pk_setenv
+#endif
+
+#ifdef NO_UNSETENV
+int pk_unsetenv(const char *name) __attribute__((nonnull(1)));
+#define unsetenv pk_unsetenv
 #endif
 
 #ifdef NO_DIRNAME

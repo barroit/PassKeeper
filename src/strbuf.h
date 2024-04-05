@@ -71,7 +71,7 @@ void replace_char(char *str, char c1, char c2);
 /**
  * find `str` in `arr`, the last element of `arr` must be NULL
  */
-static inline bool string_in_array(const char *str, const char *const arr)
+static inline bool string_in_array(const char *str, const char *const *arr)
 {
 	while (*arr && strcmp(str, *arr))
 	{

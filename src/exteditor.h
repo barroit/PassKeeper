@@ -20,46 +20,7 @@
 **
 ****************************************************************************/
 
-#include "pkproc.h"
+#ifndef EXTEDITOR_H
+#define EXTEDITOR_H
 
-int run_default_spinner(const void *period_mult0)
-{
-	useconds_t period_mult;
-	int i;
-	const char *snch[] = { "\\\b", "|\b", "/\b", "-\b" };
-
-	period_mult = *(useconds_t *)period_mult0;
-	for (i = 0; ; i = (i + 1) % 4)
-	{
-		write(STDOUT_FILENO, snch[i], 2);
-		usleep(period_mult);
-	}
-
-	return 0; /* fake return */
-}
-
-static int run_kawaii_spinner(const void *period_mult0)
-{
-	useconds_t period_mult = *(useconds_t *)period_mult0;
-
-	return period_mult;
-}
-
-int run_spinner(struct process_info *ctx, const char *style)
-{
-	useconds_t period;
-	procfn_t spinner_func;
-
-	if (!strcmp(style, "kawaii"))
-	{
-		period = DEFAULT_SPINNER_PERIOD * 100;
-		spinner_func = run_kawaii_spinner;
-	}
-	else
-	{
-		period = DEFAULT_SPINNER_PERIOD * 85;
-		spinner_func = run_default_spinner;
-	}
-
-	return start_process(ctx, spinner_func, &period);
-}
+#endif /* EXTEDITOR_H */
