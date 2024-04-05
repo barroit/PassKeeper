@@ -10,6 +10,7 @@
 			"forcedInclude": [
 				"${workspaceFolder}/src/compat-util.h",
 				"${workspaceFolder}/src/wrapper.h",
+				"${workspaceFolder}/src/message.h",
 				"${workspaceFolder}/project-config.h"
 			]
 		}

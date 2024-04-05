@@ -22,7 +22,7 @@
 
 #include "parse-options.h"
 #include "strbuf.h"
-#include "exteditor.h"
+#include "pkproc.h"
 
 static struct
 {
@@ -61,12 +61,7 @@ const struct option cmd_create_options[] = {
 int cmd_create(int argc, const char **argv, const char *prefix)
 {
 	argc = parse_options(argc, argv, prefix, cmd_create_options, cmd_create_usages, PARSER_ABORT_NON_OPTION);
-	// edit_file("file");
-
-	fputs("test", stdout);
-	fflush(stdout);
-	sleep(1);
-	fputs("\r    \r", stdout);
+	edit_file("test.file");
 
 	return 0;
 }

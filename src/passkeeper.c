@@ -67,7 +67,8 @@ static struct
 } environment;
 
 const char *const cmd_pk_usages[] = {
-	"pk [--db-path <file>] [--key-path <file>] <command> [<args>]",
+	"pk [--db-path <file>] [--key-path <file>] [--[no]-spinner[=<style>] \n"
+	"   <command> [<args>]",
 	NULL,
 };
 

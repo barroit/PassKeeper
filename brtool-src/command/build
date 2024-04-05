@@ -1,3 +1,5 @@
+#!/usr/bin/bash
+
 export BUILD_PROFILE="${1:-debug}"
 export PROGRAM_HOST="${2:-penguin}"
 

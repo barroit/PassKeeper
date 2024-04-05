@@ -1,3 +1,5 @@
+#!/usr/bin/bash
+
 skip_matched_depstat 'openssl'
 
 prepare_extsrc 'openssl' 'git://git.openssl.org/openssl.git'

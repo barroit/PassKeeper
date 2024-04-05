@@ -33,7 +33,11 @@
 		"malloc.h": "c",
 		"stdio.h": "c",
 		"stdlib.h": "c",
-		"errno.h": "c"
+		"errno.h": "c",
+		"pkproc.h": "c",
+		"*.inc": "c",
+		"message.h": "c",
+		"system_error": "c"
 	},
 	"fileHeaderComment.parameter": {
 		"*": {

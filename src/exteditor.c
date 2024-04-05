@@ -20,9 +20,17 @@
 **
 ****************************************************************************/
 
-#include "exteditor.h"
+#include "pkproc.h"
+#include "message.h"
+#include "strbuf.h"
 
-const char *get_editor(void)
+static inline bool is_dumb_terminal(void)
+{
+	const char *term = getenv("TERM");
+	return term == NULL || !strcmp(term, "dumb");
+}
+
+static const char *get_editor(void)
 {
 	const char *editor = getenv(PK_EDITOR);
 	bool dumb = is_dumb_terminal();
@@ -43,61 +51,89 @@ const char *get_editor(void)
 
 	return editor;
 }
-// int run_process()
-// {
-// 	pid_t pid;
 
-// 	if (pid == 0)
-// 	{
-// 		execlp(editor, editor, path, NULL);
+static const char *graphical_editors[] = { "gedit", "kate", "code", NULL };
+static const char *terminal_editors[] = { "vim", "emacs", "nano", NULL };
 
-// 		// errno;
-// 	}
-// }
+static bool is_graphical_editor(const char *editor)
+{
+	if (!strcmp(editor, getenv("VISUAL")))
+	{
+		return true;
+	}
+	else if (string_in_array(editor, terminal_editors))
+	{
+		return false;
+	}
+	else if (string_in_array(editor, graphical_editors))
+	{
+		return false;
+	}
+	else
+	{
+		/* assuming the user knows what they are doing */
+		return true;
+	}
 
-// int run_spinner(void)
-// {
-// 	return 0;
-// }
+}
 
-// int launch_editor(const char *path)
-// {
-// 	const char *editor;
-// 	pid_t pid;
+static int launch_editor(const void *args0)
+{
+	const char *editor, *tmp_file, **args;
 
-// 	if ((editor = get_editor()) == NULL)
-// 	{
-// 		return error("terminal is dumb, but EDITOR unset");
-// 	}
+	args = (const char **)args0;
+	editor = args[0];
+	tmp_file = args[1];
 
-// 	pid = fork();
+	execlp(editor, editor, tmp_file, NULL);
 
-// 	if (pid == 0)
-// 	{
-// 		execlp(editor, editor, path, NULL);
+	return 0;
+}
 
-// 		// errno;
-// 	}
-// 	else
-// 	{
-// 		wait(NULL);
-// 	}
+int edit_file(const char *tmp_file)
+{
+	const char *editor, *spinner_style;
+	bool show_spinner;
 
-// 	return 0;
-// }
+	if ((editor = get_editor()) == NULL)
+	{
+		return error("terminal is dumb, but EDITOR unset");
+	}
 
-// int edit_file(const char *file_path)
-// {
-// 	bool show_spinner;
+	struct process_info
+		editor_ctx = {
+			.program = editor,
+		},
+		spinner_ctx = {
+			.program = "spinner",
+		};
 
-// 	launch_editor(file_path);
+	if (start_process(&editor_ctx, launch_editor,
+		(const char *[]){ editor , tmp_file }) != 0)
+	{
+		return error("unable to launch editor '%s'", editor);
+	}
 
-// 	show_spinner = !!getenv(PK_SPINNER);
-// 	if (show_spinner)
-// 	{
-// 		run_spinner();
-// 	}
+	signal(SIGINT, SIG_IGN);
+	signal(SIGQUIT, SIG_IGN);
 
-// 	//
-// 	return 0;
-// }
+	spinner_style = getenv(PK_SPINNER);
+	show_spinner = spinner_style && is_graphical_editor(editor);
+
+	if (show_spinner)
+	{
+		run_spinner(spinner_style, stdout, DEFAULT_SPINNER_PERIOD);
+	}
+
+	finish_process(&editor_ctx);
+
+	if (show_spinner)
+	{
+		kill(spinner_ctx.pid, SIGTERM);
+		finish_process(&spinner_ctx);
+	}
+
+	signal(SIGINT, SIG_DFL);
+	signal(SIGQUIT, SIG_DFL);
+	return 0;
+}

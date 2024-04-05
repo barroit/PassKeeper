@@ -38,17 +38,45 @@ static int handle_nonblock(int fd, short poll_events, int err)
 	return 1;
 }
 
-ssize_t iwrite(int fd, const void *buf, size_t len)
+ssize_t iread(int fd, void *buf, size_t nbytes)
 {
 	ssize_t nr;
-	if (len > MAX_IO_SIZE)
+
+	if (nbytes > MAX_IO_SIZE)
 	{
-		len = MAX_IO_SIZE;
+		nbytes = MAX_IO_SIZE;
 	}
 
-	while (1)
+	while (39)
 	{
-		if ((nr = write(fd, buf, len)) == -1)
+		if ((nr = read(fd, buf, nbytes)) < 0)
+		{
+			if (errno == EINTR)
+			{
+				continue;
+			}
+			if (handle_nonblock(fd, POLLIN, errno))
+			{
+				continue;
+			}
+		}
+
+		return nr;
+	}
+}
+
+ssize_t iwrite(int fd, const void *buf, size_t n)
+{
+	ssize_t nr;
+
+	if (n > MAX_IO_SIZE)
+	{
+		n = MAX_IO_SIZE;
+	}
+
+	while (39)
+	{
+		if ((nr = write(fd, buf, n)) < 0)
 		{
 			if (errno == EINTR)
 			{
@@ -62,5 +90,42 @@ ssize_t iwrite(int fd, const void *buf, size_t len)
 		}
 
 		return nr;
+	}
+}
+
+int xopen(const char *file, int oflag, ...)
+{
+	mode_t mode;
+	va_list ap;
+	int fd;
+
+	mode = 0;
+	va_start(ap, oflag);
+	if (oflag & O_CREAT)
+	{
+		mode = va_arg(ap, mode_t);
+	}
+	va_end(ap);
+
+	if ((fd = open(file, oflag, mode)) >= 0)
+	{
+		return fd;
+	}
+
+	if ((oflag & (O_CREAT | O_EXCL)) == (O_CREAT | O_EXCL))
+	{
+		die("unable to create '%s'", file);
+	}
+	else if ((oflag & O_RDWR) == O_RDWR)
+	{
+		die("could not open '%s' for reading and writing", file);
+	}
+	else if ((oflag & O_WRONLY) == O_WRONLY)
+	{
+		die("could not open '%s' for writing", file);
+	}
+	else
+	{
+		die("could not open '%s' for reading", file);
 	}
 }

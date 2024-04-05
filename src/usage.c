@@ -20,74 +20,105 @@
 **
 ****************************************************************************/
 
-static void vreportf(const char *prefix, const char *fmt, va_list ap)
+struct report_field
 {
-	char buf_head[2048], *content_head, *content_tail; 
+	const char *format;
+	va_list ap;
+	const char *strerror;
+};
 
-	content_head = buf_head + strlen(prefix);
-	content_tail = content_head;
+static void vreportf(const char *prefix, struct report_field *field)
+{
+	char buffer0[4096], *buffer, *bufptr;
+	size_t bufaval;
 
-	memcpy(buf_head, prefix, content_head - buf_head);
-	content_tail += vsnprintf(content_head, buf_head + sizeof(buf_head) - content_head, fmt, ap);
+	buffer = buffer0 + strlen(prefix);
+	bufptr = buffer;
 
-	if (content_tail < content_head)
+	memcpy(buffer0, prefix, buffer - buffer0);
+	bufaval = (buffer0 + sizeof(buffer0)) - buffer;
+
+	bufptr += vsnprintf(bufptr, bufaval, field->format, field->ap);
+
+	/* vsnprintf() failure */
+	if (bufptr < buffer)
 	{
-		*content_head = 0;
-		content_tail = content_head;
+		/**
+		 * reset bufptr to buffer, skip the ap
+		 * and prepare to write strerror
+		 */
+		bufptr = buffer;
+	}
+	else
+	{
+		bufaval -= bufptr - buffer;
 	}
 
-	*content_tail++ = '\n';
-	*content_tail = 0;
+	if (field->strerror && bufaval > 0)
+	{
+		int nr;
+		if ((nr = snprintf(bufptr, bufaval, "; %s", field->strerror)) < 0)
+		{
+			nr = 0;
+		}
+
+		bufptr += nr;
+	}
+
+	*bufptr++ = '\n';
 
 	fflush(stderr);
-	fputs(buf_head, stderr);
+	iwrite(STDERR_FILENO, buffer0, bufptr - buffer0);
 }
 
-int warn(const char *fmt, ...)
+int error(const char *format, ...)
 {
-	va_list ap;
+	struct report_field field = {
+		.format = format,
+	};
 
-	va_start(ap, fmt);
-	vreportf("warning: ", fmt, ap);
-	va_end(ap);
-
-	return 0;
-}
-
-int error(const char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	vreportf("error: ", fmt, ap);
-	va_end(ap);
+	va_start(field.ap, format);
+	vreportf("error: ", &field);
+	va_end(field.ap);
 
 	return -1;
 }
 
-void die(const char *fmt, ...)
+int error_errno(const char *format, ...)
 {
-	va_list ap;
+	struct report_field field = {
+		.format = format,
+		.strerror = strerror(errno),
+	};
 
-	va_start(ap, fmt);
-	vreportf("fatal: ", fmt, ap);
+	va_start(field.ap, format);
+	vreportf("error: ", &field);
+	va_end(field.ap);
+
+	return -1;
+}
+
+void die(const char *format, ...)
+{
+	struct report_field field = {
+		.format = format,
+	};
+
+	va_start(field.ap, format);
+	vreportf("fatal: ", &field);
 	exit(EXIT_FAILURE);
 }
 
-static void bug_flvp(const char *file, int line, const char *fmt, va_list ap)
+void bugfl(const char *file, int line, const char *format, ...)
 {
+	struct report_field field = {
+		.format = format,
+	};
 	char prefix[256];
 
+	va_start(field.ap, format);
 	snprintf(prefix, sizeof(prefix), "BUG: %s:%d: ", file, line);
-	vreportf(prefix, fmt, ap);
-}
-
-void bug_fl(const char *file, int line, const char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	bug_flvp(file, line, fmt, ap);
+	vreportf(prefix, &field);
 
 	exit(EXIT_FAILURE);
 }

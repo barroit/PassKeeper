@@ -125,6 +125,10 @@ static inline size_t xfwrite(const void *ptr, size_t size, size_t n, FILE *s)
 	return nr;
 }
 
+int xopen(const char *file, int oflag, ...);
+
+ssize_t iread(int fd, void *buf, size_t nbytes);
+
 /**
  * function prefixed by 'i' are safe to use in child process
  */

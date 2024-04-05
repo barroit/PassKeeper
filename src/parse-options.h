@@ -167,7 +167,9 @@ enum option_parser_flag
 
 #define OPTION_COMMAND(l, h) OPTION_STRING_F(0, (l), 0, 0, (h), OPTION_NOARG | OPTION_NOEMDASH)
 
-#define OPTION_HIDDEN_STRING(s, l, v) OPTION_STRING_F((s), (l), (v), 0, 0, OPTION_HIDDEN)
+#define OPTION_HIDDEN_STRING_F(s, l, v, f) OPTION_STRING_F((s), (l), (v), 0, 0, OPTION_HIDDEN)
+
+#define OPTION_HIDDEN_STRING(s, l, v) OPTION_HIDDEN_STRING_F((s), (l), (v), 0)
 
 #define OPTION_HIDDEN_BOOLEAN(s, l, v) OPTION_BOOLEAN_F((s), (l), (v), 0, OPTION_HIDDEN)
 

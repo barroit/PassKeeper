@@ -27,12 +27,23 @@
 #define NO_STDOUT 1 << 1
 #define NO_STDERR 1 << 2
 
-typedef int (*procfn_t)(void);
+typedef int (*procfn_t)(const void *args);
 
-struct process_ctx
+struct process_info
 {
 	pid_t pid;
+	const char *program;
 	unsigned fildes_flags;
 };
+
+int start_process(struct process_info *ctx, procfn_t procfn, const void *args);
+
+int finish_process(struct process_info *ctx);
+
+int edit_file(const char *tmp_file);
+
+#define DEFAULT_SPINNER_PERIOD 10
+
+void run_spinner(const char *style, FILE *stream, useconds_t period);
 
 #endif /* PKPROC_H */

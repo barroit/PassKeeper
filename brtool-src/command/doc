@@ -1,5 +1,4 @@
 #!/usr/bin/bash
-# you should NEVER execute this file manually, or you may get unexpected side effects
 
 target=${1:-all}
 

@@ -1,3 +1,5 @@
+#!/usr/bin/bash
+
 skip_matched_depstat 'sqlcipher'
 
 prepare_extsrc 'sqlcipher' 'https://github.com/sqlcipher/sqlcipher.git'

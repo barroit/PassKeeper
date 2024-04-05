@@ -22,12 +22,36 @@
 
 #include "pkproc.h"
 
-void run_default_spinner(FILE *stream, useconds_t period)
+struct spinner_config
 {
+	FILE *stream;
+	useconds_t period_mult; /* 10 == 1x */
+};
 
+static int run_default_spinner(const void *rcfg)
+{
+	return 0;
 }
 
-void run_kawaii_spinner(FILE *stream, useconds_t period)
+static int run_kawaii_spinner(const void *rcfg)
 {
+	return 0;
+}
 
+void run_spinner(const char *style, FILE *stream, useconds_t period)
+{
+	struct process_info ctx = { 0 };
+	struct spinner_config cfg = {
+		.stream = stream,
+		.period_mult = period,
+	};
+
+	if (!strcmp(style, "kawaii"))
+	{
+		start_process(&ctx, run_kawaii_spinner, &cfg);
+	}
+	else
+	{
+		//
+	}
 }

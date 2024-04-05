@@ -1,3 +1,5 @@
+#!/usr/bin/bash
+
 die()
 {
 	echo "$*" >&2

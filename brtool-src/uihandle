@@ -1,3 +1,5 @@
+#!/usr/bin/bash
+
 current_time()
 {
 	date +%s%N | cut -b1-13

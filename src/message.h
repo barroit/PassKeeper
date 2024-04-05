@@ -23,15 +23,12 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
-int warn(const char *warning, ...) __attribute__((format(printf, 2, 3)));
-int error(const char *err, ...) __attribute__((format(printf, 2, 3)));
-void die(const char *reason, ...) __attribute__((format(printf, 2, 3)));
+int error(const char *format, ...) __attribute__((format(printf, 2, 3)));
+void die(const char *format, ...) __attribute__((format(printf, 2, 3), noreturn));
 
-void bug_fl(const char *file, int line, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
-#define bug(...) bug_fl(__FILE__, __LINE__, __VA_ARGS__)
+int error_errno(const char *format, ...) __attribute__((format(printf, 2, 3)));
 
-void run_default_spinner(FILE *stream, useconds_t period);
-
-void run_kawaii_spinner(FILE *stream, useconds_t period);
+void bugfl(const char *file, int line, const char *format, ...) __attribute__((format(printf, 3, 4)));
+#define bug(...) bugfl(__FILE__, __LINE__, __VA_ARGS__)
 
 #endif /* MESSAGE_H */

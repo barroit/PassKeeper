@@ -1,3 +1,4 @@
+#!/usr/bin/bash
 # depstat stands for dependency status
 
 depstat_match_prev()
