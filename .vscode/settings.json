@@ -3,7 +3,23 @@
 		".gdb*": "plaintext",
 		"gdb*": "plaintext",
 		"cfgmap": "plaintext",
-		"signal.h": "c"
+		"signal.h": "c",
+		"wait.h": "c",
+		"array": "c",
+		"string_view": "c",
+		"initializer_list": "c",
+		"utility": "c",
+		"strlist.h": "c",
+		"cstdlib": "c",
+		"numbers": "c",
+		"strbuf.h": "c",
+		"pkproc.h": "c",
+		"apiset.h": "c",
+		"handleapi.h": "c",
+		"stringapiset.h": "c",
+		"io.h": "c",
+		"winbase.h": "c",
+		"processthreadsapi.h": "c"
 	},
 	"fileHeaderComment.parameter": {
 		"*": {

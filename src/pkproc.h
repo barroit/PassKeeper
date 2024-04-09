@@ -31,12 +31,26 @@ typedef int (*procfn_t)(const void *args);
 
 struct process_info
 {
+#ifdef LINUX
 	pid_t pid;
+#else
+	PROCESS_INFORMATION pi;
+	STARTUPINFO si;
+	HANDLE nuldev_handle;
+#endif
 	const char *program;
 	unsigned fildes_flags;
 };
 
-int start_process(struct process_info *ctx, procfn_t procfn, const void *args);
+int mkprocl(struct process_info *ctx, const char *arg, ...);
+
+int mkprocf(struct process_info *ctx, procfn_t procfn, const void *args);
+
+#ifdef LINUX
+#define kill_process(ctx, sig) kill(ctx->pid, sig)
+#else
+int kill_process(struct process_info *ctx, int sig);
+#endif
 
 int finish_process(struct process_info *ctx, bool raised);
 

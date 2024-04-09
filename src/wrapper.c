@@ -22,6 +22,15 @@
 
 #include "compat/poll.h"
 
+#ifndef MAX_IO_SIZE
+#define MAX_IO_SIZE_DEFAULT (8 * 1024 * 1024)
+#if defined(SSIZE_MAX) && (SSIZE_MAX < MAX_IO_SIZE_DEFAULT)
+#define MAX_IO_SIZE SSIZE_MAX
+#else
+#define MAX_IO_SIZE MAX_IO_SIZE_DEFAULT
+#endif
+#endif /* MAX_IO_SIZE */
+
 static int handle_nonblock(int fd, short poll_events, int err)
 {
 	struct pollfd pfd;
@@ -103,7 +112,7 @@ int xopen(const char *file, int oflag, ...)
 	va_start(ap, oflag);
 	if (oflag & O_CREAT)
 	{
-		mode = va_arg(ap, mode_t);
+		mode = (mode_t)va_arg(ap, int);
 	}
 	va_end(ap);
 

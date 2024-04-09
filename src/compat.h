@@ -42,6 +42,27 @@
 #include <openssl/rand.h>
 #include <sqlite3.h>
 #include <signal.h>
+#include <fcntl.h>
+
+#ifdef LINUX
+#include <time.h>
+#else
+#include <timezoneapi.h>
+#endif
+
+#ifdef WINDOWS_NATIVE
+#include <windef.h>
+#include <winbase.h>
+#include <io.h>
+#include <stringapiset.h>
+#include <handleapi.h>
+#include <errhandlingapi.h>
+#include <processthreadsapi.h>
+#endif
+
+#ifdef LINUX
+#include <sys/wait.h>
+#endif
 
 #define PK_CRED_DB	"PK_CRED_DB"
 #define PK_CRED_KY	"PK_CRED_KY"
@@ -95,12 +116,6 @@ char *pk_dirname(char *path);
 #define test_file_permission(p, s, m) test_file_permission_ch(p, m)
 #endif
 
-#ifdef LINUX
-#include <time.h>
-#else
-#include <timezoneapi.h>
-#endif
-
 int get_bias(long *bias);
 
 #ifdef LINUX
@@ -109,33 +124,14 @@ int get_bias(long *bias);
 #define DEFAULT_EDITOR "notepad"
 #endif
 
-#ifdef WINDOWS_NATIVE
-#include <io.h>
-#endif
-
 #ifdef LINUX
-#include <sys/wait.h>
-#endif
-
-#include <fcntl.h>
-
-#ifdef LINUX
-#define DEVNULL "/dev/null"
+#define NULDEV "/dev/null"
 #else
-#define DEVNULL "nul"
+#define NULDEV "NUL"
 #endif
 
-#ifndef MAX_IO_SIZE
-#define MAX_IO_SIZE_DEFAULT (8 * 1024 * 1024)
-#if defined(SSIZE_MAX) && (SSIZE_MAX < MAX_IO_SIZE_DEFAULT)
-#define MAX_IO_SIZE SSIZE_MAX
-#else
-#define MAX_IO_SIZE MAX_IO_SIZE_DEFAULT
-#endif
-#endif /* MAX_IO_SIZE */
-
-#ifdef WINDOWS_NATIVE
-#define GetTickCount64 GetTickCount
+#ifndef SIGQUIT
+#define SIGQUIT 3
 #endif
 
 #endif /* COMPACT_UTIL_H */

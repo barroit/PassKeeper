@@ -2,7 +2,7 @@
 
 die()
 {
-	echo "$*" >&2
+	echo "fatal: $*" >&2
 	exit 1
 }
 
@@ -22,6 +22,27 @@ find_scalar_word()
 }
 
 export -f find_scalar_word
+
+array_index_of()
+{
+	local idx=0
+
+	for arg in ${@:2}
+	do
+		if [[ "$arg" == "$1" ]]
+		then
+			echo "$idx"
+			return 0
+		fi
+		
+		((idx++))
+	done
+
+	echo '-1'
+	return 1
+}
+
+export -f array_index_of
 
 get_pair_value()
 {

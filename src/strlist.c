@@ -22,12 +22,7 @@
 
 #include "strlist.h"
 
-struct strlist_elem *strlist_append(struct strlist *sl, const char *str)
-{
-	return strlist_append_nodup(sl, sl->dupstr ? strdup(str) : (char *)str);
-}
-
-struct strlist_elem *strlist_append_nodup(struct strlist *sl, char *str)
+static struct strlist_elem *strlist_append_nodup(struct strlist *sl, char *str)
 {
 	struct strlist_elem *el;
 
@@ -40,7 +35,12 @@ struct strlist_elem *strlist_append_nodup(struct strlist *sl, char *str)
 	return el;
 }
 
-void string_list_clear(struct strlist *sl, bool free_ext)
+struct strlist_elem *strlist_append(struct strlist *sl, const char *str)
+{
+	return strlist_append_nodup(sl, sl->dupstr ? strdup(str) : (char *)str);
+}
+
+void strlist_clear(struct strlist *sl, bool free_ext)
 {
 	bool prev_dupstr;
 
@@ -64,7 +64,7 @@ void string_list_clear(struct strlist *sl, bool free_ext)
 	sl->dupstr = prev_dupstr;
 }
 
-size_t string_list_split(struct strlist *sl, const char *str, char delim, int maxsplit)
+size_t strlist_split(struct strlist *sl, const char *str, char delim, int maxsplit)
 {
 	assert(sl->dupstr);
 
@@ -96,4 +96,32 @@ size_t string_list_split(struct strlist *sl, const char *str, char delim, int ma
 			return count;
 		}
 	}
+}
+
+char **strlist_to_array(struct strlist *sl)
+{
+	char **buf;
+	size_t i;
+
+	buf = xmalloc((sl->size + 1) * sizeof(char *));
+	for (i = 0; i < sl->size; i++)
+	{
+		buf[i] = strdup(sl->items[i].str);
+	}
+
+	buf[i] = NULL;
+
+	return buf;
+}
+
+void free_array(char **arr)
+{
+	char **arr0;
+
+	arr0 = arr;
+	while (*arr)
+	{
+		free(*arr++);
+	}
+	free(arr0);
 }

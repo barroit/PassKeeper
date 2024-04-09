@@ -16,6 +16,12 @@ find_package(OpenSSL REQUIRED)
 find_package(SqlCipher REQUIRED)
 
 file(GLOB pklib_source src/*.c src/compat/*.c)
+if(CMAKE_SYSTEM_NAME STREQUAL Windows)
+	file(GLOB pklib_source_compat src/compat/win/*.c)
+else()
+	file(GLOB pklib_source_compat src/compat/uni/*.c)
+endif()
+list(APPEND pklib_source ${pklib_source_compat})
 list(FILTER pklib_source EXCLUDE REGEX src/passkeeper.c$)
 
 add_library(pklib OBJECT ${pklib_source})
@@ -25,8 +31,8 @@ target_link_libraries(pklib PUBLIC ${SQLCIPHER_LIBRARIES} ${OPENSSL_LIBRARIES} m
 target_link_directories(pklib PUBLIC ${SQLCIPHER_LIBRARY_DIRS} ${OPENSSL_LIBRARY_DIRS})
 target_compile_definitions(pklib PUBLIC SQLITE_HAS_CODEC)
 
-target_include_directories(pklib INTERFACE src)
-target_precompile_headers(pklib PUBLIC src/compat-util.h src/message.h src/wrapper.h)
+target_include_directories(pklib PUBLIC src)
+target_precompile_headers(pklib PUBLIC src/compat.h src/message.h src/wrapper.h)
 
 file(GLOB pk_source src/command/*.c)
 add_executable(pk src/passkeeper.c ${pk_source})

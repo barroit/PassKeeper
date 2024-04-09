@@ -3,4 +3,5 @@ set(CMAKE_SYSTEM_VERSION 10.0)
 
 set(CMAKE_C_COMPILER x86_64-w64-mingw32-gcc)
 
-add_compile_definitions(WINDOWS_NATIVE)
+add_compile_definitions(WINDOWS_NATIVE NTDDI_WIN10)
+add_compile_definitions(WINVER=_WIN32_WINNT_WIN10 _WIN32_WINNT=_WIN32_WINNT_WIN10)

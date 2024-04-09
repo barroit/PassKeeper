@@ -169,4 +169,12 @@ static inline int msqlite3_exec(struct sqlite3 *db, const char *sql)
 	return 0;
 }
 
+#ifdef WINDOWS_NATIVE
+HANDLE xCreateFile(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
+
+WINBOOL xDuplicateHandle(HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, LPHANDLE lpTargetHandle, DWORD dwDesiredAccess, WINBOOL bInheritHandle, DWORD dwOptions);
+
+WINBOOL xSetStdHandle(DWORD nStdHandle, HANDLE hHandle);
+#endif
+
 #endif /* WRAPPER_H */

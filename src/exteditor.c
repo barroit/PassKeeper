@@ -22,7 +22,7 @@
 
 #include "pkproc.h"
 #include "message.h"
-#include "strbuf.h"
+#include "strlist.h"
 
 static inline bool is_dumb_terminal(void)
 {
@@ -59,19 +59,6 @@ static inline bool is_graphical_editor(const char *editor)
 	return string_in_array(editor, graphical_editors);
 }
 
-static int launch_editor(const void *args0)
-{
-	const char *editor, *tmp_file, **args;
-
-	args = (const char **)args0;
-	editor = args[0];
-	tmp_file = args[1];
-
-	execlp(editor, editor, tmp_file, NULL);
-
-	return 0;
-}
-
 int edit_file(const char *tmp_file)
 {
 	const char *editor, *spinner_style;
@@ -90,14 +77,13 @@ int edit_file(const char *tmp_file)
 			.program = "spinner",
 		};
 
-	if (start_process(&editor_ctx, launch_editor,
-		(const char *[]){ editor , tmp_file }) != 0)
+	signal(SIGINT, SIG_IGN);
+	signal(SIGQUIT, SIG_IGN);
+
+	if (mkprocl(&editor_ctx, editor, editor, tmp_file, NULL) != 0)
 	{
 		return error("unable to launch editor '%s'", editor);
 	}
-
-	signal(SIGINT, SIG_IGN);
-	signal(SIGQUIT, SIG_IGN);
 
 	spinner_style = getenv(PK_SPINNER);
 	show_spinner = (is_graphical_editor(editor) && spinner_style) ||
@@ -112,7 +98,7 @@ int edit_file(const char *tmp_file)
 
 	if (show_spinner)
 	{
-		kill(spinner_ctx.pid, SIGTERM);
+		kill_process(&spinner_ctx, SIGTERM);
 		finish_process(&spinner_ctx, true);
 	}
 

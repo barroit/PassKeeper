@@ -1,18 +1,39 @@
 {
 	"configurations": [
 		{
-			"name": "linux",
+			"name": "gcc",
 			"defines": [
-				"${default}",
+				"${defualt}",
 				"LINUX",
 				"SQLITE_HAS_CODEC"
 			],
+			"intelliSenseMode": "linux-gcc-x64",
+			"compilerPath": "${env:HOME}/.local/bin/gcc",
 			"forcedInclude": [
-				"${workspaceFolder}/src/compat-util.h",
+				"${workspaceFolder}/src/compat.h",
 				"${workspaceFolder}/src/wrapper.h",
 				"${workspaceFolder}/src/message.h",
 				"${workspaceFolder}/project-config.h"
 			]
+		},
+		{
+			"name": "mingw64",
+			"defines": [
+				"${defualt}",
+				"WINDOWS_NATIVE",
+				"NTDDI_WIN10",
+				"WINVER=_WIN32_WINNT_WIN10",
+				"_WIN32_WINNT=_WIN32_WINNT_WIN10",
+				"SQLITE_HAS_CODEC"
+			],
+			"forcedInclude": [
+				"${workspaceFolder}/src/compat.h",
+				"${workspaceFolder}/src/wrapper.h",
+				"${workspaceFolder}/src/message.h",
+				"${workspaceFolder}/project-config.h"
+			],
+			"intelliSenseMode": "windows-gcc-x64",
+			"compilerPath": "/usr/bin/x86_64-w64-mingw32-gcc"
 		}
 	],
 	"version": 4

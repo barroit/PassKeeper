@@ -22,19 +22,6 @@
 
 int get_bias(long *bias)
 {
-#ifdef LINUX
-{
-	time_t now, gmnow;
-
-	now = time(NULL);
-	gmnow = mktime(gmtime(&now));
-
-	*bias = (time_t)difftime(now, gmnow) / 3600;
-
-	return 0;
-}
-#else
-{
 	TIME_ZONE_INFORMATION time_zone;
 
 	switch (GetTimeZoneInformation(&time_zone))
@@ -54,6 +41,4 @@ int get_bias(long *bias)
 
 	*bias = -(*bias / 60);
 	return 0;
-}
-#endif
 }

@@ -47,6 +47,10 @@ void strbuf_nprint(struct strbuf *sb, const char *str, size_t sz);
 
 #define strbuf_puts(sb, str) strbuf_printf((sb), "%s\n", (str))
 
+void strbuf_trim_end(struct strbuf *sb);
+
+char *strbuf_detach(struct strbuf *sb);
+
 bool starts_with(const char *str, const char *prefix);
 
 /**
@@ -67,18 +71,5 @@ int fprintfln(FILE *stream, const char *fmt, ...) __attribute__((format(printf, 
  * Replace `c1` with `c2` in `str` inplace.
  */
 void replace_char(char *str, char c1, char c2);
-
-/**
- * find `str` in `arr`, the last element of `arr` must be NULL
- */
-static inline bool string_in_array(const char *str, const char *const *arr)
-{
-	while (*arr && strcmp(str, *arr))
-	{
-		arr++;
-	}
-
-	return *arr != NULL;
-}
 
 #endif /* STRBUF_H */

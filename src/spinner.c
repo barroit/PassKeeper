@@ -57,9 +57,9 @@ int run_spinner(struct process_info *ctx, const char *style)
 	}
 	else
 	{
-		period = DEFAULT_SPINNER_PERIOD * 85;
+		period = DEFAULT_SPINNER_PERIOD * 75;
 		spinner_func = run_default_spinner;
 	}
 
-	return start_process(ctx, spinner_func, &period);
+	return mkprocf(ctx, spinner_func, &period);
 }

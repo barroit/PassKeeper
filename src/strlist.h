@@ -42,19 +42,32 @@ struct strlist
 
 struct strlist_elem *strlist_append(struct strlist *sl, const char *str);
 
-struct strlist_elem *strlist_append_nodup(struct strlist *sl, char *str);
+void strlist_clear(struct strlist *sl, bool free_ext);
 
-void string_list_clear(struct strlist *sl, bool free_ext);
+size_t strlist_split(struct strlist *sl, const char *str, char delim, int maxsplit);
 
-size_t string_list_split(struct strlist *sl, const char *str, char delim, int maxsplit);
-
-static inline bool in_string_array(const char *strarr[], const char *item)
+/**
+ * find `str` in `arr`, the last element of `arr` must be NULL
+ */
+static inline bool string_in_array(const char *str, const char *const *arr)
 {
-	while (*strarr && strcmp(item, *strarr))
+	while (*arr && strcmp(str, *arr))
 	{
-		strarr++;
+		arr++;
 	}
-	return *strarr != NULL;
+
+	return *arr != NULL;
 }
+
+/**
+ * convert a strlist to an array, duplicate each string, terminated
+ * with a NULL
+ */
+char **strlist_to_array(struct strlist *sl);
+
+/**
+ * free a NULL terminated array
+ */
+void free_array(char **arr);
 
 #endif /* STRLIST_H */

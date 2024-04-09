@@ -43,6 +43,25 @@ ${LIBRARY_INSTALL_PREFIX}/lib/pkgconfig"
 mkdir -p "$build_prefix"
 cd "$build_prefix"
 
+argstart="$(array_index_of '--' $@)"
+
+if [[ argstart -gt -1 ]]
+then
+	for arg in ${@:argstart + 2} # skip -- and adjust index to arg number
+	do
+		case $arg in
+		'no-unused')
+			flags+=' -Wno-unused'
+			;;
+		*)
+			die "unknown flags '$arg'"
+			;;
+		esac
+	done
+
+	export CFLAGS="$flags"
+fi
+
 if [[ "$PROGRAM_HOST" == 'window' ]]
 then
 	cmake_options="-DCMAKE_TOOLCHAIN_FILE='$CMAKE_MODULE_PREFIX/MinGW-w64.cmake'"

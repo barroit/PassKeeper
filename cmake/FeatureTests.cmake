@@ -11,7 +11,7 @@ if(NOT have_setenv)
 	add_compile_definitions(NO_SETENV)
 endif()
 
-check_symbol_exists(setenv stdlib.h have_unsetenv)
+check_symbol_exists(unsetenv stdlib.h have_unsetenv)
 if(NOT have_unsetenv)
 	add_compile_definitions(NO_UNSETENV)
 endif()

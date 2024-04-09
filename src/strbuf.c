@@ -131,6 +131,23 @@ void strbuf_putc(struct strbuf *sb, char c)
 	sb->buf[sb->length] = 0;
 }
 
+void strbuf_trim_end(struct strbuf *sb)
+{
+	for (; sb->length > 0 && isspace(sb->buf[sb->length - 1]); sb->length--);
+	sb->buf[sb->length] = 0;
+}
+
+char *strbuf_detach(struct strbuf *sb)
+{
+	char *ret;
+	static const struct strbuf sb0 = STRBUF_INIT;
+
+	ret = sb->buf;
+
+	memcpy(sb, &sb0, sizeof(struct strbuf));
+	return ret;
+}
+
 bool starts_with(const char *str, const char *prefix)
 {
 	while (*prefix)

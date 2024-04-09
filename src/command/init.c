@@ -189,7 +189,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 
 	if (cc.kdf_algorithm && is_binary_key(kt))
 	{
-		if (!in_string_array(kdf_algorithms, cc.kdf_algorithm))
+		if (!string_in_array(cc.kdf_algorithm, kdf_algorithms))
 		{
 			return error("algorithm '%s' not found", cc.kdf_algorithm);
 		}
@@ -199,7 +199,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 
 	if (cc.hmac_algorithm)
 	{
-		if (!in_string_array(hmac_algorithms, cc.hmac_algorithm))
+		if (!string_in_array(cc.hmac_algorithm, hmac_algorithms))
 		{
 			return error("algorithm '%s' not found", cc.hmac_algorithm);
 		}

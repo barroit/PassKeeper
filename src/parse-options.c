@@ -620,7 +620,7 @@ static enum parse_option_result usage_with_options(
 		size_t i;
 
 		ustr = *usages++;
-		string_list_split(&sl, ustr, '\n', -1);
+		strlist_split(&sl, ustr, '\n', -1);
 
 		for (i = 0; i < sl.size; i++)
 		{
@@ -637,7 +637,7 @@ static enum parse_option_result usage_with_options(
 			}
 		}
 
-		string_list_clear(&sl, false);
+		strlist_clear(&sl, false);
 		next_prefix = or_prefix;
 	}
 

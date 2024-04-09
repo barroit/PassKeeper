@@ -239,7 +239,7 @@ int main(int argc, const char **argv)
 	command = find_command(*argv);
 	if (command == NULL)
 	{
-		bug("your calibrate_argv() broken");
+		bug("your calibrate_argv() is broken");
 	}
 
 	argc--;

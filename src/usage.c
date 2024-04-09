@@ -20,14 +20,7 @@
 **
 ****************************************************************************/
 
-struct report_field
-{
-	const char *format;
-	va_list ap;
-	const char *strerror;
-};
-
-static void vreportf(const char *prefix, struct report_field *field)
+void vreportf(const char *prefix, struct report_field *field)
 {
 	char buffer0[4096], *buffer, *bufptr;
 	size_t bufaval;

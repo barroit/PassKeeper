@@ -20,33 +20,14 @@
 **
 ****************************************************************************/
 
-#ifndef MESSAGE_H
-#define MESSAGE_H
-
-struct report_field
+int get_bias(long *bias)
 {
-	const char *format;
-	va_list ap;
-	const char *strerror;
-};
+	time_t now, gmnow;
 
-void vreportf(const char *prefix, struct report_field *field);
+	now = time(NULL);
+	gmnow = mktime(gmtime(&now));
 
-int error(const char *format, ...) __attribute__((format(printf, 2, 3)));
-void die(const char *format, ...) __attribute__((format(printf, 2, 3), noreturn));
+	*bias = (time_t)difftime(now, gmnow) / 3600;
 
-int error_errno(const char *format, ...) __attribute__((format(printf, 2, 3)));
-
-void bugfl(const char *file, int line, const char *format, ...) __attribute__((format(printf, 3, 4)));
-#define bug(...) bugfl(__FILE__, __LINE__, __VA_ARGS__)
-
-#ifdef WINDOWS_NATIVE
-/**
- * same as error_errno except this function set errno to GetLastError()
- */
-int error_winerr(const char *format, ...) __attribute__((format(printf, 2, 3)));
-
-void die_winerr(const char *format, ...) __attribute__((format(printf, 2, 3), noreturn));
-#endif
-
-#endif /* MESSAGE_H */
+	return 0;
+}
