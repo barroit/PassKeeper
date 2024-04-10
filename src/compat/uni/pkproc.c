@@ -23,7 +23,7 @@
 #include "pkproc.h"
 #include "strlist.h"
 
-enum child_error_status
+enum child_errnum
 {
 	ERROR_DUP2,
 	ERROR_EXEC,
@@ -31,9 +31,9 @@ enum child_error_status
 
 static int errnot_fd = -1;
 
-static void child_die(enum child_error_status status)
+static void child_die(enum child_errnum clderr)
 {
-	iwrite(errnot_fd, (int []){ status, errno }, sizeof(int [2]));
+	iwrite(errnot_fd, (int []){ clderr, errno }, sizeof(int [2]));
 	_exit(EXIT_FAILURE);
 }
 
@@ -89,6 +89,20 @@ static void redirect_stdio(unsigned fildes_flags, int nulfd)
 	}
 }
 
+static void error_clderr(enum child_errnum clderr, int errnum)
+{
+	errno = errnum;
+	switch (clderr)
+	{
+	case ERROR_DUP2:
+		error_errno("unable to redirect stdio");
+	case ERROR_EXEC:
+		error_errno("faild to execute command");
+	default:
+		bug("child errnum should not be the value of '%d'", clderr);
+	}
+}
+
 static int check_child_died(struct process_info *ctx, int errnot_pipe[2])
 {
 	int buf[2];
@@ -96,7 +110,7 @@ static int check_child_died(struct process_info *ctx, int errnot_pipe[2])
 	{
 		/* failure occurred between fork() and _exit() */
 		finish_process(ctx, false);
-		//
+		error_clderr(buf[0], buf[1]);
 		ctx->pid = -1;
 		return 1;
 	}

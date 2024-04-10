@@ -70,8 +70,8 @@ int pk_setenv(const char *envname, const char *envval, int overwrite)
 
 	memcpy(buf, envname, envname_len);
 	buf[envname_len] = '=';
-	memcpy(buf + envname_len, envval, envval_len);
-	buf[envname_len + envval_len + 1] = 0;
+	memcpy(buf + envname_len + 1, envval, envval_len);
+	buf[envname_len + 1 + envval_len] = 0;
 
 	putenv(buf);
 	return 0;

@@ -51,16 +51,25 @@ static void redirect_stdio(struct process_info *ctx)
 	}
 }
 
+static inline void close_nuldev(struct process_info *ctx)
+{
+	if (ctx->fildes_flags)
+	{
+		CloseHandle(ctx->nuldev_handle);
+	}
+}
+
 int mkprocl(struct process_info *ctx, const char *arg0, ...)
 {
+	ctx->type = PROC_PROCESS;
+
 	va_list ap;
-	int rescode, errnum;
-	HANDLE nuldev;
+	int rescode;
 
 	struct strbuf *sb = STRBUF_INIT_P;
 	const char *arg;
 	LPSTR argv;
-	
+
 	ctx->si.cb = sizeof(STARTUPINFO);
 	ctx->si.dwFlags = STARTF_USESTDHANDLES;
 
@@ -69,9 +78,16 @@ int mkprocl(struct process_info *ctx, const char *arg0, ...)
 	va_start(ap, arg0);
 
 	strbuf_printf(sb, "\"%s\" ", arg0);
+
+	/**
+	 * no need to pass the program name twice
+	 * so we skip the first va argument
+	 */
+	arg = va_arg(ap, const char *);
+
 	while ((arg = va_arg(ap, const char *)) != NULL)
 	{
-		strbuf_printf(sb, "\"%s\" ", arg);
+		strbuf_printf(sb, "%s ", arg);
 	}
 
 	strbuf_trim_end(sb);
@@ -80,12 +96,9 @@ int mkprocl(struct process_info *ctx, const char *arg0, ...)
 	rescode = 0;
 	if (!CreateProcess(NULL, argv, NULL, NULL, FALSE, 0, NULL, NULL, &ctx->si, &ctx->pi))
 	{
-		rescode = error_winerr("CreateProcess() failed");
-
-		if (ctx->fildes_flags)
-		{
-			CloseHandle(ctx->nuldev_handle);
-		}
+		rescode = error_winerr("unable to start the program '%s'",
+					 ctx->program); /* errno set here */
+		close_nuldev(ctx);
 	}
 
 	free(argv);
@@ -96,37 +109,83 @@ int mkprocl(struct process_info *ctx, const char *arg0, ...)
 
 int mkprocf(struct process_info *ctx, procfn_t procfn, const void *args)
 {
-	return 0;
+	int rescode;
+	ctx->type = PROC_THREAD;
+
+	redirect_stdio(ctx);
+
+	rescode = 0;
+	if ((ctx->thread_handle =
+		CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)procfn,
+			      (LPVOID)args, 0, NULL)) == NULL)
+	{
+		rescode = error_winerr("unable to start a new thread for program '%s'",
+					 ctx->program);
+		close_nuldev(ctx);
+	}
+
+	return rescode;
 }
 
 int kill_process(struct process_info *ctx, int sig)
 {
-	return 0;
+	DWORD rescode;
+
+	close_nuldev(ctx);
+
+	rescode = 0;
+	switch (ctx->type)
+	{
+	case PROC_PROCESS:
+		if (!TerminateProcess(ctx->pi.hProcess, sig + 128))
+		{
+			rescode = error_winerr("failed to terminate the program '%s'",
+						 ctx->program);
+		}
+		break;
+	case PROC_THREAD:
+		if (!TerminateThread(ctx->thread_handle, sig + 128))
+		{
+			rescode = error_winerr("failed to terminate the thread running '%s'",
+						 ctx->program);
+		}
+		break;
+	case PROC_EXITED:
+		bug("ctx should not be the type of 'exited'");
+	default:
+		bug("unknown proctype: %d", ctx->type);
+	}
+
+	ctx->type = PROC_EXITED;
+	/* no need to update errno */
+	return rescode;
 }
 
 int finish_process(struct process_info *ctx, UNUSED bool raised)
 {
+	if (ctx->type == PROC_EXITED)
+	{
+		return 0;
+	}
+
 	DWORD rescode, errnum;
 
+	errnum = 0;
 	switch (rescode = WaitForSingleObject(ctx->pi.hProcess, INFINITE))
 	{
 	case WAIT_FAILED:
-		errnum = GetLastError();
 		rescode = error_winerr("unable to wait for %s to terminate", ctx->program);
+		errnum = errno;
 		/* FALLTHRU */
 	case WAIT_OBJECT_0:
+		close_nuldev(ctx);
+		CloseHandle(ctx->pi.hProcess);
+		CloseHandle(ctx->pi.hThread);
 		break;
-	default:
+	case WAIT_ABANDONED:
+	case WAIT_TIMEOUT:
 		bug("unexpected status of %s (%ld)", ctx->program, rescode);
 	}
-
-	if (ctx->fildes_flags)
-	{
-		CloseHandle(ctx->nuldev_handle);
-	}
-
-	CloseHandle(ctx->pi.hProcess);
-	CloseHandle(ctx->pi.hThread);
 
 	errno = errnum;
 	return rescode;

@@ -29,14 +29,29 @@
 
 typedef int (*procfn_t)(const void *args);
 
+#ifdef WINDOWS_NATIVE
+enum process_type
+{
+	PROC_EXITED = -1,
+	PROC_PROCESS = 1,
+	PROC_THREAD,
+};
+#endif
+
 struct process_info
 {
 #ifdef LINUX
 	pid_t pid;
 #else
+	enum process_type type;
+	HANDLE nuldev_handle;
+
+	/* thread */
+	HANDLE thread_handle;
+
+	/* process */
 	PROCESS_INFORMATION pi;
 	STARTUPINFO si;
-	HANDLE nuldev_handle;
 #endif
 	const char *program;
 	unsigned fildes_flags;
@@ -47,7 +62,10 @@ int mkprocl(struct process_info *ctx, const char *arg, ...);
 int mkprocf(struct process_info *ctx, procfn_t procfn, const void *args);
 
 #ifdef LINUX
-#define kill_process(ctx, sig) kill(ctx->pid, sig)
+static inline int kill_process(struct process_info *ctx, int sig)
+{
+	return kill(ctx->pid, sig);
+}
 #else
 int kill_process(struct process_info *ctx, int sig);
 #endif

@@ -19,7 +19,8 @@
 		"stringapiset.h": "c",
 		"io.h": "c",
 		"winbase.h": "c",
-		"processthreadsapi.h": "c"
+		"processthreadsapi.h": "c",
+		"wrapper.h": "c"
 	},
 	"fileHeaderComment.parameter": {
 		"*": {

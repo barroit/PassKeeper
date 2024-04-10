@@ -52,7 +52,15 @@ static const char *get_editor(void)
 	return editor;
 }
 
-static const char *graphical_editors[] = { "gedit", "kate", "code", NULL };
+static const char *graphical_editors[] = {
+	"gedit",     /* gedit */
+	"kate",      /* kate */
+	"code",      /* vscode */
+	"notepad",   /* notepad */
+	"notepad++", /* notepad++ */
+	"subl",      /* sublime text */
+	NULL,
+};
 
 static inline bool is_graphical_editor(const char *editor)
 {
@@ -66,7 +74,7 @@ int edit_file(const char *tmp_file)
 
 	if ((editor = get_editor()) == NULL)
 	{
-		return error("terminal is dumb, but EDITOR unset");
+		return error("unable to find a editor, make sure it's in the PATH");
 	}
 
 	struct process_info
@@ -85,12 +93,21 @@ int edit_file(const char *tmp_file)
 		return error("unable to launch editor '%s'", editor);
 	}
 
+	/* with --no-spinner, getenv(PK_SPINNER) returns NULL */
 	spinner_style = getenv(PK_SPINNER);
-	show_spinner = (is_graphical_editor(editor) && spinner_style) ||
-			strcmp(spinner_style, "0");
+
+	show_spinner = spinner_style && /* must be not NULL */
+			/* graphical editor enable this by default */
+			 (is_graphical_editor(editor) ||
+			  /* this case, user specified a value */
+			   strcmp(spinner_style, "0"));
 
 	if (show_spinner && run_spinner(&spinner_ctx, spinner_style) != 0)
 	{
+		fputs("note: something terrible happened, "
+			"but it's harmless, and the program will continue",
+			  stderr);
+
 		show_spinner = false;
 	}
 
@@ -104,5 +121,6 @@ int edit_file(const char *tmp_file)
 
 	signal(SIGINT, SIG_DFL);
 	signal(SIGQUIT, SIG_DFL);
+
 	return 0;
 }

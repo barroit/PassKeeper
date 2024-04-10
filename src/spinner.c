@@ -22,7 +22,7 @@
 
 #include "pkproc.h"
 
-int run_default_spinner(const void *period_mult0)
+static int run_default_spinner(const void *period_mult0)
 {
 	useconds_t period_mult;
 	int i;
