@@ -32,9 +32,11 @@ struct report_field
 
 void vreportf(const char *prefix, struct report_field *field);
 
+void warn(const char *format, ...) __attribute__((format(printf, 2, 3)));
 int error(const char *format, ...) __attribute__((format(printf, 2, 3)));
 void die(const char *format, ...) __attribute__((format(printf, 2, 3), noreturn));
 
+void warn_errno(const char *format, ...) __attribute__((format(printf, 2, 3)));
 int error_errno(const char *format, ...) __attribute__((format(printf, 2, 3)));
 
 void bugfl(const char *file, int line, const char *format, ...) __attribute__((format(printf, 3, 4)));

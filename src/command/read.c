@@ -20,7 +20,7 @@
 **
 ****************************************************************************/
 
-#include "parse-options.h"
+#include "parseopt.h"
 
 static const char *search_pattern = "%";
 static bool verbose;

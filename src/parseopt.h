@@ -20,8 +20,8 @@
 **
 ****************************************************************************/
 
-#ifndef PARSE_OPTIONS_H
-#define PARSE_OPTIONS_H
+#ifndef PARSEOPT_H
+#define PARSEOPT_H
 
 enum option_type
 {
@@ -203,4 +203,4 @@ extern const struct option cmd_update_options[];
 extern const struct option cmd_version_options[];
 extern const struct option cmd_pk_options[];
 
-#endif /* PARSE_OPTIONS_H */
+#endif /* PARSEOPT_H */

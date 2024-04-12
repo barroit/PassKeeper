@@ -40,7 +40,7 @@ char *prefix_filename(const char *prefix, const char *filename)
 		return xmemdup_str(filename, strlen(filename));
 	}
 
-	struct strbuf *sb = STRBUF_INIT_P;
+	struct strbuf *sb = STRBUF_INIT_PTR;
 
 	strbuf_print(sb, prefix);
 

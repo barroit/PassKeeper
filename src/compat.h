@@ -82,6 +82,7 @@
 #endif
 
 #define UNUSED __attribute__((unused))
+#define FORCEINLINE __attribute__((always_inline))
 
 #ifdef NO_STRCHRNUL
 char *pk_strchrnul(const char *s, int c);

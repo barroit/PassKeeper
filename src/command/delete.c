@@ -20,7 +20,7 @@
 **
 ****************************************************************************/
 
-#include "parse-options.h"
+#include "parseopt.h"
 #include "strbuf.h"
 
 static unsigned record_id = OPTUINT_INIT;

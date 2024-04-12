@@ -22,7 +22,7 @@
 
 #include "strlist.h"
 
-static struct strlist_elem *strlist_append_nodup(struct strlist *sl, char *str)
+static struct strlist_elem *strlist_push_nodup(struct strlist *sl, char *str)
 {
 	struct strlist_elem *el;
 
@@ -35,15 +35,13 @@ static struct strlist_elem *strlist_append_nodup(struct strlist *sl, char *str)
 	return el;
 }
 
-struct strlist_elem *strlist_append(struct strlist *sl, const char *str)
+struct strlist_elem *strlist_push(struct strlist *sl, const char *str)
 {
-	return strlist_append_nodup(sl, sl->dupstr ? strdup(str) : (char *)str);
+	return strlist_push_nodup(sl, sl->dupstr ? strdup(str) : (char *)str);
 }
 
-void strlist_clear(struct strlist *sl, bool free_ext)
+void strlist_destroy(struct strlist *sl, bool free_ext)
 {
-	bool prev_dupstr;
-
 	for (; sl->size; sl->size--)
 	{
 		if (sl->dupstr)
@@ -58,6 +56,13 @@ void strlist_clear(struct strlist *sl, bool free_ext)
 	}
 
 	free(sl->items);
+}
+
+void strlist_clear(struct strlist *sl, bool free_ext)
+{
+	bool prev_dupstr;
+
+	strlist_destroy(sl, free_ext);
 
 	prev_dupstr = sl->dupstr;
 	memset(sl, 0, sizeof(struct strlist));
@@ -79,7 +84,7 @@ size_t strlist_split(struct strlist *sl, const char *str, char delim, int maxspl
 
 		if (maxsplit >= 0 && count >= (unsigned)maxsplit)
 		{
-			strlist_append(sl, str);
+			strlist_push(sl, str);
 			return count;
 		}
 
@@ -87,15 +92,56 @@ size_t strlist_split(struct strlist *sl, const char *str, char delim, int maxspl
 
 		if(delim_pos)
 		{
-			strlist_append_nodup(sl, xmemdup_str(str, delim_pos - str));
+			strlist_push_nodup(sl, xmemdup_str(str, delim_pos - str));
 			str = delim_pos + 1;
 		}
 		else
 		{
-			strlist_append(sl, str);
+			strlist_push(sl, str);
 			return count;
 		}
 	}
+}
+
+struct strlist_elem *strlist_pop(struct strlist *sl)
+{
+	if (sl->size == 0)
+	{
+		return NULL;
+	}
+
+	return sl->items + (sl->size-- - 1);
+}
+
+char *strlist_join(struct strlist *sl, char *sep)
+{
+	char *buf0, *buf;
+	size_t bufsz, bufcap, sepsz, prevsz, strsz;
+	unsigned i;
+
+	bufsz = 0;
+	bufcap = 0;
+	sepsz = strlen(sep);
+
+	buf0 = NULL;
+	buf = buf0;
+
+	for (i = 0; i < sl->size; i++)
+	{
+		prevsz = bufsz;
+		strsz = strlen(sl->items[i].str);
+		bufsz += strsz + sepsz;
+
+		CAPACITY_GROW(buf0, bufsz, bufcap);
+		buf = buf0;
+
+		memcpy(buf += prevsz, sl->items[i].str, strsz);
+		memcpy(buf + strsz, sep, sepsz);
+	}
+
+	buf0[bufsz - sepsz] = 0; /* remove the last seperator */
+
+	return buf0;
 }
 
 char **strlist_to_array(struct strlist *sl)
@@ -114,7 +160,7 @@ char **strlist_to_array(struct strlist *sl)
 	return buf;
 }
 
-void free_array(char **arr)
+void free_string_array(char **arr)
 {
 	char **arr0;
 

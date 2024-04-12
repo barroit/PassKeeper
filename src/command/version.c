@@ -20,7 +20,7 @@
 **
 ****************************************************************************/
 
-#include "parse-options.h"
+#include "parseopt.h"
 #include "strbuf.h"
 
 static bool show_build_options;
@@ -39,7 +39,7 @@ int cmd_version(int argc, const char **argv, const char *prefix)
 {
 	argc = parse_options(argc, argv, prefix, cmd_version_options, cmd_version_usages, 0);
 
-	struct strbuf *sb = STRBUF_INIT_P;
+	struct strbuf *sb = STRBUF_INIT_PTR;
 	strbuf_puts(sb, "pk ("PROJNAME") "PROJECT_VERSION);
 	strbuf_puts(sb, LICENSE_NOTIES);
 

@@ -40,9 +40,22 @@ static int run_default_spinner(const void *period_mult0)
 
 static int run_kawaii_spinner(const void *period_mult0)
 {
-	useconds_t period_mult = *(useconds_t *)period_mult0;
+	useconds_t period_mult;
+	int i;
+	const char *snch[] = { "_", "<", "\r   \r>" };
 
-	return period_mult;
+	period_mult = *(useconds_t *)period_mult0;
+
+	write(STDOUT_FILENO, ">", 1);
+	usleep(period_mult);
+
+	for (i = 0; ; i = (i + 1) % 3)
+	{
+		write(STDOUT_FILENO, snch[i], i == 2 ? 6 : 1);
+		usleep(period_mult * ((i % 2) + 1));
+	}
+
+	return 0;
 }
 
 int run_spinner(struct process_info *ctx, const char *style)

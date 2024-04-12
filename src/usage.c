@@ -64,6 +64,29 @@ void vreportf(const char *prefix, struct report_field *field)
 	iwrite(STDERR_FILENO, buffer0, bufptr - buffer0);
 }
 
+void warn(const char *format, ...)
+{
+	struct report_field field = {
+		.format = format,
+	};
+
+	va_start(field.ap, format);
+	vreportf("warn: ", &field);
+	va_end(field.ap);
+}
+
+void warn_errno(const char *format, ...)
+{
+	struct report_field field = {
+		.format = format,
+		.strerror = strerror(errno),
+	};
+
+	va_start(field.ap, format);
+	vreportf("warn: ", &field);
+	va_end(field.ap);
+}
+
 int error(const char *format, ...)
 {
 	struct report_field field = {

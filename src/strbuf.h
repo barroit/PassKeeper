@@ -33,7 +33,7 @@ struct strbuf
 extern char strbuf_defbuf[];
 
 #define STRBUF_INIT   { .buf = strbuf_defbuf }
-#define STRBUF_INIT_P &(struct strbuf){ .buf = strbuf_defbuf }
+#define STRBUF_INIT_PTR &(struct strbuf){ .buf = strbuf_defbuf }
 
 void strbuf_destroy(struct strbuf *sb);
 

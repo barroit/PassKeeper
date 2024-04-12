@@ -1,0 +1,4 @@
+file  ./executable
+# core  ./coredump.file
+break source.file:line
+run   args

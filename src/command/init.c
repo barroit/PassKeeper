@@ -20,7 +20,7 @@
 **
 ****************************************************************************/
 
-#include "parse-options.h"
+#include "parseopt.h"
 #include "filesys.h"
 #include "rawnumop.h"
 #include "credky.h"
@@ -334,7 +334,7 @@ init_database:;
 		AF(msqlite3_key, db, hxkyst, hxkyst_len);
 	}
 
-	struct strbuf *sb = STRBUF_INIT_P;
+	struct strbuf *sb = STRBUF_INIT_PTR;
 
 	if (cc.kdf_algorithm && is_binary_key(kt))
 	{

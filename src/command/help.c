@@ -20,7 +20,7 @@
 **
 ****************************************************************************/
 
-#include "parse-options.h"
+#include "parseopt.h"
 #include "strbuf.h"
 
 const char *const cmd_help_usages[] = {
