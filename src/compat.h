@@ -68,6 +68,14 @@
 #define PK_CRED_KY	"PK_CRED_KY"
 #define PK_EDITOR	"PK_EDITOR"
 #define PK_SPINNER	"PK_SPINNER"
+#define PK_RECFILE	"PK_RECFILE"
+
+#define COMMON_RECORD_MESSAGE							\
+"# Please enter the information for your password record. Lines starting \n"	\
+"# with '#' will be ignored, and an empty record aborts the creation.\n"	\
+"# Note: The order of each field in the record matters.\n"			\
+"# Run './pk example record' to see the example."
+
 #define PK_CRED_DB_NM	".pk-credfl"
 #define PK_CRED_KY_NM	".pk-credky"
 
@@ -80,6 +88,9 @@
 #define DIRSEPSTR  "\\"
 #define DIRSEPCHAR '\\'
 #endif
+
+#define FILCRT_BIT ((S_IRUSR | S_IWUSR) | (S_IRGRP | S_IWGRP) | (S_IROTH))
+#define DIRCRT_BIT ((S_IRWXU) | (S_IRWXG) | (S_IROTH | S_IXOTH))
 
 #define UNUSED __attribute__((unused))
 #define FORCEINLINE __attribute__((always_inline))
@@ -108,7 +119,7 @@ char *pk_dirname(char *path);
 #endif
 
 #if defined(LINUX) || defined(PKTEST) /* for test */
-#define mkdir(path) mkdir((path), 0775)
+#define mkdir(path) mkdir((path), DIRCRT_BIT)
 #endif
 
 #ifdef LINUX

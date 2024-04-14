@@ -20,7 +20,23 @@
 		"io.h": "c",
 		"winbase.h": "c",
 		"processthreadsapi.h": "c",
-		"wrapper.h": "c"
+		"wrapper.h": "c",
+		"*.tcc": "c",
+		"deque": "c",
+		"string": "c",
+		"vector": "c",
+		"optional": "c",
+		"algorithm": "c",
+		"istream": "c",
+		"limits": "c",
+		"numeric": "c",
+		"streambuf": "c",
+		"functional": "c",
+		"*.def": "c",
+		"*.inc": "c",
+		"type_traits": "c",
+		"sstream": "c",
+		".pk_recfile": "plaintext"
 	},
 	"fileHeaderComment.parameter": {
 		"*": {

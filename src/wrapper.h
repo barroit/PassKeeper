@@ -28,7 +28,8 @@ static inline void *xmalloc(size_t size)
 	void *ret;
 	if ((ret = malloc(size)) == NULL)
 	{
-		die("out of memory, malloc failed (tried to allocate %"PRIuMAX" bytes)", size);
+		die("out of memory, malloc failed (tried to allocate "
+			"%"PRIuMAX" bytes)", size);
 	}
 
 	return ret;
@@ -38,7 +39,8 @@ static inline void *xrealloc(void *ptr, size_t size)
 {
 	if ((ptr = realloc(ptr, size)) == NULL)
 	{
-		die("out of memory, realloc failed (tried to allocate %"PRIuMAX" bytes)", size);
+		die("out of memory, realloc failed (tried to allocate "
+			"%"PRIuMAX" bytes)", size);
 	}
 
 	return ptr;
@@ -98,7 +100,7 @@ static inline void xmkdir(const char *path)
 {
 	if (mkdir(path) != 0)
 	{
-		die("failed to create a directory at path '%s'", path);
+		die_errno("failed to create a directory at path '%s'", path);
 	}
 }
 
@@ -119,7 +121,8 @@ static inline size_t xfwrite(const void *ptr, size_t size, size_t n, FILE *s)
 
 	if ((nr = fwrite(ptr, size, n, s)) != n)
 	{
-		die("expected to write '%lu' objects to file, but actually wrote '%lu'", nr, n);
+		die_errno("expected to write '%lu' objects to file, but "
+				"actually wrote '%lu'", nr, n);
 	}
 
 	return nr;
@@ -132,7 +135,31 @@ ssize_t iread(int fd, void *buf, size_t nbytes);
 /**
  * function prefixed by 'i' are safe to use in child process
  */
-ssize_t iwrite(int fd, const void *buf, size_t len);
+ssize_t iwrite(int fd, const void *buf, size_t n);
+
+static inline ssize_t xwrite(int fd, const void *buf, size_t n)
+{
+	ssize_t nr;
+
+	if ((nr = write(fd, buf, n)) != n)
+	{
+		die_errno("failed to write content to fd '%d'", fd);
+	}
+
+	return nr;
+}
+
+static inline off_t xlseek(int fildes, off_t offset, int whence)
+{
+	off_t ns;
+
+	if ((ns = lseek(fildes, offset, whence)) == -1)
+	{
+		die_errno("Can't seek on fd '%d'", fildes);
+	}
+
+	return ns;
+}
 
 static inline int msqlite3_open(const char *db_path, struct sqlite3 **db)
 {
@@ -176,5 +203,18 @@ WINBOOL xDuplicateHandle(HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HAND
 
 WINBOOL xSetStdHandle(DWORD nStdHandle, HANDLE hHandle);
 #endif
+
+static inline const char *get_pk_recfile(void)
+{
+	const char *recfile;
+
+	if ((recfile = getenv(PK_RECFILE)) == NULL)
+	{
+		die("PK_TMPFILE is unset, didn't know where to store the editor "
+			"content");
+	}
+
+	return recfile;
+}
 
 #endif /* WRAPPER_H */

@@ -64,6 +64,7 @@ static struct
 	const char *key_path;
 	const char *editor;
 	const char *spinner_style;
+	const char *recfile;
 } environment = {
 	.spinner_style = "0",
 };
@@ -189,7 +190,7 @@ static void calibrate_argv(int *argc, const char ***argv)
 	}
 }
 
-static int handle_options(int argc, const char **argv, const char *prefix)
+static int handle_global_options(int argc, const char **argv, const char *prefix)
 {
 	option_usage_alignment = 13;
 	argc = parse_options(argc, argv, prefix, cmd_pk_options, cmd_pk_usages, PARSER_STOP_AT_NON_OPTION | PARSER_NO_SHORT_HELP);
@@ -205,6 +206,11 @@ static int handle_options(int argc, const char **argv, const char *prefix)
 		setenv(PK_CRED_KY, environment.key_path, 1);
 	}
 
+	if (environment.editor)
+	{
+		setenv(PK_EDITOR, environment.editor, 1);
+	}
+
 	if (environment.spinner_style)
 	{
 		setenv(PK_SPINNER, environment.spinner_style, 1);
@@ -214,10 +220,12 @@ static int handle_options(int argc, const char **argv, const char *prefix)
 		unsetenv(PK_SPINNER);
 	}
 
-	if (environment.editor)
+	if (environment.recfile == NULL)
 	{
-		setenv(PK_EDITOR, environment.editor, 1);
+		environment.recfile = prefix_filename(prefix, ".pk_recfile");
 	}
+
+	setenv(PK_RECFILE, environment.recfile, 1);
 
 	return argc;
 }
@@ -232,7 +240,7 @@ int main(int argc, const char **argv)
 
 	prefix = resolve_working_dir();
 
-	argc = handle_options(argc, argv, prefix);
+	argc = handle_global_options(argc, argv, prefix);
 
 	calibrate_argv(&argc, &argv);
 

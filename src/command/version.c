@@ -51,7 +51,11 @@ int cmd_version(int argc, const char **argv, const char *prefix)
 
 	strbuf_printf(sb, "written by %s <%s>", AUTHOR, CONTACT);
 
-	puts(sb->buf);
+	/**
+	 * use low level interface since we don't
+	 * need to use builtin buffer
+	 */
+	xwrite(STDOUT_FILENO, sb->buf, sb->length);
 	strbuf_destroy(sb);
 
 	return 0;

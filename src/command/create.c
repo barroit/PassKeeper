@@ -22,7 +22,9 @@
 
 #include "parseopt.h"
 #include "strlist.h"
+#include "strbuf.h"
 #include "pkproc.h"
+#include "filesys.h"
 
 static struct
 {
@@ -72,7 +74,6 @@ static char *format_misfld_string(void)
 {
 	const char *fmap0[3], **fmap;
 	unsigned fcount;
-	char *buf;
 
 	fcount = 0;
 	fmap = fmap0;
@@ -94,6 +95,7 @@ static char *format_misfld_string(void)
 	}
 
 	fmap = fmap0;
+	static char *buf; /* no leak ^_^ */
 	struct strlist *sl = &(struct strlist)STRLIST_INIT_NODUP;
 
 	switch (fcount)
@@ -155,6 +157,71 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 		return error("%s missing in the required fields", format_misfld_string());
 	}
 
+	if (!setup_editor)
+	{
+		goto arulabel;
+	}
+
+	const char *recfile;
+	int recfildes;
+
+	static struct strbuf *sb;
+	struct strbuf sb0 = STRBUF_INIT;
+
+	sb = &sb0; /* avoid definitely lost :) */
+	recfile = get_pk_recfile();
+
+	strbuf_puts(sb, "# sitename");
+	if (!missing_sitename)
+	{
+		strbuf_puts(sb, record.sitename);
+	}
+	else
+	{
+		strbuf_putchar(sb, '\n');
+	}
+	strbuf_putchar(sb, '\n');
+
+	strbuf_puts(sb, "# username");
+	if (!missing_username)
+	{
+		strbuf_puts(sb, record.username);
+	}
+	else
+	{
+		strbuf_putchar(sb, '\n');
+	}
+	strbuf_putchar(sb, '\n');
+
+	strbuf_puts(sb, "# password");
+	if (!missing_password)
+	{
+		strbuf_puts(sb, record.password);
+	}
+	else
+	{
+		strbuf_putchar(sb, '\n');
+	}
+	strbuf_putchar(sb, '\n');
+
+	strbuf_puts(sb, COMMON_RECORD_MESSAGE);
+
+	prepare_file_directory(recfile);
+
+	recfildes = xopen(recfile, O_RDWR | O_CREAT | O_TRUNC, FILCRT_BIT);
+	xwrite(recfildes, sb->buf, sb->length);
+
+	strbuf_trunc(sb);
+
+	if (edit_file(recfile) != 0)
+	{
+		exit(EXIT_FAILURE);
+	}
+
+	close(recfildes);
+	strbuf_destroy(sb);
+
+arulabel:
 	printf("use editor %d\nsetup editor: %d\n", use_editor, setup_editor);
 	return 0;
 }

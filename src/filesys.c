@@ -42,7 +42,7 @@ char *prefix_filename(const char *prefix, const char *filename)
 
 	struct strbuf *sb = STRBUF_INIT_PTR;
 
-	strbuf_print(sb, prefix);
+	strbuf_write(sb, prefix, strlen(prefix));
 
 	/**
 	 * ./xxx
@@ -104,19 +104,19 @@ int test_file_permission_ch(const char *pathname, int mode)
 void prepare_file_directory(const char *pathname)
 {
 	char *pathcopy;
-	const char *pathdir;
+	const char *dirpath;
 
 	pathcopy = strdup(pathname);
-	pathdir = dirname(pathcopy);
+	dirpath = dirname(pathcopy);
 
 	struct stat st;
-	if (stat(pathdir, &st) != 0)
+	if (stat(dirpath, &st) != 0)
 	{
-		xmkdir(pathdir);
+		xmkdir(dirpath);
 	}
-	else if (test_file_permission(pathdir, &st, W_OK) != 0)
+	else if (test_file_permission(dirpath, &st, W_OK) != 0)
 	{
-		die("access denied by '%s'", pathdir);
+		die("access denied by '%s'", dirpath);
 	}
 
 	free(pathcopy);

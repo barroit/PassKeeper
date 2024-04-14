@@ -67,14 +67,15 @@ static inline bool is_graphical_editor(const char *editor)
 	return string_in_array(editor, graphical_editors);
 }
 
-int edit_file(const char *tmp_file)
+int edit_file(const char *pathname)
 {
 	const char *editor, *spinner_style;
 	bool show_spinner;
 
 	if ((editor = get_editor()) == NULL)
 	{
-		return error("unable to find a editor, make sure it's in the PATH");
+		return error("Unable to find a editor; Make sure VISUAL, "
+				"EDITOR or PK_EDITOR is set in env");
 	}
 
 	struct process_info
@@ -88,15 +89,16 @@ int edit_file(const char *tmp_file)
 	signal(SIGINT, SIG_IGN);
 	signal(SIGQUIT, SIG_IGN);
 
-	if (mkprocl(&editor_ctx, editor, editor, tmp_file, NULL) != 0)
+	if (mkprocl(&editor_ctx, editor, editor, pathname, NULL) != 0)
 	{
-		return error("unable to launch editor '%s'", editor);
+		return error("unable to launch editor '%s'",
+				*editor == 0 ? "(empty)" : editor);
 	}
 
 	/* with --no-spinner, getenv(PK_SPINNER) returns NULL */
 	spinner_style = getenv(PK_SPINNER);
 
-	show_spinner = spinner_style && /* must be not NULL */
+	show_spinner = spinner_style && /* must not be NULL */
 			/* graphical editor enable this by default */
 			 (is_graphical_editor(editor) ||
 			  /* this case, user specified a value */
@@ -104,9 +106,8 @@ int edit_file(const char *tmp_file)
 
 	if (show_spinner && run_spinner(&spinner_ctx, spinner_style) != 0)
 	{
-		fputs("note: something terrible happened, "
-			"but it's harmless, and the program will continue",
-			  stderr);
+		fputs("note: something terrible happened, but it's harmless, "
+			"and the program will continue", stderr);
 
 		show_spinner = false;
 	}

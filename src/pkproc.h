@@ -72,7 +72,7 @@ int kill_process(struct process_info *ctx, int sig);
 
 int finish_process(struct process_info *ctx, bool raised);
 
-int edit_file(const char *tmp_file);
+int edit_file(const char *pathname);
 
 #define DEFAULT_SPINNER_PERIOD 1000 * 10 /* in 10 milliseconds */
 

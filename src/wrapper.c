@@ -116,25 +116,10 @@ int xopen(const char *file, int oflag, ...)
 	}
 	va_end(ap);
 
-	if ((fd = open(file, oflag, mode)) >= 0)
+	if ((fd = open(file, oflag, mode)) == -1)
 	{
-		return fd;
+		die_errno("Failed to open file at '%s'", file);
 	}
 
-	if ((oflag & (O_CREAT | O_EXCL)) == (O_CREAT | O_EXCL))
-	{
-		die("unable to create '%s'", file);
-	}
-	else if ((oflag & O_RDWR) == O_RDWR)
-	{
-		die("could not open '%s' for reading and writing", file);
-	}
-	else if ((oflag & O_WRONLY) == O_WRONLY)
-	{
-		die("could not open '%s' for writing", file);
-	}
-	else
-	{
-		die("could not open '%s' for reading", file);
-	}
+	return fd;
 }

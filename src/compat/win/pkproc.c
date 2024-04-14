@@ -68,7 +68,6 @@ int mkprocl(struct process_info *ctx, const char *arg0, ...)
 
 	struct strbuf *sb = STRBUF_INIT_PTR;
 	const char *arg;
-	LPSTR argv;
 
 	ctx->si.cb = sizeof(STARTUPINFO);
 	ctx->si.dwFlags = STARTF_USESTDHANDLES;
@@ -91,10 +90,10 @@ int mkprocl(struct process_info *ctx, const char *arg0, ...)
 	}
 
 	strbuf_trim_end(sb);
-	argv = strbuf_detach(sb);
 
 	rescode = 0;
-	if (!CreateProcess(NULL, argv, NULL, NULL, FALSE, 0, NULL, NULL, &ctx->si, &ctx->pi))
+	if (!CreateProcess(NULL, sb->buf, NULL, NULL, FALSE, 0,
+				NULL, NULL, &ctx->si, &ctx->pi))
 	{
 		warn_winerr("failed to start the program '%s'",
 				ctx->program); /* errno set here */
@@ -102,8 +101,8 @@ int mkprocl(struct process_info *ctx, const char *arg0, ...)
 		close_nuldev(ctx);
 	}
 
-	free(argv);
 	va_end(ap);
+	strbuf_destroy(sb);
 
 	return rescode;
 }

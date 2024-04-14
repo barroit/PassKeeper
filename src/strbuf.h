@@ -35,20 +35,41 @@ extern char strbuf_defbuf[];
 #define STRBUF_INIT   { .buf = strbuf_defbuf }
 #define STRBUF_INIT_PTR &(struct strbuf){ .buf = strbuf_defbuf }
 
-void strbuf_destroy(struct strbuf *sb);
+/**
+ * free `sb->buf`, after calling this function, the `sb` shall not
+ * be used again
+ */
+static inline FORCEINLINE void strbuf_destroy(struct strbuf *sb)
+{
+	if (sb->capacity)
+	{
+		free(sb->buf);
+	}
+}
+
+/**
+ * truncate `sb->buf` to length `0`, but the capacity remains
+ * unchanged
+ */
+static inline FORCEINLINE void strbuf_trunc(struct strbuf *sb)
+{
+	*sb->buf = 0;
+	sb->length = 0;
+}
 
 void strbuf_printf(struct strbuf *sb, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
-void strbuf_putc(struct strbuf *sb, char c);
+void strbuf_putchar(struct strbuf *sb, char c);
 
-void strbuf_nprint(struct strbuf *sb, const char *str, size_t sz);
+void strbuf_write(struct strbuf *sb, const char *str, size_t sz);
 
-#define strbuf_print(sb, str) strbuf_nprint((sb), (str), strlen(str))
-
-#define strbuf_puts(sb, str) strbuf_printf((sb), "%s\n", (str))
+void strbuf_puts(struct strbuf *sb, const char *str);
 
 void strbuf_trim_end(struct strbuf *sb);
 
+/**
+ * return a copy of `sb->buf`, and truncate `sb`
+ */
 char *strbuf_detach(struct strbuf *sb);
 
 bool starts_with(const char *str, const char *prefix);

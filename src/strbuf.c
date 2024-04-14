@@ -52,20 +52,12 @@ static inline void strbuf_setlen(struct strbuf *sb, size_t length)
 	sb->length = length;
 }
 
-static inline void strbuf_addlen(struct strbuf *sb, size_t newlen)
+static inline FORCEINLINE void strbuf_addlen(struct strbuf *sb, size_t newlen)
 {
 	strbuf_setlen(sb, sb->length + newlen);
 }
 
-void strbuf_destroy(struct strbuf *sb)
-{
-	if (sb->capacity)
-	{
-		free(sb->buf);
-	}
-}
-
-static inline size_t strbuf_size_avail(const struct strbuf *sb)
+static inline FORCEINLINE size_t strbuf_size_avail(const struct strbuf *sb)
 {
 	return sb->capacity == 0 ? 0 : sb->capacity - sb->length - 1;
 }
@@ -108,7 +100,18 @@ void strbuf_printf(struct strbuf *sb, const char *fmt, ...)
 	va_end(ap);
 }
 
-void strbuf_nprint(struct strbuf *sb, const char *str, size_t sz)
+void strbuf_putchar(struct strbuf *sb, char c)
+{
+	if (!strbuf_size_avail(sb))
+	{
+		strbuf_grow(sb, 1);
+	}
+
+	sb->buf[sb->length++] = c;
+	sb->buf[sb->length] = 0;
+}
+
+void strbuf_write(struct strbuf *sb, const char *str, size_t sz)
 {
 	if (sz > strbuf_size_avail(sb))
 	{
@@ -120,15 +123,23 @@ void strbuf_nprint(struct strbuf *sb, const char *str, size_t sz)
 	strbuf_addlen(sb, sz);
 }
 
-void strbuf_putc(struct strbuf *sb, char c)
+void strbuf_puts(struct strbuf *sb, const char *str)
 {
-	if (!strbuf_size_avail(sb))
+	size_t size;
+	char *bufptr;
+
+	size = strlen(str) + 1; /* add one for newline char */
+	if (size > strbuf_size_avail(sb))
 	{
-		strbuf_grow(sb, 1);
+		strbuf_grow(sb, size);
 	}
 
-	sb->buf[sb->length++] = c;
-	sb->buf[sb->length] = 0;
+	bufptr = sb->buf;
+
+	memcpy(bufptr += sb->length, str, size - 1);
+	bufptr[size - 1] = '\n';
+
+	strbuf_addlen(sb, size);
 }
 
 void strbuf_trim_end(struct strbuf *sb)
@@ -139,13 +150,13 @@ void strbuf_trim_end(struct strbuf *sb)
 
 char *strbuf_detach(struct strbuf *sb)
 {
-	char *ret;
-	static const struct strbuf sb0 = STRBUF_INIT;
+	char *bufcopy;
 
-	ret = sb->buf;
+	bufcopy = malloc(sb->length + 1); /* add one for null terminator */
+	memcpy(bufcopy, sb->buf, sb->length + 1);
+	strbuf_trunc(sb);
 
-	memcpy(sb, &sb0, sizeof(struct strbuf));
-	return ret;
+	return bufcopy;
 }
 
 bool starts_with(const char *str, const char *prefix)

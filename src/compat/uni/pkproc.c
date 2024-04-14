@@ -112,13 +112,13 @@ static void error_chlerr(struct child_error *errobj)
 		const int *fd;
 
 		fd = errobj->errext;
-		warn_errno("failed to duplicate 'FD %d' to 'FD %d'", fd[0], fd[1]);
+		warning_errno("failed to duplicate 'FD %d' to 'FD %d'", fd[0], fd[1]);
 		break;
 	case ERROR_EXEC:
 		const char *program;
 
 		program = errobj->errext;
-		warn_errno("failed to execute command '%s'", program);
+		warning_errno("failed to execute command '%s'", program);
 		break;
 	default:
 		bug("child errnum should not be the value of '%d'", errobj->chlerr);
@@ -152,7 +152,7 @@ static void after_fork(
 {
 	if (ctx->pid < 0)
 	{
-		warn_errno("cannot fork() for %s", ctx->program);
+		warning_errno("cannot fork() for %s", ctx->program);
 	}
 
 	close(errnot_pipe[1]);
@@ -272,7 +272,7 @@ int finish_process(struct process_info *ctx, bool raised)
 		}
 
 		errnum = errno;
-		warn_errno("unable to wait for %s to terminate", ctx->program);
+		warning_errno("unable to wait for %s to terminate", ctx->program);
 	}
 	else if (WIFEXITED(status))
 	{
@@ -285,7 +285,7 @@ int finish_process(struct process_info *ctx, bool raised)
 		if (!raised && rescode != SIGINT &&
 			rescode != SIGQUIT && rescode != SIGPIPE)
 		{
-			warn("%s died (signal %d)", ctx->program, rescode);
+			warning("%s died (signal %d)", ctx->program, rescode);
 			rescode += 128;
 		}
 	}
