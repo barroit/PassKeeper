@@ -40,19 +40,24 @@ struct strlist_elem *strlist_push(struct strlist *sl, const char *str)
 	return strlist_push_nodup(sl, sl->dupstr ? strdup(str) : (char *)str);
 }
 
+static void strlist_erase_at(struct strlist *sl, size_t idx, bool free_ext)
+{
+	if (sl->dupstr)
+	{
+		free(sl->elvec[idx].str);
+	}
+
+	if (free_ext)
+	{
+		free(sl->elvec[idx].ext);
+	}
+}
+
 void strlist_destroy(struct strlist *sl, bool free_ext)
 {
 	for (; sl->size; sl->size--)
 	{
-		if (sl->dupstr)
-		{
-			free(sl->elvec[sl->size - 1].str);
-		}
-
-		if (free_ext)
-		{
-			free(sl->elvec[sl->size - 1].ext);
-		}
+		strlist_erase_at(sl, sl->size - 1, free_ext);
 	}
 
 	free(sl->elvec);
@@ -105,7 +110,7 @@ size_t strlist_split(struct strlist *sl, const char *str, char delim, int maxspl
 	}
 }
 
-void strlist_filter(struct strlist *sl, strlist_filter_cb_t pass)
+void strlist_filter(struct strlist *sl, strlist_filter_cb_t pass, bool free_ext)
 {
 	size_t i, ii, iii;
 	size_t track[sl->size], tracksz;
@@ -121,6 +126,8 @@ void strlist_filter(struct strlist *sl, strlist_filter_cb_t pass)
 
 	for (i = 0, iii = 0; i < tracksz; i++)
 	{
+		strlist_erase_at(sl, track[i], free_ext);
+
 		ii = track[i];
 		iii++;
 

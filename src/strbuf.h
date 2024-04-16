@@ -63,6 +63,9 @@ void strbuf_putchar(struct strbuf *sb, char c);
 
 void strbuf_write(struct strbuf *sb, const char *str, size_t sz);
 
+/**
+ * DO NOT pass NULL to `str`
+ */
 void strbuf_puts(struct strbuf *sb, const char *str);
 
 void strbuf_trim_end(struct strbuf *sb);

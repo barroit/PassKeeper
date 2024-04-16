@@ -50,7 +50,7 @@ void strlist_clear(struct strlist *sl, bool free_ext);
 
 size_t strlist_split(struct strlist *sl, const char *str, char delim, int maxsplit);
 
-void strlist_filter(struct strlist *sl, strlist_filter_cb_t pass);
+void strlist_filter(struct strlist *sl, strlist_filter_cb_t pass, bool free_ext);
 
 /**
  * find `str` in `arr`, the last element of `arr` must be NULL

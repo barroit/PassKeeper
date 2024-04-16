@@ -66,12 +66,12 @@ const struct option cmd_create_options[] = {
 	OPTION_END(),
 };
 
-#define MISSING_FIELD(f) !(record.f && *record.f)
-#define missing_sitename MISSING_FIELD(sitename)
-#define missing_username MISSING_FIELD(username)
-#define missing_password MISSING_FIELD(password)
+static inline FORCEINLINE bool have_field(const char *field)
+{
+	return field && *field;
+}
 
-static char *format_misfld_string(void)
+static char *format_missing_field_string(void)
 {
 	const char *fmap0[3], **fmap;
 	unsigned fcount;
@@ -79,17 +79,17 @@ static char *format_misfld_string(void)
 	fcount = 0;
 	fmap = fmap0;
 
-	if (missing_sitename)
+	if (!have_field(record.sitename))
 	{
 		fcount++;
 		*fmap++ = "sitename";
 	}
-	if (missing_username)
+	if (!have_field(record.username))
 	{
 		fcount++;
 		*fmap++ = "username";
 	}
-	if (missing_password)
+	if (!have_field(record.password))
 	{
 		fcount++;
 		*fmap++ = "password";
@@ -112,7 +112,7 @@ static char *format_misfld_string(void)
 		strlist_push(sl, *fmap);
 		break;
 	default:
-		bug("format_misfld_string() executed with an"
+		bug("format_missing_field_string() executed with an"
 			"invalid field count '%d'", fcount);
 	}
 
@@ -120,6 +120,36 @@ static char *format_misfld_string(void)
 	strlist_destroy(sl, true);
 
 	return buf;
+}
+
+static void recfile_field_push(struct strbuf *sb, const char *comment, const char *field)
+{
+	strbuf_puts(sb, comment);
+
+	if (have_field(field))
+	{
+		strbuf_puts(sb, field);
+	}
+	else
+	{
+		strbuf_putchar(sb, '\n');
+	}
+
+	strbuf_putchar(sb, '\n');
+}
+
+
+void format_recfile_content(struct strbuf *sb)
+{
+	recfile_field_push(sb, "# sitename", record.sitename);
+	recfile_field_push(sb, "# siteurl",  record.siteurl);
+	recfile_field_push(sb, "# username", record.username);
+	recfile_field_push(sb, "# password", record.password);
+	recfile_field_push(sb, "# authtext", record.authtext);
+	recfile_field_push(sb, "# bakcode",  record.bakcode);
+	recfile_field_push(sb, "# comment",  record.comment);
+
+	strbuf_puts(sb, COMMON_RECORD_MESSAGE);
 }
 
 static bool line_filter(struct strlist_elem *el)
@@ -135,7 +165,10 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 	bool setup_editor;
 
 	if (use_editor == USE_EDITOR_DEFAULT &&
-	     (missing_sitename || missing_username || missing_password))
+	     (!have_field(record.sitename) ||
+	       !have_field(record.username) ||
+	        !have_field(record.password))
+	   )
 	{
 		/**
 		 * ./pk create --sitename="xxx" --username="xxx"
@@ -151,17 +184,19 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 		 * ./pk create --sitename="xxx" --username="xxx"
 		 * 	--nano
 		 * # even though it has required fields
-		*/
+		 */
 		setup_editor = true;
 	}
-	else if (missing_sitename || missing_username || missing_password)
+	else if (!have_field(record.sitename) ||
+		  !have_field(record.username) ||
+		   !have_field(record.password))
 	{
 		/**
 		 * ./pk create --no-nano
 		 * # not use editor and missing required fields
-		*/
+		 */
 		return error("%s missing in the required fields",
-				format_misfld_string());
+				format_missing_field_string());
 	}
 
 	if (!setup_editor)
@@ -172,50 +207,14 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 	const char *recfile;
 	int recfildes;
 
-	static struct strbuf *sb;
-	struct strbuf sb0 = STRBUF_INIT;
+	struct strbuf *sb = STRBUF_INIT_PTR;
 
-	sb = &sb0; /* avoid definitely lost :) */
 	recfile = get_pk_recfile();
-
-	strbuf_puts(sb, "# sitename");
-	if (!missing_sitename)
-	{
-		strbuf_puts(sb, record.sitename);
-	}
-	else
-	{
-		strbuf_putchar(sb, '\n');
-	}
-	strbuf_putchar(sb, '\n');
-
-	strbuf_puts(sb, "# username");
-	if (!missing_username)
-	{
-		strbuf_puts(sb, record.username);
-	}
-	else
-	{
-		strbuf_putchar(sb, '\n');
-	}
-	strbuf_putchar(sb, '\n');
-
-	strbuf_puts(sb, "# password");
-	if (!missing_password)
-	{
-		strbuf_puts(sb, record.password);
-	}
-	else
-	{
-		strbuf_putchar(sb, '\n');
-	}
-	strbuf_putchar(sb, '\n');
-
-	strbuf_puts(sb, COMMON_RECORD_MESSAGE);
-
 	prepare_file_directory(recfile);
 
 	recfildes = xopen(recfile, O_RDWR | O_CREAT | O_TRUNC, FILCRT_BIT);
+
+	format_recfile_content(sb);
 	xwrite(recfildes, sb->buf, sb->length);
 
 	strbuf_trunc(sb);
@@ -250,9 +249,7 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 	struct strlist *sl = &(struct strlist)STRLIST_INIT_DUP;
 
 	strlist_split(sl, recbuf, '\n', -1);
-	strlist_filter(sl, line_filter);
-	
-	//
+	strlist_filter(sl, line_filter, false);
 
 	free(recbuf);
 	close(recfildes);
