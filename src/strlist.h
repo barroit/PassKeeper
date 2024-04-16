@@ -37,20 +37,31 @@ struct strlist
 	bool   dupstr;
 };
 
+enum strlist_join_ext_pos
+{
+	EXT_JOIN_NONE,
+	EXT_JOIN_HEAD,
+	EXT_JOIN_TAIL,
+};
+
 typedef bool (*strlist_filter_cb_t)(struct strlist_elem *);
 
 #define STRLIST_INIT_NODUP { 0 }
 #define STRLIST_INIT_DUP   { .dupstr = true }
 
-struct strlist_elem *strlist_push(struct strlist *sl, const char *str);
-
 void strlist_destroy(struct strlist *sl, bool free_ext);
 
 void strlist_clear(struct strlist *sl, bool free_ext);
 
+struct strlist_elem *strlist_push(struct strlist *sl, const char *str);
+
+struct strlist_elem *strlist_pop(struct strlist *sl);
+
 size_t strlist_split(struct strlist *sl, const char *str, char delim, int maxsplit);
 
 void strlist_filter(struct strlist *sl, strlist_filter_cb_t pass, bool free_ext);
+
+char *strlist_join(struct strlist *sl, char *separator, enum strlist_join_ext_pos join_pos);
 
 /**
  * find `str` in `arr`, the last element of `arr` must be NULL
@@ -70,13 +81,6 @@ static inline bool string_in_array(const char *str, const char *const *arr)
  * with a NULL
  */
 char **strlist_to_array(struct strlist *sl);
-
-struct strlist_elem *strlist_pop(struct strlist *sl);
-
-/**
- * this function DISCARD `ext` member on each strlist_elem data
- */
-char *strlist_join(struct strlist *sl, char *separator);
 
 /**
  * free a NULL terminated array

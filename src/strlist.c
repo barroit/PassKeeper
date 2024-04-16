@@ -22,24 +22,6 @@
 
 #include "strlist.h"
 
-static struct strlist_elem *strlist_push_nodup(struct strlist *sl, char *str)
-{
-	struct strlist_elem *el;
-
-	CAPACITY_GROW(sl->elvec, sl->size + 1, sl->capacity);
-	el = &sl->elvec[sl->size++];
-
-	el->str = str;
-	el->ext = NULL;
-
-	return el;
-}
-
-struct strlist_elem *strlist_push(struct strlist *sl, const char *str)
-{
-	return strlist_push_nodup(sl, sl->dupstr ? strdup(str) : (char *)str);
-}
-
 static void strlist_erase_at(struct strlist *sl, size_t idx, bool free_ext)
 {
 	if (sl->dupstr)
@@ -72,6 +54,34 @@ void strlist_clear(struct strlist *sl, bool free_ext)
 	prev_dupstr = sl->dupstr;
 	memset(sl, 0, sizeof(struct strlist));
 	sl->dupstr = prev_dupstr;
+}
+
+static struct strlist_elem *strlist_push_nodup(struct strlist *sl, char *str)
+{
+	struct strlist_elem *el;
+
+	CAPACITY_GROW(sl->elvec, sl->size + 1, sl->capacity);
+	el = &sl->elvec[sl->size++];
+
+	el->str = str;
+	el->ext = NULL;
+
+	return el;
+}
+
+struct strlist_elem *strlist_push(struct strlist *sl, const char *str)
+{
+	return strlist_push_nodup(sl, sl->dupstr ? strdup(str) : (char *)str);
+}
+
+struct strlist_elem *strlist_pop(struct strlist *sl)
+{
+	if (sl->size == 0)
+	{
+		return NULL;
+	}
+
+	return sl->elvec + (sl->size-- - 1);
 }
 
 size_t strlist_split(struct strlist *sl, const char *str, char delim, int maxsplit)
@@ -142,25 +152,17 @@ void strlist_filter(struct strlist *sl, strlist_filter_cb_t pass, bool free_ext)
 	}
 }
 
-struct strlist_elem *strlist_pop(struct strlist *sl)
-{
-	if (sl->size == 0)
-	{
-		return NULL;
-	}
-
-	return sl->elvec + (sl->size-- - 1);
-}
-
-char *strlist_join(struct strlist *sl, char *sep)
+char *strlist_join(
+	struct strlist *sl, char *separator, enum strlist_join_ext_pos join_pos)
 {
 	char *buf0, *buf;
-	size_t bufsz, bufcap, sepsz, prevsz, strsz;
+	size_t bufsz, bufcap, prevsz;
+	size_t strsz, extsz, sepsz;
 	unsigned i;
 
 	bufsz = 0;
 	bufcap = 0;
-	sepsz = strlen(sep);
+	sepsz = strlen(separator);
 
 	buf0 = NULL;
 	buf = buf0;
@@ -169,13 +171,28 @@ char *strlist_join(struct strlist *sl, char *sep)
 	{
 		prevsz = bufsz;
 		strsz = strlen(sl->elvec[i].str);
-		bufsz += strsz + sepsz;
+		extsz = join_pos != EXT_JOIN_NONE &&
+			 sl->elvec[i].ext != NULL ?
+			  strlen(sl->elvec[i].ext) : 0;
+		bufsz += strsz + extsz + sepsz;
 
 		CAPACITY_GROW(buf0, bufsz, bufcap);
 		buf = buf0;
 
-		memcpy(buf += prevsz, sl->elvec[i].str, strsz);
-		memcpy(buf + strsz, sep, sepsz);
+		buf += prevsz;
+		if (join_pos == EXT_JOIN_HEAD)
+		{
+			memcpy(buf, sl->elvec[i].ext, extsz);
+			buf += extsz;
+		}
+		memcpy(buf, sl->elvec[i].str, strsz);
+		buf += strsz;
+		if (join_pos == EXT_JOIN_TAIL)
+		{
+			memcpy(buf, sl->elvec[i].ext, extsz);
+			buf += extsz;
+		}
+		memcpy(buf, separator, sepsz);
 	}
 
 	buf0[bufsz - sepsz] = 0; /* remove the last seperator */

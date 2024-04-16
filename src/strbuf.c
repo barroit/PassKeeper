@@ -22,6 +22,8 @@
 
 #include "strbuf.h"
 
+char strbuf_defbuf[1];
+
 static void strbuf_grow(struct strbuf *sb, size_t request_size)
 {
 	bool factory_new;
@@ -39,8 +41,6 @@ static void strbuf_grow(struct strbuf *sb, size_t request_size)
 		*sb->buf = 0;
 	}
 }
-
-char strbuf_defbuf[1];
 
 static inline void strbuf_setlen(struct strbuf *sb, size_t length)
 {
