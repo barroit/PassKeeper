@@ -57,7 +57,8 @@ const struct option cmd_create_options[] = {
 	OPTION_GROUP(""),
 	OPTION_STRING(0, "guard", &record.authtext,
 			"text to help verify this account is yours"),
-	OPTION_STRING(0, "recovery",  &record.bakcode, "code for account recovery"),
+	OPTION_STRING(0, "recovery",  &record.bakcode,
+			"code for account recovery"),
 	OPTION_STRING(0, "comment",  &record.comment,
 			"you just write what the fuck you want to"),
 	OPTION_GROUP(""),
@@ -121,6 +122,11 @@ static char *format_misfld_string(void)
 	return buf;
 }
 
+static bool line_filter(struct strlist_elem *el)
+{
+	return *el->str != 0 && *el->str != '#';
+}
+
 int cmd_create(int argc, const char **argv, const char *prefix)
 {
 	parse_options(argc, argv, prefix, cmd_create_options,
@@ -154,7 +160,8 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 		 * ./pk create --no-nano
 		 * # not use editor and missing required fields
 		*/
-		return error("%s missing in the required fields", format_misfld_string());
+		return error("%s missing in the required fields",
+				format_misfld_string());
 	}
 
 	if (!setup_editor)
@@ -213,15 +220,49 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 
 	strbuf_trunc(sb);
 
-	if (edit_file(recfile) != 0)
+	// if (edit_file(recfile) != 0)
+	// {
+	// 	exit(EXIT_FAILURE);
+	// }
+
+	off_t recfilesz;
+	char *recbuf;
+
+	recfilesz = xlseek(recfildes, 0, SEEK_END);
+
+	if (recfilesz == 0)
 	{
-		exit(EXIT_FAILURE);
+		goto canceled;
 	}
 
+	xlseek(recfildes, 0, SEEK_SET); /* set starting position
+					   to the beginning of the file */
+
+	recbuf = xmalloc(recfilesz + 1);
+
+	if (xread(recfildes, recbuf, recfilesz) == 0)
+	{
+		goto canceled;
+	}
+
+	recbuf[recfilesz] = 0;
+
+	struct strlist *sl = &(struct strlist)STRLIST_INIT_DUP;
+
+	strlist_split(sl, recbuf, '\n', -1);
+	strlist_filter(sl, line_filter);
+	
+	//
+
+	free(recbuf);
 	close(recfildes);
+	strlist_destroy(sl, false);
 	strbuf_destroy(sb);
 
 arulabel:
-	printf("use editor %d\nsetup editor: %d\n", use_editor, setup_editor);
 	return 0;
+
+canceled:
+	puts("Aborting creation due to empty record.");
+	exit(EXIT_SUCCESS);
 }

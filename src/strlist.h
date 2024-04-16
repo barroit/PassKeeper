@@ -31,11 +31,13 @@ struct strlist_elem
 
 struct strlist
 {
-	struct strlist_elem *items;
+	struct strlist_elem *elvec;
 	size_t size;
 	size_t capacity;
 	bool   dupstr;
 };
+
+typedef bool (*strlist_filter_cb_t)(struct strlist_elem *);
 
 #define STRLIST_INIT_NODUP { 0 }
 #define STRLIST_INIT_DUP   { .dupstr = true }
@@ -47,6 +49,8 @@ void strlist_destroy(struct strlist *sl, bool free_ext);
 void strlist_clear(struct strlist *sl, bool free_ext);
 
 size_t strlist_split(struct strlist *sl, const char *str, char delim, int maxsplit);
+
+void strlist_filter(struct strlist *sl, strlist_filter_cb_t pass);
 
 /**
  * find `str` in `arr`, the last element of `arr` must be NULL

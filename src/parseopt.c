@@ -626,7 +626,7 @@ static enum parse_option_result usage_with_options(
 		{
 			const char *line;
 
-			line = sl.items[i].str;
+			line = sl.elvec[i].str;
 			if (!i)
 			{
 				fprintfln(stream, next_prefix, line);

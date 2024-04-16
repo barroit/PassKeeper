@@ -197,7 +197,7 @@ int mkprocl(struct process_info *ctx, const char *arg0, ...)
 
 		argv = strlist_to_array(sl);
 
-		strlist_clear(sl, false);
+		strlist_destroy(sl, false);
 		va_end(ap);
 
 		execvp(arg0, argv);

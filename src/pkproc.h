@@ -27,7 +27,7 @@
 #define NO_STDOUT 1 << 1
 #define NO_STDERR 1 << 2
 
-typedef int (*procfn_t)(const void *args);
+typedef int (*procfn_t)(const void *);
 
 #ifdef WINDOWS_NATIVE
 enum process_type

@@ -51,20 +51,6 @@ static inline void *xmemdup(const void *ptr, size_t size)
 	return memcpy(xmalloc(size), ptr, size);
 }
 
-/**
- * copies at most size characters of the stringand make
- * it null-terminated
- */
-static inline void *xmemdup_str(const void *ptr, size_t size)
-{
-	uint8_t *buf;
-
-	buf = xmemdup(ptr, size + 1);
-	buf[size] = 0;
-
-	return buf;
-}
-
 static inline size_t __attribute__((const)) fixed_growth(size_t sz)
 {
 	return (sz + 16) * 3 / 2;
@@ -144,6 +130,22 @@ static inline ssize_t xwrite(int fd, const void *buf, size_t n)
 	if ((nr = write(fd, buf, n)) != n)
 	{
 		die_errno("failed to write content to fd '%d'", fd);
+	}
+
+	return nr;
+}
+
+static inline ssize_t xread(int fd, void *buf, size_t nbytes)
+{
+	ssize_t nr;
+
+	if ((nr = read(fd, buf, nbytes)) == -1)
+	{
+		die_errno("failed to read content from fd '%d'", fd);
+	}
+	else if (nr == 0)
+	{
+		warning("read() starting position is at or after the end-of-file");
 	}
 
 	return nr;

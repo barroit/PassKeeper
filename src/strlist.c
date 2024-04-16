@@ -26,8 +26,8 @@ static struct strlist_elem *strlist_push_nodup(struct strlist *sl, char *str)
 {
 	struct strlist_elem *el;
 
-	CAPACITY_GROW(sl->items, sl->size + 1, sl->capacity);
-	el = &sl->items[sl->size++];
+	CAPACITY_GROW(sl->elvec, sl->size + 1, sl->capacity);
+	el = &sl->elvec[sl->size++];
 
 	el->str = str;
 	el->ext = NULL;
@@ -46,16 +46,16 @@ void strlist_destroy(struct strlist *sl, bool free_ext)
 	{
 		if (sl->dupstr)
 		{
-			free(sl->items[sl->size - 1].str);
+			free(sl->elvec[sl->size - 1].str);
 		}
 
 		if (free_ext)
 		{
-			free(sl->items[sl->size - 1].ext);
+			free(sl->elvec[sl->size - 1].ext);
 		}
 	}
 
-	free(sl->items);
+	free(sl->elvec);
 }
 
 void strlist_clear(struct strlist *sl, bool free_ext)
@@ -71,14 +71,16 @@ void strlist_clear(struct strlist *sl, bool free_ext)
 
 size_t strlist_split(struct strlist *sl, const char *str, char delim, int maxsplit)
 {
-	assert(sl->dupstr);
+	if (!sl->dupstr)
+	{
+		bug("strlist_split() shall be called with dupstr set to true");
+	}
 
 	size_t count;
 	const char *delim_pos;
 
 	count = 0;
-
-	while (1)
+	while (39)
 	{
 		count++;
 
@@ -92,7 +94,7 @@ size_t strlist_split(struct strlist *sl, const char *str, char delim, int maxspl
 
 		if(delim_pos)
 		{
-			strlist_push_nodup(sl, xmemdup_str(str, delim_pos - str));
+			strlist_push_nodup(sl, strndup(str, delim_pos - str));
 			str = delim_pos + 1;
 		}
 		else
@@ -103,6 +105,36 @@ size_t strlist_split(struct strlist *sl, const char *str, char delim, int maxspl
 	}
 }
 
+void strlist_filter(struct strlist *sl, strlist_filter_cb_t pass)
+{
+	size_t i, ii, iii;
+	size_t track[sl->size], tracksz;
+
+	tracksz = 0;
+	for (i = 0; i < sl->size; i++)
+	{
+		if (!pass(sl->elvec + i))
+		{
+			track[tracksz++] = i;
+		}
+	}
+
+	for (i = 0, iii = 0; i < tracksz; i++)
+	{
+		ii = track[i];
+		iii++;
+
+		while (i < tracksz - 1  ?
+			++ii != track[i + 1] :
+			++ii < sl->size)
+		{
+			sl->elvec[ii - iii] = sl->elvec[ii];
+		}
+
+		sl->size--;
+	}
+}
+
 struct strlist_elem *strlist_pop(struct strlist *sl)
 {
 	if (sl->size == 0)
@@ -110,7 +142,7 @@ struct strlist_elem *strlist_pop(struct strlist *sl)
 		return NULL;
 	}
 
-	return sl->items + (sl->size-- - 1);
+	return sl->elvec + (sl->size-- - 1);
 }
 
 char *strlist_join(struct strlist *sl, char *sep)
@@ -129,13 +161,13 @@ char *strlist_join(struct strlist *sl, char *sep)
 	for (i = 0; i < sl->size; i++)
 	{
 		prevsz = bufsz;
-		strsz = strlen(sl->items[i].str);
+		strsz = strlen(sl->elvec[i].str);
 		bufsz += strsz + sepsz;
 
 		CAPACITY_GROW(buf0, bufsz, bufcap);
 		buf = buf0;
 
-		memcpy(buf += prevsz, sl->items[i].str, strsz);
+		memcpy(buf += prevsz, sl->elvec[i].str, strsz);
 		memcpy(buf + strsz, sep, sepsz);
 	}
 
@@ -152,7 +184,7 @@ char **strlist_to_array(struct strlist *sl)
 	buf = xmalloc((sl->size + 1) * sizeof(char *));
 	for (i = 0; i < sl->size; i++)
 	{
-		buf[i] = strdup(sl->items[i].str);
+		buf[i] = strdup(sl->elvec[i].str);
 	}
 
 	buf[i] = NULL;
