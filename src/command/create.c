@@ -111,7 +111,7 @@ static char *format_missing_field_string(void)
 	fmap = fmap0;
 	static char *buf;
 	const char *ext;
-	struct strlist *sl = &(struct strlist)STRLIST_INIT_NODUP;
+	struct strlist *sl = STRLIST_INIT_PTR_NODUP;
 
 	ext = NULL;
 	switch (fcount)
@@ -252,15 +252,40 @@ static void reassign_record(struct strlist *sl, struct strbuf *sb)
 	}
 }
 
+enum creterr
+{
+	CRETERR_CANCELED,
+	CRETERR_MISSING_FIELD,
+};
+
+static inline FORCEINLINE int pcreterr(enum creterr errcode)
+{
+	switch (errcode)
+	{
+	case CRETERR_CANCELED:
+		puts("Creation is aborted due to empty record.");
+		return 0;
+	case CRETERR_MISSING_FIELD:
+		return error("%s missing in the required fields",
+				format_missing_field_string());
+	default:
+		bug("Unknown error code '%d'", errcode);
+	}
+}
+
 int cmd_create(int argc, const char **argv, const char *prefix)
 {
 	parse_options(argc, argv, prefix, cmd_create_options,
 			cmd_create_usages, PARSER_ABORT_NON_OPTION);
 
 	bool setup_editor;
+	int rescode;
+
+	setup_editor = false;
+	rescode = 0;
 
 	if (use_editor == USE_EDITOR_DEFAULT &&
-	     missing_required_field)
+		missing_required_field)
 	{
 		/**
 		 * ./pk create --sitename="xxx" --username="xxx"
@@ -285,7 +310,8 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 		 * ./pk create --no-nano
 		 * # not use editor and missing required fields
 		 */
-		goto missing_field;
+		rescode = pcreterr(CRETERR_MISSING_FIELD);
+		goto cleanup;
 	}
 
 	if (!setup_editor)
@@ -296,14 +322,9 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 	const char *recfile;
 	int recfildes;
 
+	struct strbuf *sb = STRBUF_INIT_PTR;
 
-	static struct strbuf *sb;
-	struct strbuf sb0 = STRBUF_INIT;
-	sb = &sb0;
-
-	recfile = get_pk_recfile();
-	prepare_file_directory(recfile);
-
+	recfile = force_getenv(PK_RECFILE);
 	recfildes = xopen(recfile, O_RDWR | O_CREAT | O_TRUNC,
 				FILCRT_BIT);
 
@@ -312,9 +333,9 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 
 	strbuf_trunc(sb);
 
-	if (edit_file(recfile) != 0)
+	if ((rescode = edit_file(recfile)) != 0)
 	{
-		exit(EXIT_FAILURE);
+		goto cleanup;
 	}
 
 	off_t recfilesz;
@@ -324,7 +345,8 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 
 	if (recfilesz == 0)
 	{
-		goto creation_canceled;
+		pcreterr(CRETERR_CANCELED);
+		goto cleanup;
 	}
 
 	xlseek(recfildes, 0, SEEK_SET);
@@ -334,13 +356,12 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 
 	if (xread(recfildes, recbuf, recfilesz) == 0)
 	{
-		goto creation_canceled;
+		pcreterr(CRETERR_CANCELED);
+		goto cleanup;
 	}
 	close(recfildes);
 
-	static struct strlist *sl;
-	struct strlist sl0 = STRLIST_INIT_DUP;
-	sl = &sl0;
+	struct strlist *sl = STRLIST_INIT_PTR_DUPSTR;
 
 	strlist_split(sl, recbuf, '\n', -1);
 	free(recbuf);
@@ -349,7 +370,8 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 
 	if (sl->size == 0)
 	{
-		goto creation_canceled;
+		pcreterr(CRETERR_CANCELED);
+		goto cleanup;
 	}
 
 	reassign_record(sl, sb);
@@ -360,25 +382,26 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 
 		if (sl->size == 0)
 		{
-			goto creation_canceled;
+			pcreterr(CRETERR_CANCELED);
 		}
 		else
 		{
-			goto missing_field;
+			rescode = pcreterr(CRETERR_MISSING_FIELD);
 		}
+
+		goto cleanup;
 	}
 
 	strlist_destroy(sl, false);
 	strbuf_destroy(sb);
 
-create_record:
+create_record:;
+	struct sqlite3 *db;
+
+	AUTOFAIL(cleanup, msqlite3_open, force_getenv(PK_CRED_DB), &db);
+
 	return 0;
 
-creation_canceled:
-	puts("Creation is aborted due to empty record.");
-	return 0;
-
-missing_field:
-	return error("%s missing in the required fields",
-			format_missing_field_string());
+cleanup:
+	return rescode;
 }

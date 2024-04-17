@@ -603,12 +603,12 @@ static enum parse_option_result usage_with_options(
 {
 	FILE *stream;
 	const char *next_prefix, *usage_prefix, *or_prefix;
-	struct strlist sl = STRLIST_INIT_DUP;
+	struct strlist *sl = STRLIST_INIT_PTR_DUPSTR;
 	size_t usage_length;
 	bool println;
 	const struct option *iter;
 
-	stream = is_error ? stderr : stdout;
+	stream       = is_error ? stderr : stdout;
 	usage_prefix = "usage: %s";
 	or_prefix    = "   or: %s";
 	next_prefix  = usage_prefix;
@@ -620,13 +620,13 @@ static enum parse_option_result usage_with_options(
 		size_t i;
 
 		ustr = *usages++;
-		strlist_split(&sl, ustr, '\n', -1);
+		strlist_split(sl, ustr, '\n', -1);
 
-		for (i = 0; i < sl.size; i++)
+		for (i = 0; i < sl->size; i++)
 		{
 			const char *line;
 
-			line = sl.elvec[i].str;
+			line = sl->elvec[i].str;
 			if (!i)
 			{
 				fprintfln(stream, next_prefix, line);
@@ -637,9 +637,10 @@ static enum parse_option_result usage_with_options(
 			}
 		}
 
-		strlist_clear(&sl, false);
+		strlist_trunc(sl, false);
 		next_prefix = or_prefix;
 	}
+	strlist_destroy(sl, false);
 
 	println = true;
 	iter = options;

@@ -187,7 +187,7 @@ int mkprocl(struct process_info *ctx, const char *arg0, ...)
 
 		redirect_stdio(ctx->fildes_flags, nulfd);
 
-		struct strlist *sl = &(struct strlist)STRLIST_INIT_NODUP;
+		struct strlist *sl = STRLIST_INIT_PTR_NODUP;
 		char **argv;
 
 		while ((arg = va_arg(ap, const char *)) != NULL)

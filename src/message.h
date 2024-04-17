@@ -42,16 +42,17 @@ void die_routine(const char *syserr, const char *format, ...)
 	__attribute__((format(printf, 2, 3), noreturn));
 
 void bug_routine(const char *file, int line, const char *format, ...)
-	__attribute__((format(printf, 3, 4)));
+	__attribute__((format(printf, 3, 4), noreturn));
 
-#define warning(...) warning_routine(NULL, __VA_ARGS__)
-#define warning_errno(...) warning_routine(strerror(errno), __VA_ARGS__)
+#define warning(...)		warning_routine(NULL, __VA_ARGS__)
+#define warning_errno(...)	warning_routine(strerror(errno), __VA_ARGS__)
 
-#define error(...) error_routine(NULL, __VA_ARGS__)
-#define error_errno(...) error_routine(strerror(errno), __VA_ARGS__)
+#define error(...)		error_routine(NULL, __VA_ARGS__)
+#define error_errno(...)	error_routine(strerror(errno), __VA_ARGS__)
+#define error_sqlerr(db__, ...)	error_routine(sqlite3_errmsg(db__), __VA_ARGS__)
 
-#define die(...) die_routine(NULL, __VA_ARGS__)
-#define die_errno(...) die_routine(strerror(errno), __VA_ARGS__)
+#define die(...)		die_routine(NULL, __VA_ARGS__)
+#define die_errno(...)		die_routine(strerror(errno), __VA_ARGS__)
 
 #define bug(...) bug_routine(__FILE__, __LINE__, __VA_ARGS__)
 

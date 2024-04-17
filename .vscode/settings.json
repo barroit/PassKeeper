@@ -36,7 +36,10 @@
 		"*.inc": "c",
 		"type_traits": "c",
 		"sstream": "c",
-		".pk_recfile": "plaintext"
+		".pk-recfile": "plaintext",
+		"memcheck.h": "c",
+		"random": "c",
+		"tuple": "c"
 	},
 	"fileHeaderComment.parameter": {
 		"*": {

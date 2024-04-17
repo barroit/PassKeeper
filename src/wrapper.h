@@ -163,12 +163,21 @@ static inline off_t xlseek(int fildes, off_t offset, int whence)
 	return ns;
 }
 
+#define AUTOFAIL(label__, fn__, ...)			\
+	do						\
+	{						\
+		if (fn__(__VA_ARGS__) != 0)		\
+		{					\
+			goto label__;			\
+		}					\
+	}						\
+	while (0)
+
 static inline int msqlite3_open(const char *db_path, struct sqlite3 **db)
 {
-	if (sqlite3_open(db_path, db))
+	if (sqlite3_open(db_path, db) != SQLITE_OK)
 	{
-		error("cannot open database, %s", sqlite3_errmsg(*db));
-		return 1;
+		return error_sqlerr(*db, "Unable to open database");
 	}
 
 	return 0;
@@ -176,10 +185,9 @@ static inline int msqlite3_open(const char *db_path, struct sqlite3 **db)
 
 static inline int msqlite3_key(struct sqlite3 *db, const void *key, int sz)
 {
-	if (sqlite3_key(db, key, sz))
+	if (sqlite3_key(db, key, sz) != SQLITE_OK)
 	{
-		error("cannot apply key to database");
-		return 1;
+		return error("Couldn't apply the key to database");
 	}
 
 	return 0;
@@ -188,14 +196,16 @@ static inline int msqlite3_key(struct sqlite3 *db, const void *key, int sz)
 static inline int msqlite3_exec(struct sqlite3 *db, const char *sql)
 {
 	char *errmsg;
-	if (sqlite3_exec(db, sql, NULL, NULL, &errmsg))
+	int rescode;
+
+	rescode = 0;
+	if (sqlite3_exec(db, sql, NULL, NULL, &errmsg) != SQLITE_OK)
 	{
-		error("cannot evaluate sql statements, %s", errmsg);
+		rescode = error("Unable to evaluate sql statements; %s", errmsg);
 		sqlite3_free(errmsg);
-		return 1;
 	}
 
-	return 0;
+	return rescode;
 }
 
 #ifdef WINDOWS_NATIVE
@@ -206,17 +216,16 @@ WINBOOL xDuplicateHandle(HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HAND
 WINBOOL xSetStdHandle(DWORD nStdHandle, HANDLE hHandle);
 #endif
 
-static inline const char *get_pk_recfile(void)
+static inline const char *force_getenv(const char *name)
 {
-	const char *recfile;
+	const char *val;
 
-	if ((recfile = getenv(PK_RECFILE)) == NULL)
+	if ((val = getenv(name)) == NULL)
 	{
-		die("PK_TMPFILE is unset, didn't know where to store the editor "
-			"content");
+		die("Couldn't find the value of env variable '%s'.", name);
 	}
 
-	return recfile;
+	return val;
 }
 
 #endif /* WRAPPER_H */

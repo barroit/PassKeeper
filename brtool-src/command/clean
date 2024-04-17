@@ -18,7 +18,7 @@ case "$type" in
 	> "$BRTOOL_DEPSTAT_RECORD"
 	;;
 'coredump')
-	rm "$PROJECT_PREFIX"/core.*
+	rm "$PROJECT_PREFIX"/*.crash
 	;;
 'draft')
 	rm "$PROJECT_PREFIX"/draft.*

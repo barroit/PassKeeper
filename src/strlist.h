@@ -46,12 +46,14 @@ enum strlist_join_ext_pos
 
 typedef bool (*strlist_filter_cb_t)(struct strlist_elem *);
 
-#define STRLIST_INIT_NODUP { 0 }
-#define STRLIST_INIT_DUP   { .dupstr = true }
+#define STRLIST_INIT_NODUP  { 0 }
+#define STRLIST_INIT_DUPSTR { .dupstr = true }
+#define STRLIST_INIT_PTR_NODUP  &(struct strlist)STRLIST_INIT_NODUP
+#define STRLIST_INIT_PTR_DUPSTR &(struct strlist){ .dupstr = true }
 
-void strlist_destroy(struct strlist *sl, bool free_ext);
+void strlist_destroy(struct strlist *sl, bool rmext);
 
-void strlist_clear(struct strlist *sl, bool free_ext);
+void strlist_trunc(struct strlist *sl, bool rmext);
 
 struct strlist_elem *strlist_push(struct strlist *sl, const char *str);
 
@@ -59,7 +61,7 @@ struct strlist_elem *strlist_pop(struct strlist *sl);
 
 size_t strlist_split(struct strlist *sl, const char *str, char delim, int maxsplit);
 
-void strlist_filter(struct strlist *sl, strlist_filter_cb_t pass, bool free_ext);
+void strlist_filter(struct strlist *sl, strlist_filter_cb_t pass, bool rmext);
 
 char *strlist_join(struct strlist *sl, char *separator, enum strlist_join_ext_pos join_pos);
 

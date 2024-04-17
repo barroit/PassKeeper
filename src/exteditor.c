@@ -24,34 +24,6 @@
 #include "message.h"
 #include "strlist.h"
 
-static inline bool is_dumb_terminal(void)
-{
-	const char *term = getenv("TERM");
-	return term == NULL || !strcmp(term, "dumb");
-}
-
-static const char *get_editor(void)
-{
-	const char *editor = getenv(PK_EDITOR);
-	bool dumb = is_dumb_terminal();
-
-	if (editor == NULL && !dumb)
-	{
-		editor = getenv("VISUAL");
-	}
-	if (editor == NULL)
-	{
-		editor = getenv("EDITOR");
-	}
-
-	if (editor == NULL)
-	{
-		editor = dumb ? NULL : DEFAULT_EDITOR;
-	}
-
-	return editor;
-}
-
 static const char *graphical_editors[] = {
 	"gedit",     /* gedit */
 	"kate",      /* kate */
@@ -72,7 +44,7 @@ int edit_file(const char *pathname)
 	const char *editor, *spinner_style;
 	bool show_spinner;
 
-	if ((editor = get_editor()) == NULL)
+	if ((editor = getenv(PK_EDITOR)) == NULL)
 	{
 		return error("Unable to find a editor; Make sure VISUAL, "
 				"EDITOR or PK_EDITOR is set in env");

@@ -44,13 +44,15 @@ static const char *alter_table_sqlstr =
 		"account_id INTEGER PRIMARY KEY,"
 		"guard      TEXT,"
 		"recovery   TEXT,"
-		"FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE"
+		"FOREIGN KEY (account_id) REFERENCES account(id) "
+			"ON DELETE CASCADE"
 	");"
 
 	"CREATE TABLE account_misc ("
 		"account_id INTEGER PRIMARY KEY,"
 		"comment    TEXT,"
-		"FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE"
+		"FOREIGN KEY (account_id) REFERENCES account(id) "
+			"ON DELETE CASCADE"
 	");";
 
 static struct
@@ -73,14 +75,21 @@ const char *const cmd_init_usages[] = {
 };
 
 const struct option cmd_init_options[] = {
-	OPTION_OPTARG(0, "encrypt", &user.key, 1, "key", "password used to encryption"),
+	OPTION_OPTARG(0, "encrypt", &user.key, 1, "key",
+			"password used to encryption"),
 	OPTION_BOOLEAN(0, "remember", &user.store_key, "store password"),
 	OPTION_GROUP(""),
-	OPTION_STRING(0, "kdf-algorithm", &cc.kdf_algorithm, "KDF algorithm used to generate encryption key for database"),
-	OPTION_STRING(0, "hmac-algorithm", &cc.hmac_algorithm, "HMAC algorithm used to detect illegal data tampering"),
-	OPTION_UNSIGNED(0, "cipher-compat", &cc.cipher_compat, "version of api to used"),
+	OPTION_STRING(0, "kdf-algorithm", &cc.kdf_algorithm,
+			"KDF algorithm used to generate "
+			 "encryption key for database"),
+	OPTION_STRING(0, "hmac-algorithm", &cc.hmac_algorithm,
+			"HMAC algorithm used to detect "
+			 "illegal data tampering"),
+	OPTION_UNSIGNED(0, "cipher-compat", &cc.cipher_compat,
+			 "version of api to used"),
 	OPTION_UNSIGNED(0, "page-size", &cc.page_size, "size of a page"),
-	OPTION_UNSIGNED(0, "kdf-iter", &cc.kdf_iter, "key derivation iteration times"),
+	OPTION_UNSIGNED(0, "kdf-iter", &cc.kdf_iter,
+			 "key derivation iteration times"),
 	OPTION_END(),
 };
 
@@ -117,17 +126,9 @@ static inline bool is_binary_key(enum key_type kt)
 	return kt != USER_PASSPHRASE;
 }
 
-#define AF(fn, ...)				\
-	do					\
-	{					\
-		if (fn(__VA_ARGS__))		\
-		{				\
-			goto init_failure;	\
-		}				\
-	}					\
-	while (0)
-
-static int prepare_file_path(char pathbuf[], const char *prefix, const char *envname, const char *defname)
+static int prepare_file_path(
+	char pathbuf[], const char *prefix,
+	const char *envname, const char *defname)
 {
 	const char *envpath;
 	char *pfpath;
@@ -162,9 +163,10 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	char *hxkyst;
 	size_t hxkyst_len;
 
-	parse_options(argc, argv, prefix, cmd_init_options, cmd_init_usages, PARSER_ABORT_NON_OPTION);
+	parse_options(argc, argv, prefix, cmd_init_options,
+			cmd_init_usages, PARSER_ABORT_NON_OPTION);
 
-	if (prepare_file_path(db_path, prefix, PK_CRED_DB, PK_CRED_DB_NM))
+	if (prepare_file_path(db_path, prefix, PK_CRED_DB, PK_CRED_DB_NM) != 0)
 	{
 		return error("db file '%s' already exists", db_path);
 	}
@@ -176,9 +178,11 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 		goto init_database;
 	}
 
-	kt = (intptr_t)user.key == 1 ? PK_BINKEY :
-		*user.key == 'x' ? USER_BINKEY :
-		 USER_PASSPHRASE;
+	kt = (intptr_t)user.key == 1 ?
+		PK_BINKEY :
+		*user.key == 'x' ?
+			USER_BINKEY :
+			USER_PASSPHRASE;
 
 	if (kt == USER_PASSPHRASE && *user.key == 0)
 	{
@@ -191,23 +195,28 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	{
 		if (!string_in_array(cc.kdf_algorithm, kdf_algorithms))
 		{
-			return error("algorithm '%s' not found", cc.kdf_algorithm);
+			return error("algorithm '%s' not found",
+					cc.kdf_algorithm);
 		}
 
-		use_key_file |= strcmp(cc.kdf_algorithm, CIPHER_DEFAULT_KDF_ALGORITHM);
+		use_key_file |= strcmp(cc.kdf_algorithm,
+					CIPHER_DEFAULT_KDF_ALGORITHM);
 	}
 
 	if (cc.hmac_algorithm)
 	{
 		if (!string_in_array(cc.hmac_algorithm, hmac_algorithms))
 		{
-			return error("algorithm '%s' not found", cc.hmac_algorithm);
+			return error("algorithm '%s' not found",
+					cc.hmac_algorithm);
 		}
 
-		use_key_file |= strcmp(cc.hmac_algorithm, CIPHER_DEFAULT_HMAC_ALGORITHM);
+		use_key_file |= strcmp(cc.hmac_algorithm,
+					CIPHER_DEFAULT_HMAC_ALGORITHM);
 	}
 
-	use_key_file |= cc.kdf_iter != CIPHER_DEFAULT_KDF_ITER && kt == USER_PASSPHRASE;
+	use_key_file |= cc.kdf_iter != CIPHER_DEFAULT_KDF_ITER &&
+			 kt == USER_PASSPHRASE;
 
 	if (!in_range_u(cc.page_size, 512, 65536, 1) || !is_pow2(cc.page_size))
 	{
@@ -218,20 +227,25 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 		use_key_file |= cc.page_size != CIPHER_DEFAULT_PAGE_SIZE;
 	}
 
-	if (!in_range_u(cc.cipher_compat, CIPHER_MIN_COMPATIBILITY, CIPHER_MAX_COMPATIBILITY, 1))
+	if (!in_range_u(cc.cipher_compat, CIPHER_MIN_COMPATIBILITY,
+			 CIPHER_MAX_COMPATIBILITY, 1))
 	{
-		return error("unknown cipher compatibility '%d'", cc.cipher_compat);
+		return error("unknown cipher compatibility '%d'",
+				cc.cipher_compat);
 	}
 	else
 	{
-		use_key_file |= cc.cipher_compat != CIPHER_DEFAULT_COMPATIBILITY;
+		use_key_file |= cc.cipher_compat !=
+				 CIPHER_DEFAULT_COMPATIBILITY;
 	}
 
-	use_key_file |= (is_binary_key(kt) && user.store_key) || user.store_key == 1;
+	use_key_file |= (is_binary_key(kt) && user.store_key) ||
+			  user.store_key == 1;
 
 	if (use_key_file)
 	{
-		if (prepare_file_path(ky_path, prefix, PK_CRED_KY, PK_CRED_KY_NM))
+		if (prepare_file_path(ky_path, prefix,
+					PK_CRED_KY, PK_CRED_KY_NM))
 		{
 			return error("key file '%s' already exists", ky_path);
 		}
@@ -248,23 +262,26 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 		tmp_hxkyst = bin2hex(xmemdup(cc.key, cc.keylen), cc.keylen);
 
 		hxkyst = xmalloc(HEXKEYSTR_LENGTH + 1);
-		hxkyst_len = snprintf(hxkyst, HEXKEYSTR_LENGTH + 1, "x'%s'", tmp_hxkyst);
+		hxkyst_len = snprintf(hxkyst, HEXKEYSTR_LENGTH + 1,
+					"x'%s'", tmp_hxkyst);
 
 		free(tmp_hxkyst);
 		break;
 	case USER_BINKEY:
 		hxkyst_len = strlen(user.key);
 
-		if (hxkyst_len != HEXKEYSTR_LENGTH && hxkyst_len != SALT_HEXKEYSTR_LENGTH)
+		if (hxkyst_len != HEXKEYSTR_LENGTH &&
+		     hxkyst_len != SALT_HEXKEYSTR_LENGTH)
 		{
 			return error("invalid key length \"%s\"", user.key);
 		}
 		else if (!is_hexstr(user.key + 2, HEXKEY_LENGTH))
 		{
-			return error("key contains invalid char \"%s\"", user.key);
+			return error("key contains invalid char "
+					"\"%s\"", user.key);
 		}
 		else if (hxkyst_len == SALT_HEXKEYSTR_LENGTH &&
-			!is_saltstr(user.key + 2 + HEXKEY_LENGTH, SALT_LENGTH))
+			  !is_saltstr(user.key + 2 + HEXKEY_LENGTH, SALT_LENGTH))
 		{
 			return error("invalid key salt \"%s\"", user.key);
 		}
@@ -324,26 +341,27 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	free(cc_buf);
 
 init_database:;
-
 	struct sqlite3 *db;
 
-	AF(msqlite3_open, db_path, &db);
+	AUTOFAIL(init_failure, msqlite3_open, db_path, &db);
 
 	if (encrypt_db)
 	{
-		AF(msqlite3_key, db, hxkyst, hxkyst_len);
+		AUTOFAIL(init_failure, msqlite3_key, db, hxkyst, hxkyst_len);
 	}
 
 	struct strbuf *sb = STRBUF_INIT_PTR;
 
 	if (cc.kdf_algorithm && is_binary_key(kt))
 	{
-		strbuf_printf(sb, "PRAGMA cipher_kdf_algorithm = %s;", cc.kdf_algorithm);
+		strbuf_printf(sb, "PRAGMA cipher_kdf_algorithm = "
+				"%s;", cc.kdf_algorithm);
 	}
 
 	if (cc.hmac_algorithm)
 	{
-		strbuf_printf(sb, "PRAGMA cipher_hmac_algorithm = %s;", cc.hmac_algorithm);
+		strbuf_printf(sb, "PRAGMA cipher_hmac_algorithm = "
+				"%s;", cc.hmac_algorithm);
 	}
 
 	if (cc.kdf_iter != CIPHER_DEFAULT_KDF_ITER && is_binary_key(kt))
@@ -353,21 +371,22 @@ init_database:;
 
 	if (cc.page_size != CIPHER_DEFAULT_PAGE_SIZE)
 	{
-		strbuf_printf(sb, "PRAGMA cipher_page_size = %d;", cc.page_size);
+		strbuf_printf(sb, "PRAGMA cipher_page_size = "
+				"%d;", cc.page_size);
 	}
 
 	/* always specify this */
-	strbuf_printf(sb, "PRAGMA cipher_compatibility = %d;", cc.cipher_compat);
+	strbuf_printf(sb, "PRAGMA cipher_compatibility = "
+			"%d;", cc.cipher_compat);
 
-	AF(msqlite3_exec, db, sb->buf);
+	AUTOFAIL(init_failure, msqlite3_exec, db, sb->buf);
 
-	AF(msqlite3_exec, db, alter_table_sqlstr);
+	AUTOFAIL(init_failure, msqlite3_exec, db, alter_table_sqlstr);
 
 	sqlite3_close(db);
 	return 0;
 
 init_failure:
-
 	sqlite3_close(db);
 
 	unlink(db_path);

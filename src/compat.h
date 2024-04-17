@@ -64,11 +64,11 @@
 #include <sys/wait.h>
 #endif
 
-#define PK_CRED_DB	"PK_CRED_DB"
-#define PK_CRED_KY	"PK_CRED_KY"
-#define PK_EDITOR	"PK_EDITOR"
-#define PK_SPINNER	"PK_SPINNER"
-#define PK_RECFILE	"PK_RECFILE"
+#define PK_CRED_DB  "PK_CRED_DB"
+#define PK_CRED_KY  "PK_CRED_KY"
+#define PK_EDITOR   "PK_EDITOR"
+#define PK_SPINNER  "PK_SPINNER"
+#define PK_RECFILE  "PK_RECFILE"
 
 #define COMMON_RECORD_MESSAGE							\
 "# Please enter the information for your password record. Lines starting\n"	\
@@ -78,17 +78,18 @@
 "# invoking their special meanings, start the line with '|'.\n"			\
 "# Run './pk example record' to see the example."
 
-#define PK_CRED_DB_NM	".pk-credfl"
-#define PK_CRED_KY_NM	".pk-credky"
+#define PK_CRED_DB_NM  ".pk-credfl"
+#define PK_CRED_KY_NM  ".pk-credky"
+#define PK_RECFILE_NM  ".pk-recfile"
 
 #ifdef LINUX
-#define ENV_USERHOME "HOME"
-#define DIRSEPSTR  "/"
-#define DIRSEPCHAR '/'
+#define ENV_USERHOME  "HOME"
+#define DIRSEPSTR     "/"
+#define DIRSEPCHAR    '/'
 #else
-#define ENV_USERHOME "USERPROFILE"
-#define DIRSEPSTR  "\\"
-#define DIRSEPCHAR '\\'
+#define ENV_USERHOME  "USERPROFILE"
+#define DIRSEPSTR     "\\"
+#define DIRSEPCHAR    '\\'
 #endif
 
 #define FILCRT_BIT ((S_IRUSR | S_IWUSR) | (S_IRGRP | S_IWGRP) | (S_IROTH))
@@ -125,23 +126,19 @@ char *pk_dirname(char *path);
 #endif
 
 #ifdef LINUX
-#define test_file_permission(p, s, m) test_file_permission_st(s, m)
+int test_file_permission_st(struct stat *st, int mode);
+
+#define test_file_permission(f, s, m) test_file_permission_st(s, m)
 #else
-#define test_file_permission(p, s, m) test_file_permission_ch(p, m)
+#define test_file_permission(f, s, m) (access(f, m) == -1)
 #endif
 
 int get_bias(long *bias);
 
 #ifdef LINUX
-#define DEFAULT_EDITOR "vi"
+#define NULDEV  "/dev/null"
 #else
-#define DEFAULT_EDITOR "notepad"
-#endif
-
-#ifdef LINUX
-#define NULDEV "/dev/null"
-#else
-#define NULDEV "NUL"
+#define NULDEV  "NUL"
 #endif
 
 #ifndef SIGQUIT

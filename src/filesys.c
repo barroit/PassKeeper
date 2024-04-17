@@ -24,7 +24,7 @@
 #include "strbuf.h"
 #include "rawnumop.h"
 
-static inline bool is_absolute_path(const char *path)
+static inline FORCEINLINE bool is_absolute_path(const char *path)
 {
 #ifdef LINUX
 	return *path && *path == '/';
@@ -60,44 +60,39 @@ char *prefix_filename(const char *prefix, const char *filename)
 
 #ifdef LINUX
 /* check b1 has b2 if a1 has a2 */
-#define check_if_has(a1, a2, b1, b2) (((a1) & (a2)) ? ((b1) & (b2)) : 1)
+#define check_if_have(a1, a2, b1, b2) (((a1) & (a2)) ? ((b1) & (b2)) : 1)
 
 int test_file_permission_st(struct stat *st, int mode)
 {
 	if (st->st_uid == geteuid()) /* euid matches owner id? */
 	{
-		if (check_if_has(mode, R_OK, st->st_mode, S_IRUSR) &&
-		     check_if_has(mode, W_OK, st->st_mode, S_IWUSR) &&
-		      check_if_has(mode, X_OK, st->st_mode, S_IXUSR))
+		if (check_if_have(mode, R_OK, st->st_mode, S_IRUSR) &&
+		     check_if_have(mode, W_OK, st->st_mode, S_IWUSR) &&
+		      check_if_have(mode, X_OK, st->st_mode, S_IXUSR))
 		{
 			return 0;
 		}
 	}
 	else if (st->st_gid == getegid()) /* egid matches group id? */
 	{
-		if (check_if_has(mode, R_OK, st->st_mode, S_IRGRP) &&
-		     check_if_has(mode, W_OK, st->st_mode, S_IWGRP) &&
-		      check_if_has(mode, X_OK, st->st_mode, S_IXGRP))
+		if (check_if_have(mode, R_OK, st->st_mode, S_IRGRP) &&
+		     check_if_have(mode, W_OK, st->st_mode, S_IWGRP) &&
+		      check_if_have(mode, X_OK, st->st_mode, S_IXGRP))
 		{
 			return 0;
 		}
 	}
 	else /* check other bits */
 	{
-		if (check_if_has(mode, R_OK, st->st_mode, S_IROTH) &&
-		     check_if_has(mode, W_OK, st->st_mode, S_IWOTH) &&
-		      check_if_has(mode, X_OK, st->st_mode, S_IXOTH))
+		if (check_if_have(mode, R_OK, st->st_mode, S_IROTH) &&
+		     check_if_have(mode, W_OK, st->st_mode, S_IWOTH) &&
+		      check_if_have(mode, X_OK, st->st_mode, S_IXOTH))
 		{
 			return 0;
 		}
 	}
 
 	return 1;
-}
-#else
-int test_file_permission_ch(const char *pathname, int mode)
-{
-	return access(pathname, mode) == -1;
 }
 #endif
 
@@ -116,8 +111,30 @@ void prepare_file_directory(const char *pathname)
 	}
 	else if (test_file_permission(dirpath, &st, W_OK) != 0)
 	{
-		die("access denied by '%s'", dirpath);
+		die("Access denied by file '%s'", dirpath);
 	}
 
 	free(pathcopy);
+}
+
+int access_regfile(const char *name, int type)
+{
+	struct stat st;
+
+	if (stat(name, &st) != 0)
+	{
+		return error_errno("Couldn't access file '%s'", name);
+	}
+
+	if (!S_ISREG(st.st_mode))
+	{
+		return error("File '%s' is not a regular file", name);
+	}
+
+	if (test_file_permission(db_path, &st, type) != 0)
+	{
+		return error("Access denied by file '%s'", name);
+	}
+
+	return 0;
 }

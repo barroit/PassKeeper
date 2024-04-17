@@ -23,14 +23,6 @@
 #ifndef FILESYS_H
 #define FILESYS_H
 
-enum file_test_result
-{
-	F_NOT_ALLOW = 1,
-	F_NOT_FILE,
-	F_NOT_DIR,
-	F_NOT_EXISTS,
-};
-
 static inline const char *get_user_home(void)
 {
 	const char *home;
@@ -47,5 +39,7 @@ static inline const char *get_user_home(void)
 char *prefix_filename(const char *prefix, const char *filename);
 
 void prepare_file_directory(const char *pathname);
+
+int access_regfile(const char *name, int type);
 
 #endif /* FILESYS_H */

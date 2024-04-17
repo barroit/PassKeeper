@@ -2,10 +2,8 @@
 
 case "$1" in
 'coredump')
-	echo 'core' | sudo tee /proc/sys/kernel/core_pattern
-	;;
-'sshkey')
-	echo todo
+	ulimit -c unlimited
+	echo '%p.crash' | sudo tee /proc/sys/kernel/core_pattern
 	;;
 *)
 	die "unknown setup action $1"

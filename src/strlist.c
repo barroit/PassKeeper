@@ -22,38 +22,35 @@
 
 #include "strlist.h"
 
-static void strlist_erase_at(struct strlist *sl, size_t idx, bool free_ext)
+static void strlist_erase_at(struct strlist *sl, size_t idx, bool rmext)
 {
 	if (sl->dupstr)
 	{
 		free(sl->elvec[idx].str);
 	}
 
-	if (free_ext)
+	if (rmext)
 	{
 		free(sl->elvec[idx].ext);
 	}
 }
 
-void strlist_destroy(struct strlist *sl, bool free_ext)
+void strlist_destroy(struct strlist *sl, bool rmext)
 {
 	for (; sl->size; sl->size--)
 	{
-		strlist_erase_at(sl, sl->size - 1, free_ext);
+		strlist_erase_at(sl, sl->size - 1, rmext);
 	}
 
 	free(sl->elvec);
 }
 
-void strlist_clear(struct strlist *sl, bool free_ext)
+void strlist_trunc(struct strlist *sl, bool rmext)
 {
-	bool prev_dupstr;
-
-	strlist_destroy(sl, free_ext);
-
-	prev_dupstr = sl->dupstr;
-	memset(sl, 0, sizeof(struct strlist));
-	sl->dupstr = prev_dupstr;
+	for ( ; sl->size > 0; sl->size--)
+	{
+		strlist_erase_at(sl, sl->size - 1, rmext);
+	}
 }
 
 static struct strlist_elem *strlist_push_nodup(struct strlist *sl, char *str)

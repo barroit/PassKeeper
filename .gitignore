@@ -6,4 +6,5 @@ test/tmp/
 docs/*.html
 docs/*.1
 ext/
-.pk_recfile
+.pk-recfile
+*.crash

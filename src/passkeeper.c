@@ -24,37 +24,47 @@
 #include "strbuf.h"
 #include "filesys.h"
 
-int cmd_count(int argc, const char **argv, const char *prefix);
-int cmd_create(int argc, const char **argv, const char *prefix);
-int cmd_delete(int argc, const char **argv, const char *prefix);
-int cmd_help(int argc, const char **argv, const char *prefix);
-int cmd_init(int argc, const char **argv, const char *prefix);
+int cmd_count(int argc,   const char **argv, const char *prefix);
+int cmd_create(int argc,  const char **argv, const char *prefix);
+int cmd_delete(int argc,  const char **argv, const char *prefix);
+int cmd_help(int argc,    const char **argv, const char *prefix);
+int cmd_init(int argc,    const char **argv, const char *prefix);
 int cmd_makekey(int argc, const char **argv, const char *prefix);
-int cmd_read(int argc, const char **argv, const char *prefix);
-int cmd_update(int argc, const char **argv, const char *prefix);
+int cmd_read(int argc,    const char **argv, const char *prefix);
+int cmd_update(int argc,  const char **argv, const char *prefix);
 int cmd_version(int argc, const char **argv, const char *prefix);
 
-#define REQUIRE_DB_FILE (1 << 0)
+enum precheck_flag
+{
+	/* credfile shall exist */
+	USE_CREDFILE = 1 << 0,
+	/**
+	 * recfile shall be available for open/create, this file
+	 * is not created by this flag, and the file shall be
+	 * removed by command handler after command executing
+	 */
+	USE_RECFILE  = 1 << 1,
+};
 
 struct command_info
 {
 	const char *name;
 	int (*handle)(int argc, const char **argv, const char *prefix);
-	unsigned precheck;
+	enum precheck_flag prechecks;
 };
 
 static struct command_info commands[] = {
-	{ "count",    cmd_count, REQUIRE_DB_FILE },
-	{ "create",   cmd_create, REQUIRE_DB_FILE  },
-	{ "delete",   cmd_delete, REQUIRE_DB_FILE  },
+	{ "count",    cmd_count,  USE_CREDFILE },
+	{ "create",   cmd_create, USE_CREDFILE | USE_RECFILE },
+	{ "delete",   cmd_delete, USE_CREDFILE },
 	{ "help",     cmd_help },
 	{ "init",     cmd_init },
 	{ "makekey",  cmd_makekey },
-	{ "read",     cmd_read, REQUIRE_DB_FILE  },
-	// { "show",     cmd_show, REQUIRE_DB_FILE  },
-	{ "update",   cmd_update },
+	{ "read",     cmd_read, USE_CREDFILE },
+	/* { "show",     cmd_show, USE_CREDFILE  }, */
+	{ "update",   cmd_update, USE_CREDFILE | USE_RECFILE },
 	{ "version",  cmd_version },
-	// { "validate", cmd_validate, REQUIRE_DB_FILE  },
+	/* { "validate", cmd_validate, USE_CREDFILE  }, */
 	{ NULL },
 };
 
@@ -62,9 +72,9 @@ static struct
 {
 	const char *db_path;
 	const char *key_path;
+	const char *recfile;
 	const char *editor;
 	const char *spinner_style;
-	const char *recfile;
 } environment = {
 	.spinner_style = "0",
 };
@@ -79,16 +89,19 @@ const struct option cmd_pk_options[] = {
 	OPTION_HIDDEN_PATHNAME(0, "db-path", &environment.db_path),
 	OPTION_HIDDEN_PATHNAME(0, "key-path", &environment.key_path),
 	OPTION_HIDDEN_STRING(0, "editor", &environment.editor),
-	OPTION_HIDDEN_OPTARG_ALLONEG(0, "spinner", &environment.spinner_style, "default"),
+	OPTION_HIDDEN_OPTARG_ALLONEG(0, "spinner", &environment.spinner_style,
+					"default"),
 	OPTION_COMMAND("count",   "Count the number of records"),
 	OPTION_COMMAND("create",  "Create a record"),
 	OPTION_COMMAND("delete",  "Delete a record"),
 	OPTION_COMMAND("help",    "Display help information about PassKeeper"),
-	OPTION_COMMAND("init",    "Initialize database files for storing credentials"),
+	OPTION_COMMAND("init",    "Initialize database files for "
+				  "storing credentials"),
 	OPTION_COMMAND("makekey", "Generate random bytes using a CSPRNG"),
 	OPTION_COMMAND("read",    "Read a record"),
 	OPTION_COMMAND("update",  "Update a record"),
-	OPTION_COMMAND("version", "Display version information about PassKeeper"),
+	OPTION_COMMAND("version", "Display version information about "
+				  "PassKeeper"),
 	OPTION_END(),
 };
 
@@ -115,9 +128,10 @@ bool is_command(const char *cmdname)
 
 static char *resolve_working_dir(void)
 {
-	size_t size = 96;
+	size_t size;
 	char *buf;
 
+	size = 96;
 	while (39)
 	{
 		buf = xmalloc(size);
@@ -127,26 +141,17 @@ static char *resolve_working_dir(void)
 			return buf;
 		}
 
-		if (errno != ERANGE)
+		if (errno == ERANGE)
 		{
-			die("permission denied while getting working directory");
+			free(buf);
+			size = fixed_growth(size);
+			continue;
 		}
 
-		free(buf);
-		size = fixed_growth(size);
+		die_errno("Unable to get the current working directory");
 	}
 
 	return buf;
-}
-
-static void execute_command(struct command_info *command, int argc, const char **argv, const char *prefix)
-{
-	if (command->handle == NULL)
-	{
-		bug("command '%s' has no handler", command->name);
-	}
-
-	exit(command->handle(argc, argv, prefix) & 0xff);
 }
 
 static const char *fallback_command[] = { "help", "pk", NULL };
@@ -190,25 +195,33 @@ static void calibrate_argv(int *argc, const char ***argv)
 	}
 }
 
-static int handle_global_options(int argc, const char **argv, const char *prefix)
+static inline FORCEINLINE void adaptive_setenv(
+	const char *name, const char *value, const char *defval)
 {
+	setenv(name, value == NULL ? defval : value, value != NULL);
+}
+
+static int handle_global_options(
+	int argc, const char **argv, const char *prefix)
+{
+	const char *editor;
+
 	option_usage_alignment = 13;
-	argc = parse_options(argc, argv, prefix, cmd_pk_options, cmd_pk_usages, PARSER_STOP_AT_NON_OPTION | PARSER_NO_SHORT_HELP);
+	argc = parse_options(argc, argv, prefix, cmd_pk_options, cmd_pk_usages,
+			      PARSER_STOP_AT_NON_OPTION | PARSER_NO_SHORT_HELP);
 	option_usage_alignment = OPTION_USAGE_ALIGNMENT;
 
-	if (environment.db_path)
-	{
-		setenv(PK_CRED_DB, environment.db_path, 1);
-	}
+	adaptive_setenv(PK_CRED_DB, environment.db_path,  PK_CRED_DB_NM);
+	adaptive_setenv(PK_CRED_KY, environment.key_path, PK_CRED_KY_NM);
+	adaptive_setenv(PK_RECFILE, environment.recfile,  PK_RECFILE_NM);
 
-	if (environment.key_path)
+	if ((editor = environment.editor) != NULL);
+	else if ((editor = getenv(PK_EDITOR)) != NULL);
+	else if ((editor = getenv("VISUAL")) != NULL);
+	else if ((editor = getenv("EDITOR")) != NULL);
+	if (editor)
 	{
-		setenv(PK_CRED_KY, environment.key_path, 1);
-	}
-
-	if (environment.editor)
-	{
-		setenv(PK_EDITOR, environment.editor, 1);
+		setenv(PK_EDITOR, editor, 1);
 	}
 
 	if (environment.spinner_style)
@@ -220,20 +233,41 @@ static int handle_global_options(int argc, const char **argv, const char *prefix
 		unsetenv(PK_SPINNER);
 	}
 
-	if (environment.recfile == NULL)
+	return argc;
+}
+
+static bool is_skip_precheck(int argc, const char **argv)
+{
+	for ( ; argc > 0; argc--)
 	{
-		environment.recfile = prefix_filename(prefix, ".pk_recfile");
+		if (!strcmp(argv[argc - 1], "-h"))
+		{
+			return true;
+		}
 	}
 
-	setenv(PK_RECFILE, environment.recfile, 1);
+	return false;
+}
 
-	return argc;
+static void precheck_command(enum precheck_flag prechecks)
+{
+	if (prechecks & USE_RECFILE)
+	{
+		prepare_file_directory(force_getenv(PK_RECFILE));
+	}
+
+	if ((prechecks & USE_CREDFILE) &&
+		access_regfile(force_getenv(PK_CRED_DB), R_OK | W_OK) != 0)
+	{
+		exit(EXIT_FAILURE);
+	}
 }
 
 int main(int argc, const char **argv)
 {
 	const char *prefix;
 	struct command_info *command;
+	int rescode;
 
 	argv++;
 	argc--;
@@ -253,7 +287,12 @@ int main(int argc, const char **argv)
 	argc--;
 	argv++;
 
-	execute_command(command, argc, argv, prefix);
+	if (!is_skip_precheck(argc, argv))
+	{
+		precheck_command(command->prechecks);
+	}
 
-	return EXIT_SUCCESS;
+	rescode = command->handle(argc, argv, prefix);
+
+	return rescode & 0xff;
 }
