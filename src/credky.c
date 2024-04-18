@@ -22,7 +22,7 @@
 
 #include "credky.h"
 
-enum data_type
+enum cfg_field_type
 {
 	FIELD_KDF_ALGORITHM,
 	FIELD_HMAC_ALGORITHM,
@@ -30,108 +30,92 @@ enum data_type
 	FIELD_PAGE_SIZE,
 	FIELD_KDF_ITER,
 	FIELD_KEY,
-	data_type_elements,
 };
 
 enum key_type
 {
 	/**
-	 * for FIELD_KEY + config->is_binary_key
+	 * for FIELD_KEY + is_binary_key
 	 * order shall not be changed
 	 */
 	KEY_PASSPHRASE,
 	KEY_BINARY,
 };
 
-#define DIGEST_LENGTH 32
-
-#define entry_size(dl) sizeof(uint8_t) + sizeof(size_t) + (dl)
-
-static uint8_t *append_buf(uint8_t *buf, uint8_t type, const void *data, size_t dlen)
+struct field_blob
 {
-	*buf++ = type;
+	uint8_t *buf;
+	size_t size;
+	size_t cap;
+};
 
-	memcpy(buf, &dlen, sizeof(size_t));
-	buf += sizeof(size_t);
+static void append_field(
+	struct field_blob *blob, uint8_t type, const void *data, size_t dlen)
+{
+	size_t required_size;
 
-	if (data && dlen)
-	{
-		memcpy(buf, data, dlen);
-		buf += dlen;
-	}
+	required_size = blob->size + sizeof(uint8_t) + sizeof(size_t) + dlen;
+	CAPACITY_GROW(blob->buf, required_size, blob->cap);
 
-	return buf;
+	*blob->buf = type;
+	blob->size++;
+
+	memcpy(blob->buf + blob->size, &dlen, sizeof(size_t));
+	blob->size += sizeof(size_t);
+
+	memcpy(blob->buf + blob->size, data, dlen);
+	blob->size += dlen;
 }
 
 uint8_t *serialize_cipher_config(
-	struct cipher_config *config, size_t *buflen)
+	struct cipher_config *config, const uint8_t *key,
+	size_t keylen, bool is_binary_key, size_t *outlen)
 {
-	uint8_t *buf0, *buf;
-	size_t lenmap[data_type_elements];
-
-	memset(lenmap, 0, sizeof(lenmap));
-
-	if (config->kdf_algorithm && strcmp(config->kdf_algorithm, CIPHER_DEFAULT_KDF_ALGORITHM))
-	{
-		lenmap[FIELD_KDF_ALGORITHM] = strlen(config->kdf_algorithm);
-	}
-	else
-	{
-		/* turn default value into null */
-		config->kdf_algorithm = NULL;
-	}
-
-	if (config->hmac_algorithm && strcmp(config->hmac_algorithm, CIPHER_DEFAULT_HMAC_ALGORITHM))
-	{
-		lenmap[FIELD_HMAC_ALGORITHM] = strlen(config->hmac_algorithm);
-	}
-	else
-	{
-		config->hmac_algorithm = NULL;
-	}
-
-	if (config->cipher_compat != CIPHER_DEFAULT_COMPATIBILITY)
-	{
-		lenmap[FIELD_COMPATIBILITY] = sizeof(unsigned);
-	}
-
-	if (config->page_size != CIPHER_DEFAULT_PAGE_SIZE)
-	{
-		lenmap[FIELD_PAGE_SIZE] = sizeof(unsigned);
-	}
-
-	if (config->kdf_iter != CIPHER_DEFAULT_KDF_ITER)
-	{
-		lenmap[FIELD_KDF_ITER] = sizeof(unsigned);
-	}
-
-	if (config->keylen)
-	{
-		lenmap[FIELD_KEY] = config->keylen;
-	}
-
 	/**
-	 * [(uint8_t data_type) + [(uint8_t key_type)], (size_t data_length), (data)]
-	 * data shall not contains null-terminator
+	 * [(uint8_t cfg_field_type), (size_t data_length), (data)]
 	 */
-	*buflen = 
-		entry_size(lenmap[FIELD_KDF_ALGORITHM]) +     /* kdf_algorithm */
-		 entry_size(lenmap[FIELD_HMAC_ALGORITHM]) +  /* hmac_algorithm */
-		  entry_size(lenmap[FIELD_COMPATIBILITY]) + /* compatibility */
-		   entry_size(lenmap[FIELD_PAGE_SIZE]) +   /* page_size */
-		    entry_size(lenmap[FIELD_KDF_ITER]) +  /* kdf_iter */
-		     entry_size(lenmap[FIELD_KEY]) +     /* key */
-		      DIGEST_LENGTH;                    /* buf digest */
+	struct field_blob *blob = &(struct field_blob){ 0 };
+	CAPACITY_GROW(blob->buf, 64, blob->cap);
 
-	buf0 = xmalloc(*buflen);
-	buf = buf0;
+	if (config->kdf_algorithm &&
+	     strcmp(config->kdf_algorithm, CPRDEF_KDF_ALGORITHM))
+	{
+		append_field(blob, FIELD_KDF_ALGORITHM, config->kdf_algorithm,
+				strlen(config->kdf_algorithm));
+	}
 
-	buf = append_buf(buf, FIELD_KDF_ALGORITHM, config->kdf_algorithm, lenmap[FIELD_KDF_ALGORITHM]);
-	buf = append_buf(buf, FIELD_HMAC_ALGORITHM, config->hmac_algorithm, lenmap[FIELD_HMAC_ALGORITHM]);
-	buf = append_buf(buf, FIELD_COMPATIBILITY, &config->cipher_compat, lenmap[FIELD_COMPATIBILITY]);
-	buf = append_buf(buf, FIELD_PAGE_SIZE, &config->page_size, lenmap[FIELD_PAGE_SIZE]);
-	buf = append_buf(buf, FIELD_KDF_ITER, &config->kdf_iter, lenmap[FIELD_KDF_ITER]);
-	buf = append_buf(buf, FIELD_KEY + config->is_binary_key, config->key, lenmap[FIELD_KEY]);
+	if (config->hmac_algorithm &&
+	     strcmp(config->hmac_algorithm, CPRDEF_HMAC_ALGORITHM))
+	{
+		append_field(blob, FIELD_HMAC_ALGORITHM, config->hmac_algorithm,
+				strlen(config->hmac_algorithm));
+	}
 
-	return buf0;
+	if (config->cipher_compat != CPRDEF_COMPATIBILITY)
+	{
+		append_field(blob, FIELD_COMPATIBILITY, &config->cipher_compat,
+				sizeof(unsigned));
+	}
+
+	if (config->page_size != CPRDEF_PAGE_SIZE)
+	{
+		append_field(blob, FIELD_PAGE_SIZE, &config->page_size,
+				sizeof(unsigned));
+	}
+
+	if (config->kdf_iter != CPRDEF_KDF_ITER)
+	{
+		append_field(blob, FIELD_KDF_ITER, &config->kdf_iter,
+				sizeof(unsigned));
+	}
+
+	if (key != NULL)
+	{
+		append_field(blob, FIELD_KEY + is_binary_key, key, keylen);
+	}
+
+	CAPACITY_GROW(blob->buf, blob->size + DIGEST_LENGTH, blob->cap);
+
+	*outlen = blob->size;
+	return blob->buf;
 }

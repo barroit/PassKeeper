@@ -267,7 +267,6 @@ int main(int argc, const char **argv)
 {
 	const char *prefix;
 	struct command_info *command;
-	int rescode;
 
 	argv++;
 	argc--;
@@ -292,7 +291,5 @@ int main(int argc, const char **argv)
 		precheck_command(command->prechecks);
 	}
 
-	rescode = command->handle(argc, argv, prefix);
-
-	return rescode & 0xff;
+	exit(command->handle(argc, argv, prefix) & 0xff);
 }

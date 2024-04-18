@@ -357,3 +357,22 @@ void replace_char(char *str, char c1, char c2)
 		str++;
 	}
 }
+
+bool is_blank_str(const char *str0)
+{
+	if (is_empty_str(str0))
+	{
+		return true;
+	}
+
+	const char *str;
+
+	str = str0;
+	str0 += strlen(str0);
+	while (str != str0 && isspace(*str))
+	{
+		str++;
+	}
+
+	return str == str0;
+}

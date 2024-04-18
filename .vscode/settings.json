@@ -39,7 +39,8 @@
 		".pk-recfile": "plaintext",
 		"memcheck.h": "c",
 		"random": "c",
-		"tuple": "c"
+		"tuple": "c",
+		"credky.h": "c"
 	},
 	"fileHeaderComment.parameter": {
 		"*": {

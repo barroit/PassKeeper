@@ -46,7 +46,7 @@ int edit_file(const char *pathname)
 
 	if ((editor = getenv(PK_EDITOR)) == NULL)
 	{
-		return error("Unable to find a editor; Make sure VISUAL, "
+		return error("Unable to find an editor; Make sure VISUAL, "
 				"EDITOR or PK_EDITOR is set in env");
 	}
 

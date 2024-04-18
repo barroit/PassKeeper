@@ -96,4 +96,11 @@ int fprintfln(FILE *stream, const char *fmt, ...) __attribute__((format(printf, 
  */
 void replace_char(char *str, char c1, char c2);
 
+static inline FORCEINLINE bool is_empty_str(const char *str)
+{
+	return str == NULL || *str == 0;
+}
+
+bool is_blank_str(const char *str0);
+
 #endif /* STRBUF_H */

@@ -64,9 +64,9 @@ static struct
 };
 
 static struct cipher_config cc = {
-	.kdf_iter = CIPHER_DEFAULT_KDF_ITER,
-	.page_size = CIPHER_DEFAULT_PAGE_SIZE,
-	.cipher_compat = CIPHER_DEFAULT_COMPATIBILITY,
+	.kdf_iter = CPRDEF_KDF_ITER,
+	.page_size = CPRDEF_PAGE_SIZE,
+	.cipher_compat = CPRDEF_COMPATIBILITY,
 };
 
 const char *const cmd_init_usages[] = {
@@ -93,22 +93,22 @@ const struct option cmd_init_options[] = {
 	OPTION_END(),
 };
 
-#define BINKEY_LENGTH		32
-#define HEXKEY_LENGTH		64
-#define SALT_LENGTH		32
-#define HEXKEYSTR_LENGTH	HEXKEY_LENGTH + 3
-#define SALT_HEXKEYSTR_LENGTH	HEXKEY_LENGTH + SALT_LENGTH + 3
-#define BLOBKEY_MAX		100 /* contains null-terminator */
+#define BKLEN      32
+#define HKLEN      64
+#define SALTLEN    32
+#define HK_STRLEN  (HKLEN + 3)
+#define SHK_STRLEN (HK_STRLEN + SALTLEN)
+#define HK_MAXLEN  SHK_STRLEN + 1 /* add one for null-terminator */
 
 static const char *kdf_algorithms[] = {
-	CIPHER_DEFAULT_KDF_ALGORITHM,
+	CPRDEF_KDF_ALGORITHM,
 	"PBKDF2HMAC_SHA256",
 	"PBKDF2_HMAC_SHA1",
 	NULL,
 };
 
 static const char *hmac_algorithms[] = {
-	CIPHER_DEFAULT_HMAC_ALGORITHM,
+	CPRDEF_HMAC_ALGORITHM,
 	"HMAC_SHA256",
 	"HMAC_SHA1",
 	NULL,
@@ -116,243 +116,281 @@ static const char *hmac_algorithms[] = {
 
 enum key_type
 {
-	USER_PASSPHRASE = 1,
-	PK_BINKEY,
-	USER_BINKEY,
+	KT_UNKNOWN,
+	KT_PASSPHRASE,
+	KT_PKBIN,
+	KT_USRBIN,
 };
 
-static inline bool is_binary_key(enum key_type kt)
-{
-	return kt != USER_PASSPHRASE;
-}
+#define is_binary_key (kt != KT_PASSPHRASE)
 
-static int prepare_file_path(
-	char pathbuf[], const char *prefix,
-	const char *envname, const char *defname)
+static enum key_type resolve_key_type(void)
 {
-	const char *envpath;
-	char *pfpath;
-
-	if ((envpath = getenv(envname)) == NULL)
+	size_t keylen;
+	if (user.key == NULL)
 	{
-		pfpath = prefix_filename(prefix, defname);
-		strcpy(pathbuf, pfpath);
-		free(pfpath);
+		bug("user.key shall not be null.");
+	}
+
+	if ((intptr_t)user.key == 1)
+	{
+		return KT_PKBIN;
+	}
+
+	keylen = strlen(user.key);
+	if (user.key[0] == 'x' &&
+	     user.key[1] == '\'' &&
+	      user.key[keylen - 1] == '\'')
+	{
+		if (keylen == HK_STRLEN || keylen == SHK_STRLEN)
+		{
+			return KT_USRBIN;
+		}
+		else
+		{
+			warning("Encryption key is wrapped by \"x''\" but "
+				 "does not have a valid raw key data length.");
+			puts("note: Using passphrase.");
+			return KT_PASSPHRASE;
+		}
 	}
 	else
 	{
-		strcpy(pathbuf, envpath);
+		return KT_PASSPHRASE;
 	}
-
-	if (access(pathbuf, F_OK) == 0)
-	{
-		return 1;
-	}
-
-	prepare_file_directory(pathbuf);
-
-	return 0;
 }
+
+#define AF(...) AUTOFAIL(setup_failure, rescode, __VA_ARGS__);
 
 int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 {
-	char db_path[PATH_MAX], ky_path[PATH_MAX];
-	bool encrypt_db, use_key_file;
-	enum key_type kt;
+	const char *db_path;
+	bool encrypt_db;
+	int rescode;
+	int fd;
 
-	char *hxkyst;
-	size_t hxkyst_len;
+	size_t strkey_len;
+	char *strkey;
+
+	rescode = 0;
+	fd = -1;
 
 	parse_options(argc, argv, prefix, cmd_init_options,
 			cmd_init_usages, PARSER_ABORT_NON_OPTION);
 
-	if (prepare_file_path(db_path, prefix, PK_CRED_DB, PK_CRED_DB_NM) != 0)
+	db_path = force_getenv(PK_CRED_DB);
+	if (access(db_path, F_OK) == 0)
 	{
-		return error("db file '%s' already exists", db_path);
+		return error("Database file '%s' already exists.", db_path);
+	}
+	else
+	{
+		prepare_file_directory(db_path);
 	}
 
 	encrypt_db = !!user.key;
-	kt = 0;
 	if (!encrypt_db)
 	{
-		goto init_database;
+		goto setup_database;
 	}
 
-	kt = (intptr_t)user.key == 1 ?
-		PK_BINKEY :
-		*user.key == 'x' ?
-			USER_BINKEY :
-			USER_PASSPHRASE;
+	enum key_type kt;
+	bool use_cfg_file;
 
-	if (kt == USER_PASSPHRASE && *user.key == 0)
+	kt = resolve_key_type();
+
+	/* validate key */
+	if (!is_binary_key && is_blank_str(user.key))
 	{
-		return error("empty passphrase not allowed");
+		return error("Blank passphrase is not allowed.");
 	}
 
-	use_key_file = 0;
+	strkey_len = kt == KT_PKBIN ? HKLEN + 3 : strlen(user.key);
+	if (strkey_len > 4096)
+	{
+		return error("Encryption key is too long.");
+	}
+	else if (kt == KT_USRBIN)
+	{
+		if (strkey_len != HK_STRLEN && strkey_len != SHK_STRLEN)
+		{
+			return error("Invalid blob key length '%"PRIuMAX"'.",
+					strkey_len);
+		}
+		else if (!is_hexstr(user.key + 2, HKLEN))
+		{
+			return error("Blob key \"%s\" contains invalid char.",
+					user.key);
+		}
+		else if (strkey_len == SHK_STRLEN &&
+			  !is_saltstr(user.key + 2 + HKLEN, SALTLEN))
+		{
+			return error("Blob key \"%s\" contains invalid salt.",
+					user.key);
+		}
+	}
 
-	if (cc.kdf_algorithm && is_binary_key(kt))
+	/* check if need to use config file */
+	use_cfg_file = false;
+
+	if (cc.kdf_algorithm && is_binary_key)
 	{
 		if (!string_in_array(cc.kdf_algorithm, kdf_algorithms))
 		{
-			return error("algorithm '%s' not found",
-					cc.kdf_algorithm);
+			return error("'%s' is not found in kdf algorithm "
+					"list.", cc.kdf_algorithm);
 		}
 
-		use_key_file |= strcmp(cc.kdf_algorithm,
-					CIPHER_DEFAULT_KDF_ALGORITHM);
+		use_cfg_file |= strcmp(cc.kdf_algorithm,
+					CPRDEF_KDF_ALGORITHM);
 	}
 
 	if (cc.hmac_algorithm)
 	{
 		if (!string_in_array(cc.hmac_algorithm, hmac_algorithms))
 		{
-			return error("algorithm '%s' not found",
-					cc.hmac_algorithm);
+			return error("'%s' is not found in hmac algorithm "
+					"list.", cc.hmac_algorithm);
 		}
 
-		use_key_file |= strcmp(cc.hmac_algorithm,
-					CIPHER_DEFAULT_HMAC_ALGORITHM);
+		use_cfg_file |= strcmp(cc.hmac_algorithm,
+					CPRDEF_HMAC_ALGORITHM);
 	}
 
-	use_key_file |= cc.kdf_iter != CIPHER_DEFAULT_KDF_ITER &&
-			 kt == USER_PASSPHRASE;
+	use_cfg_file |= cc.kdf_iter != CPRDEF_KDF_ITER && !is_binary_key;
 
-	if (!in_range_u(cc.page_size, 512, 65536, 1) || !is_pow2(cc.page_size))
+	if (!in_range_u(cc.page_size, CPRMIN_PAGE_SIZE, CPRMAX_PAGE_SIZE, 1) ||
+		!is_pow2(cc.page_size))
 	{
-		return error("invalid page size '%d'", cc.page_size);
+		return error("Invalid page size '%u'.", cc.page_size);
 	}
 	else
 	{
-		use_key_file |= cc.page_size != CIPHER_DEFAULT_PAGE_SIZE;
+		use_cfg_file |= cc.page_size != CPRDEF_PAGE_SIZE;
 	}
 
-	if (!in_range_u(cc.cipher_compat, CIPHER_MIN_COMPATIBILITY,
-			 CIPHER_MAX_COMPATIBILITY, 1))
+	if (!in_range_u(cc.cipher_compat, CPRMIN_COMPATIBILITY,
+			 CPRMAX_COMPATIBILITY, 1))
 	{
-		return error("unknown cipher compatibility '%d'",
+		return error("Unknown cipher compatibility '%u'.",
 				cc.cipher_compat);
 	}
 	else
 	{
-		use_key_file |= cc.cipher_compat !=
-				 CIPHER_DEFAULT_COMPATIBILITY;
+		use_cfg_file |= cc.cipher_compat != CPRDEF_COMPATIBILITY;
 	}
 
-	use_key_file |= (is_binary_key(kt) && user.store_key) ||
+	use_cfg_file |= (is_binary_key && user.store_key) ||
 			  user.store_key == 1;
 
-	if (use_key_file)
+	const char *cfg_path;
+
+	cfg_path = force_getenv(PK_CRED_KY);
+	if (use_cfg_file)
 	{
-		if (prepare_file_path(ky_path, prefix,
-					PK_CRED_KY, PK_CRED_KY_NM))
+		if (access(cfg_path, F_OK) == 0)
 		{
-			return error("key file '%s' already exists", ky_path);
+			return error("Config file '%s' already exists", cfg_path);
+		}
+		else
+		{
+			prepare_file_directory(cfg_path);
 		}
 	}
+
+	/* process key */
+	uint8_t *cfgkey;
+	size_t cfgkey_len;
+
+	cfgkey = NULL;
+	cfgkey_len = 0;
+
+	strkey = xmalloc(strkey_len + 1);
 
 	switch (kt)
 	{
-	case PK_BINKEY:;
-		char *tmp_hxkyst;
+	case KT_PKBIN:
+		char *hexkey;
 
-		cc.key = random_bytes(BINKEY_LENGTH);
-		cc.keylen = BINKEY_LENGTH;
+		cfgkey = random_bytes(BKLEN);
+		cfgkey_len = BKLEN;
 
-		tmp_hxkyst = bin2hex(xmemdup(cc.key, cc.keylen), cc.keylen);
+		hexkey = bin2hex(xmemdup(cfgkey, BKLEN), BKLEN);
+		snprintf(strkey, strkey_len + 1, "x'%s'", hexkey);
 
-		hxkyst = xmalloc(HEXKEYSTR_LENGTH + 1);
-		hxkyst_len = snprintf(hxkyst, HEXKEYSTR_LENGTH + 1,
-					"x'%s'", tmp_hxkyst);
-
-		free(tmp_hxkyst);
+		free(hexkey);
 		break;
-	case USER_BINKEY:
-		hxkyst_len = strlen(user.key);
+	case KT_USRBIN:
+		memcpy(strkey, user.key, strkey_len + 1);
 
-		if (hxkyst_len != HEXKEYSTR_LENGTH &&
-		     hxkyst_len != SALT_HEXKEYSTR_LENGTH)
-		{
-			return error("invalid key length \"%s\"", user.key);
-		}
-		else if (!is_hexstr(user.key + 2, HEXKEY_LENGTH))
-		{
-			return error("key contains invalid char "
-					"\"%s\"", user.key);
-		}
-		else if (hxkyst_len == SALT_HEXKEYSTR_LENGTH &&
-			  !is_saltstr(user.key + 2 + HEXKEY_LENGTH, SALT_LENGTH))
-		{
-			return error("invalid key salt \"%s\"", user.key);
-		}
+		cfgkey = hex2bin(strdup(user.key + 2), strkey_len - 3);
+		cfgkey_len = (strkey_len - 3) / 2;
 
-		cc.key = hex2bin(strdup(user.key + 2), hxkyst_len - 3);
-		cc.keylen = (hxkyst_len - 3) / 2;
-
-		hxkyst = strdup(user.key);
 		break;
-	case USER_PASSPHRASE:
-		if ((cc.keylen = strlen(user.key)) == 0)
-		{
-			return error("passphrase key is empty");
-		}
+	case KT_PASSPHRASE:
+		memcpy(strkey, user.key, strkey_len + 1);
 
-		hxkyst_len = cc.keylen;
-		cc.key = xmemdup(user.key, cc.keylen);
-		hxkyst = strdup(user.key);
+		cfgkey = xmemdup(user.key, strkey_len);
+		cfgkey_len = strkey_len;
+
 		break;
+	default:
+		bug("kt shall not be the value of '%d'", kt);
 	}
-
-	cc.is_binary_key = is_binary_key(kt);
 
 	if (!user.store_key)
 	{
-		if (kt == PK_BINKEY)
-		{
-			puts(hxkyst);
-		}
+		puts(strkey);
 
-		free(cc.key);
-		cc.key = NULL;
-		cc.keylen = 0;
+		free(cfgkey);
+		cfgkey = NULL;
 	}
 
-	if (!use_key_file)
+	if (!use_cfg_file)
 	{
-		goto init_database;
+		goto setup_database;
 	}
 
+	/* cc stands for cipher config */
 	uint8_t *cc_buf, *cc_digest;
-	size_t cc_buflen, cc_buflen_nodig;
-	FILE *fp;
+	size_t cc_size;
 
-	cc_buf = serialize_cipher_config(&cc, &cc_buflen);
+	cc_buf = serialize_cipher_config(&cc, cfgkey, cfgkey_len,
+					   is_binary_key, &cc_size);
 
-	cc_buflen_nodig = cc_buflen - DIGEST_LENGTH;
-	cc_digest = digest_message_sha256(cc_buf, cc_buflen_nodig);
+	cc_digest = digest_message_sha256(cc_buf, cc_size);
 
-	memcpy(cc_buf + cc_buflen_nodig, cc_digest, DIGEST_LENGTH);
+	memcpy(cc_buf + cc_size, cc_digest, DIGEST_LENGTH);
 	clean_digest(cc_digest);
 
-	fp = xfopen(ky_path, "wbx");
-	xfwrite(cc_buf, sizeof(uint8_t), cc_buflen, fp);
+	cc_size += DIGEST_LENGTH;
 
-	fclose(fp);
-	free(cc_buf);
-
-init_database:;
-	struct sqlite3 *db;
-
-	AUTOFAIL(init_failure, msqlite3_open, db_path, &db);
-
-	if (encrypt_db)
+	fd = xopen(cfg_path, O_WRONLY | O_CREAT, FILCRT_BIT);
+	if (write(fd, cc_buf, cc_size) == -1)
 	{
-		AUTOFAIL(init_failure, msqlite3_key, db, hxkyst, hxkyst_len);
+		rescode = error_errno("Couldn't write config to file '%s'",
+					cfg_path);
+		goto setup_failure;
 	}
 
+	close(fd);
+	free(cc_buf);
+
+setup_database:;
+	struct sqlite3 *db;
 	struct strbuf *sb = STRBUF_INIT_PTR;
 
-	if (cc.kdf_algorithm && is_binary_key(kt))
+	AF(msqlite3_open, db_path, &db);
+
+	if (!encrypt_db)
+	{
+		goto setup_schema;
+	}
+
+	AF(msqlite3_key, db, strkey, strkey_len);
+	free(strkey);
+
+	if (cc.kdf_algorithm && is_binary_key)
 	{
 		strbuf_printf(sb, "PRAGMA cipher_kdf_algorithm = "
 				"%s;", cc.kdf_algorithm);
@@ -364,33 +402,36 @@ init_database:;
 				"%s;", cc.hmac_algorithm);
 	}
 
-	if (cc.kdf_iter != CIPHER_DEFAULT_KDF_ITER && is_binary_key(kt))
+	if (cc.kdf_iter != CPRDEF_KDF_ITER && is_binary_key)
 	{
 		strbuf_printf(sb, "PRAGMA kdf_iter = %d;", cc.kdf_iter);
 	}
 
-	if (cc.page_size != CIPHER_DEFAULT_PAGE_SIZE)
+	if (cc.page_size != CPRDEF_PAGE_SIZE)
 	{
 		strbuf_printf(sb, "PRAGMA cipher_page_size = "
 				"%d;", cc.page_size);
 	}
 
+setup_schema:
 	/* always specify this */
 	strbuf_printf(sb, "PRAGMA cipher_compatibility = "
 			"%d;", cc.cipher_compat);
 
-	AUTOFAIL(init_failure, msqlite3_exec, db, sb->buf);
+	AF(msqlite3_exec, db, sb->buf);
+	strbuf_destroy(sb);
 
-	AUTOFAIL(init_failure, msqlite3_exec, db, alter_table_sqlstr);
+	AF(msqlite3_exec, db, alter_table_sqlstr);
 
 	sqlite3_close(db);
 	return 0;
 
-init_failure:
+setup_failure:
 	sqlite3_close(db);
+	close(fd);
 
 	unlink(db_path);
-	unlink(ky_path);
+	unlink(cfg_path);
 
-	return 2;
+	return rescode;
 }

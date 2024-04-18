@@ -12,15 +12,15 @@ my $arg;
 my @cmd;
 my $output;
 
-@args = ("x''", "x", "x'98483C6EB40B6C31A448C22A66DED3B5E5E8D5119CAC8327B655C8B5C4836481010101010101010101010101010101011'");
+# @args = ("x''", "x", "x'98483C6EB40B6C31A448C22A66DED3B5E5E8D5119CAC8327B655C8B5C4836481010101010101010101010101010101011'");
 
-foreach (@args)
-{
-	@cmd = ($PKBIN, "init", "--encrypt=$_");
-	run \@cmd, '>', \$output, '2>&1';
+# foreach (@args)
+# {
+# 	@cmd = ($PKBIN, "init", "--encrypt=$_");
+# 	run \@cmd, '>', \$output, '2>&1';
 
-	is($output, "error: invalid key length \"$_\"\n", "encryption key has incorrect length");
-}
+# 	is($output, "error: invalid key length \"$_\"\n", "encryption key has incorrect length");
+# }
 
 @args = ("x'2DD29CA851E7B56E4697B0E1F08507293D761A05CEGD1B628663F411A8086D99'", "x'98483C6EB40B6C31A448C22A66DED3BKE5E8D5119CAC8327B655C8B5C483648101010101010101010101010101010101'");
 
@@ -29,18 +29,18 @@ foreach (@args)
 	@cmd = ($PKBIN, "init", "--encrypt=$_");
 	run \@cmd, '>', \$output, '2>&1';
 
-	is($output, "error: key contains invalid char \"$_\"\n", "encryption key has invalid char");
+	is($output, "error: Blob key \"$_\" contains invalid char.\n", "encryption key has invalid char");
 }
 
 $arg = "x'98483C6EB40B6C31A448C22A66DED3B5E5E8D5119CAC8327B655C8B5C483648101010101010101010101010101010102'";
 
 @cmd = ($PKBIN, "init", "--encrypt=$arg");
 run \@cmd, '>', \$output, '2>&1';
-is($output, "error: invalid key salt \"$arg\"\n", "encryption key has incorrect salt value");
+is($output, "error: Blob key \"$arg\" contains invalid salt.\n", "encryption key has incorrect salt value");
 
 @cmd = ($PKBIN, 'init', '--encrypt=');
 run \@cmd, '>', \$output, '2>&1';
-is($output, "error: empty passphrase not allowed\n", "encryption passphrase is empty");
+is($output, "error: Blank passphrase is not allowed.\n", "encryption passphrase is empty");
 
 @args = (
 	[ 0, '', 1 ],

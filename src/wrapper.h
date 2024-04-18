@@ -46,12 +46,12 @@ static inline void *xrealloc(void *ptr, size_t size)
 	return ptr;
 }
 
-static inline void *xmemdup(const void *ptr, size_t size)
+static inline FORCEINLINE void *xmemdup(const void *ptr, size_t size)
 {
 	return memcpy(xmalloc(size), ptr, size);
 }
 
-static inline size_t __attribute__((const)) fixed_growth(size_t sz)
+static inline FORCEINLINE size_t __attribute__((const)) fixed_growth(size_t sz)
 {
 	return (sz + 16) * 3 / 2;
 }
@@ -163,14 +163,14 @@ static inline off_t xlseek(int fildes, off_t offset, int whence)
 	return ns;
 }
 
-#define AUTOFAIL(label__, fn__, ...)			\
-	do						\
-	{						\
-		if (fn__(__VA_ARGS__) != 0)		\
-		{					\
-			goto label__;			\
-		}					\
-	}						\
+#define AUTOFAIL(label__, rescode__, fn__, ...)			\
+	do							\
+	{							\
+		if ((rescode__ = fn__(__VA_ARGS__)) != 0)	\
+		{						\
+			goto label__;				\
+		}						\
+	}							\
 	while (0)
 
 static inline int msqlite3_open(const char *db_path, struct sqlite3 **db)

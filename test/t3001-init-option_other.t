@@ -41,10 +41,10 @@ foreach (@args)
 }
 
 @args = (
-	[ 'kdf-algorithm', 'PBKDF2HMAC_SHAxxx', "algorithm 'PBKDF2HMAC_SHAxxx' not found" ],
-	[ 'hmac-algorithm', 'HMAC_SHAx', "algorithm 'HMAC_SHAx' not found" ],
-	[ 'cipher-compat', '5', "unknown cipher compatibility '5'" ],
-	[ 'page-size', '1025', "invalid page size '1025'" ],
+	[ 'kdf-algorithm', 'PBKDF2HMAC_SHAxxx', "'PBKDF2HMAC_SHAxxx' is not found in kdf algorithm list." ],
+	[ 'hmac-algorithm', 'HMAC_SHAx', "'HMAC_SHAx' is not found in hmac algorithm list." ],
+	[ 'cipher-compat', '5', "Unknown cipher compatibility '5'." ],
+	[ 'page-size', '1025', "Invalid page size '1025'." ],
 );
 
 foreach (@args)

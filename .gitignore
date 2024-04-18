@@ -1,10 +1,16 @@
 build/
+
 draft*
 .gdbinit
+
 test/build/
 test/tmp/
+
 docs/*.html
 docs/*.1
+
 ext/
+
 .pk-recfile
-*.crash
+.pk-credfl
+.pk-credky

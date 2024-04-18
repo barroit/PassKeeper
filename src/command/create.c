@@ -37,8 +37,13 @@ static struct
 	const char *comment;
 } record;
 
-#define USE_EDITOR_DEFAULT 2
-static int use_editor = USE_EDITOR_DEFAULT;
+static struct
+{
+	int use_editor;
+	const char *key;
+} user = {
+	.use_editor = 2,
+};
 
 const char *const cmd_create_usages[] = {
 	"pk create [--[no]-nano] [<field>...]",
@@ -62,19 +67,15 @@ const struct option cmd_create_options[] = {
 	OPTION_STRING(0, "comment",  &record.comment,
 			"you just write what the fuck you want to"),
 	OPTION_GROUP(""),
-	OPTION_BOOLEAN('e', "nano", &use_editor, "use editor"),
+	OPTION_BOOLEAN('e', "nano", &user.use_editor,
+			"use editor to edit records"),
+	OPTION_STRING('k', "key", &user.key, "db encryption key"),
 	OPTION_END(),
 };
 
-static inline FORCEINLINE bool have_field(const char *field)
-{
-	return field && *field;
-}
-
 #define missing_required_field				\
-	(!have_field(record.sitename) ||		\
-	  !have_field(record.username) ||		\
-	   !have_field(record.password))
+	(is_blank_str(record.sitename) ||		\
+	  is_blank_str(record.password))
 
 #define SITENAME_ID ":sitename:"
 #define SITEURL_ID  ":siteurl:"
@@ -86,23 +87,18 @@ static inline FORCEINLINE bool have_field(const char *field)
 
 static char *format_missing_field_string(void)
 {
-	const char *fmap0[3], **fmap;
+	const char *fmap0[2], **fmap;
 	unsigned fcount;
 
 	fcount = 0;
 	fmap = fmap0;
 
-	if (!have_field(record.sitename))
+	if (is_blank_str(record.sitename))
 	{
 		fcount++;
 		*fmap++ = "sitename";
 	}
-	if (!have_field(record.username))
-	{
-		fcount++;
-		*fmap++ = "username";
-	}
-	if (!have_field(record.password))
+	else
 	{
 		fcount++;
 		*fmap++ = "password";
@@ -110,18 +106,12 @@ static char *format_missing_field_string(void)
 
 	fmap = fmap0;
 	static char *buf;
-	const char *ext;
 	struct strlist *sl = STRLIST_INIT_PTR_NODUP;
 
-	ext = NULL;
 	switch (fcount)
 	{
-	case 3:
-		strlist_push(sl, *fmap++)->ext = ",";
-		ext = ",";
-		/* FALLTHRU */
 	case 2:
-		strlist_push(sl, *fmap++)->ext = (char *)ext;
+		strlist_push(sl, *fmap++);
 		strlist_push(sl, "and");
 		/* FALLTHRU */
 	case 1:
@@ -143,7 +133,7 @@ static void recfile_field_push(
 {
 	strbuf_puts(sb, comment);
 
-	if (have_field(field))
+	if (!is_blank_str(field))
 	{
 		strbuf_puts(sb, field);
 	}
@@ -273,6 +263,18 @@ static inline FORCEINLINE int pcreterr(enum creterr errcode)
 	}
 }
 
+static void rm_recfile(void)
+{
+	const char *name;
+
+	if ((name = getenv(PK_RECFILE)) != NULL)
+	{
+		unlink(name);
+	}
+}
+
+#define AF(...) AUTOFAIL(cleanup, rescode, __VA_ARGS__);
+
 int cmd_create(int argc, const char **argv, const char *prefix)
 {
 	parse_options(argc, argv, prefix, cmd_create_options,
@@ -281,11 +283,18 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 	bool setup_editor;
 	int rescode;
 
+	const char *recfile;
+	int recfildes;
+
 	setup_editor = false;
 	rescode = 0;
 
-	if (use_editor == USE_EDITOR_DEFAULT &&
-		missing_required_field)
+	recfile = NULL;
+	recfildes = -1;
+
+	atexit(rm_recfile);
+
+	if (user.use_editor == 2 && missing_required_field)
 	{
 		/**
 		 * ./pk create --sitename="xxx" --username="xxx"
@@ -293,7 +302,7 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 		 */
 		setup_editor = true;
 	}
-	else if (use_editor && use_editor != USE_EDITOR_DEFAULT)
+	else if (user.use_editor == 1)
 	{
 		/**
 		 * ./pk create --sitename="xxx" --username="xxx"
@@ -316,11 +325,8 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 
 	if (!setup_editor)
 	{
-		goto create_record;
+		goto setup_database;
 	}
-
-	const char *recfile;
-	int recfildes;
 
 	struct strbuf *sb = STRBUF_INIT_PTR;
 
@@ -395,13 +401,32 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 	strlist_destroy(sl, false);
 	strbuf_destroy(sb);
 
-create_record:;
+setup_database:;
 	struct sqlite3 *db;
+	const char *key_path;
+	bool use_key;
 
-	AUTOFAIL(cleanup, msqlite3_open, force_getenv(PK_CRED_DB), &db);
+	key_path = force_getenv(PK_CRED_KY);
+	use_key = access_regfile(key_path, R_OK) || user.key != NULL;
 
-	return 0;
+	AF(msqlite3_open, force_getenv(PK_CRED_DB), &db);
+
+	if (!use_key)
+	{
+		goto insert_record;
+	}
+
+insert_record:
 
 cleanup:
+	if (recfile != NULL)
+	{
+		close(recfildes);
+		/**
+		 * we unlink recfile by calling cleanup
+		 * function rm_recfile registered at atexit
+		 */
+	}
+
 	return rescode;
 }

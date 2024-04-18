@@ -65,7 +65,7 @@ uint8_t *random_bytes(size_t length);
  * convert at most `hexsz` characters of the `hex` string to
  * binary data, `size` must be a multiple of 2, this operation
  * is in-place and `hex` shall be modified, returned pointer
- * is the as `hex`
+ * is the same as `hex`
  */
 uint8_t *hex2bin(char *hex, size_t hexsz);
 
