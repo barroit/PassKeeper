@@ -144,3 +144,23 @@ void report_openssl_error(void)
 
 	die("openssl reports '%s'", reason);
 }
+
+const char *xio_pathname = NULL;
+
+void xio_die(int fd, const char *prefix)
+{
+	int errnum;
+
+	errnum = errno;
+	close(fd);
+	errno = errnum;
+
+	if (xio_pathname)
+	{
+		die_errno("%s file '%s'", prefix, xio_pathname);
+	}
+	else
+	{
+		die_errno("%s fd '%d'", prefix, fd);
+	}
+}

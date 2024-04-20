@@ -204,8 +204,6 @@ static inline FORCEINLINE void adaptive_setenv(
 static int handle_global_options(
 	int argc, const char **argv, const char *prefix)
 {
-	const char *editor;
-
 	option_usage_alignment = 13;
 	argc = parse_options(argc, argv, prefix, cmd_pk_options, cmd_pk_usages,
 			      PARSER_STOP_AT_NON_OPTION | PARSER_NO_SHORT_HELP);
@@ -215,13 +213,9 @@ static int handle_global_options(
 	adaptive_setenv(PK_CRED_KY, environment.key_path, PK_CRED_KY_NM);
 	adaptive_setenv(PK_RECFILE, environment.recfile,  PK_RECFILE_NM);
 
-	if ((editor = environment.editor) != NULL);
-	else if ((editor = getenv(PK_EDITOR)) != NULL);
-	else if ((editor = getenv("VISUAL")) != NULL);
-	else if ((editor = getenv("EDITOR")) != NULL);
-	if (editor)
+	if (environment.editor)
 	{
-		setenv(PK_EDITOR, editor, 1);
+		setenv(PK_EDITOR, environment.editor, 1);
 	}
 
 	if (environment.spinner_style)
@@ -256,10 +250,23 @@ static void precheck_command(enum precheck_flag prechecks)
 		prepare_file_directory(force_getenv(PK_RECFILE));
 	}
 
-	if ((prechecks & USE_CREDFILE) &&
-		access_regfile(force_getenv(PK_CRED_DB), R_OK | W_OK) != 0)
+	if (prechecks & USE_CREDFILE)
 	{
-		exit(EXIT_FAILURE);
+		struct stat st;
+		const char *credfl = force_getenv(PK_CRED_DB);
+
+		if (stat(credfl, &st) != 0)
+		{
+			die_errno("Couldn't access file '%s'", credfl);
+		}
+		else if (!S_ISREG(st.st_mode))
+		{
+			die("File '%s' is not a regular file", credfl);
+		}
+		else if (test_file_permission(credfl, &st, R_OK | W_OK) != 0)
+		{
+			die("Access denied by file '%s'", credfl);
+		}
 	}
 }
 

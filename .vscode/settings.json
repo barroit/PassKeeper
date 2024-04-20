@@ -40,7 +40,9 @@
 		"memcheck.h": "c",
 		"random": "c",
 		"tuple": "c",
-		"credky.h": "c"
+		"credky.h": "c",
+		"rawnumop.h": "c",
+		"typeinfo": "c"
 	},
 	"fileHeaderComment.parameter": {
 		"*": {

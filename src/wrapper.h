@@ -90,30 +90,6 @@ static inline void xmkdir(const char *path)
 	}
 }
 
-static inline FILE *xfopen(const char *filename, const char *mode)
-{
-	FILE *fs;
-	if ((fs = fopen(filename, mode)) == NULL)
-	{
-		die("file '%s' reports %s", filename, strerror(errno));
-	}
-
-	return fs;
-}
-
-static inline size_t xfwrite(const void *ptr, size_t size, size_t n, FILE *s)
-{
-	size_t nr;
-
-	if ((nr = fwrite(ptr, size, n, s)) != n)
-	{
-		die_errno("expected to write '%lu' objects to file, but "
-				"actually wrote '%lu'", nr, n);
-	}
-
-	return nr;
-}
-
 int xopen(const char *file, int oflag, ...);
 
 ssize_t iread(int fd, void *buf, size_t nbytes);
@@ -127,9 +103,13 @@ static inline ssize_t xwrite(int fd, const void *buf, size_t n)
 {
 	ssize_t nr;
 
-	if ((nr = write(fd, buf, n)) != n)
+	if ((nr = write(fd, buf, n)) < 0)
 	{
-		die_errno("failed to write content to fd '%d'", fd);
+		xio_die(fd, "Unable to write content to");
+	}
+	else if ((size_t)nr != n)
+	{
+		xio_die(fd, "Content was truncated when writing to");
 	}
 
 	return nr;
@@ -141,36 +121,42 @@ static inline ssize_t xread(int fd, void *buf, size_t nbytes)
 
 	if ((nr = read(fd, buf, nbytes)) == -1)
 	{
-		die_errno("failed to read content from fd '%d'", fd);
-	}
-	else if (nr == 0)
-	{
-		warning("read() starting position is at or after the end-of-file");
+		xio_die(fd, "Unable to read content from");
 	}
 
 	return nr;
 }
 
-static inline off_t xlseek(int fildes, off_t offset, int whence)
+static inline off_t xlseek(int fd, off_t offset, int whence)
 {
 	off_t ns;
 
-	if ((ns = lseek(fildes, offset, whence)) == -1)
+	if ((ns = lseek(fd, offset, whence)) == -1)
 	{
-		die_errno("Can't seek on fd '%d'", fildes);
+		xio_die(fd, "Unable to seek on");
 	}
 
 	return ns;
 }
 
-#define AUTOFAIL(label__, rescode__, fn__, ...)			\
-	do							\
-	{							\
-		if ((rescode__ = fn__(__VA_ARGS__)) != 0)	\
-		{						\
-			goto label__;				\
-		}						\
-	}							\
+#define AUTOFAIL(label__, fn__, ...)			\
+	do						\
+	{						\
+		if (fn__(__VA_ARGS__) != 0)		\
+		{					\
+			goto label__;			\
+		}					\
+	}						\
+	while (0)
+
+#define AUTOEXIT(res__, fn__, ...)			\
+	do						\
+	{						\
+		if (fn__(__VA_ARGS__) != res__)		\
+		{					\
+			exit(EXIT_FAILURE);		\
+		}					\
+	}						\
 	while (0)
 
 static inline int msqlite3_open(const char *db_path, struct sqlite3 **db)
@@ -227,5 +213,14 @@ static inline const char *force_getenv(const char *name)
 
 	return val;
 }
+
+#ifdef SUPPRESS_ACCEPTABLE_LEAKS
+void keep_leakref(void *ptr);
+
+#define UNLEAK(ptr__) keep_leakref(ptr__)
+#else
+#define UNLEAK(ptr__)
+#endif
+
 
 #endif /* WRAPPER_H */

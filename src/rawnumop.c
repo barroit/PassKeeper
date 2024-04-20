@@ -78,6 +78,21 @@ char *bin2hex(uint8_t *bin, size_t binsz)
 	return hexhead;
 }
 
+char *bin2blob(uint8_t *binkey, size_t binlen)
+{
+	char *hexkey, *blobkey;
+	size_t bloblen;
+
+	hexkey  = bin2hex(binkey, binlen);
+	bloblen = binlen * 2 + 3;
+
+	blobkey = xmalloc(bloblen + 1);
+	snprintf(blobkey, bloblen + 1, "x'%s'", hexkey);
+
+	free(hexkey);
+	return blobkey;
+}
+
 bool is_hexstr(const char *hex, size_t size)
 {
 	while (size > 0)
@@ -118,27 +133,27 @@ uint8_t *digest_message_sha256(const uint8_t *message, size_t message_length)
 	 * upper camel case with no x version api
 	 * ugly and sad :(
 	 */
-	if((mdctx = EVP_MD_CTX_new()) == NULL)
+	if ((mdctx = EVP_MD_CTX_new()) == NULL)
 	{
 		report_openssl_error();
 	}
 
-	if(EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL) != 1)
+	if (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL) != 1)
 	{
 		report_openssl_error();
 	}
 
-	if(EVP_DigestUpdate(mdctx, message, message_length) != 1)
+	if (EVP_DigestUpdate(mdctx, message, message_length) != 1)
 	{
 		report_openssl_error();
 	}
 
-	if((out = OPENSSL_malloc(EVP_MD_size(EVP_sha256()))) == NULL)
+	if ((out = OPENSSL_malloc(EVP_MD_size(EVP_sha256()))) == NULL)
 	{
 		report_openssl_error();
 	}
 
-	if(EVP_DigestFinal_ex(mdctx, out, NULL) != 1)
+	if (EVP_DigestFinal_ex(mdctx, out, NULL) != 1)
 	{
 		report_openssl_error();
 	}
@@ -146,4 +161,19 @@ uint8_t *digest_message_sha256(const uint8_t *message, size_t message_length)
 	EVP_MD_CTX_free(mdctx);
 
 	return out;
+}
+
+int verify_digest_sha256(
+	const uint8_t *message, size_t message_length,
+	const uint8_t *prev_digest)
+{
+	int rescode;
+	uint8_t *next_digest;
+
+	next_digest = digest_message_sha256(message, message_length);
+	rescode = memcmp(next_digest, prev_digest, EVP_MD_size(EVP_sha256()));
+
+	clean_digest(next_digest);
+
+	return rescode;
 }

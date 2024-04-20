@@ -136,6 +136,12 @@ int test_file_permission_st(struct stat *st, int mode);
 int get_bias(long *bias);
 
 #ifdef LINUX
+#define DEFAULT_EDITOR "vi"
+#else
+#define DEFAULT_EDITOR "notepad"
+#endif
+
+#ifdef LINUX
 #define NULDEV  "/dev/null"
 #else
 #define NULDEV  "NUL"

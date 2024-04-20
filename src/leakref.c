@@ -20,36 +20,22 @@
 **
 ****************************************************************************/
 
-#ifndef FILESYS_H
-#define FILESYS_H
-
-static inline const char *get_user_home(void)
+struct leakref
 {
-	const char *home;
-	if ((home = getenv(ENV_USERHOME)) == NULL)
-	{
-		die("your user home corrupted in env");
-	}
-	return home;
-}
+	struct leakref *next;
+	void *ptr;
+};
 
-/**
- * append `filename` to `prefix` if needed
- */
-char *prefix_filename(const char *prefix, const char *filename);
+static struct leakref *leaks;
 
-void prepare_file_directory(const char *pathname);
-
-static inline void set_file_content(
-	const char *name, const char *buf, size_t buflen)
+void keep_leakref(void *ptr)
 {
-	int fd;
+	struct leakref *head;
 
-	fd = xopen(name, O_WRONLY | O_CREAT | O_TRUNC, FILCRT_BIT);
-	xwrite(fd, buf, buflen);
+	head = xmalloc(sizeof(struct leakref));
 
-	close(fd);
+	head->ptr = ptr;
+	head->next = leaks;
+
+	leaks = head;
 }
-
-
-#endif /* FILESYS_H */

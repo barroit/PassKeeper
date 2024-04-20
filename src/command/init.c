@@ -93,13 +93,6 @@ const struct option cmd_init_options[] = {
 	OPTION_END(),
 };
 
-#define BKLEN      32
-#define HKLEN      64
-#define SALTLEN    32
-#define HK_STRLEN  (HKLEN + 3)
-#define SHK_STRLEN (HK_STRLEN + SALTLEN)
-#define HK_MAXLEN  SHK_STRLEN + 1 /* add one for null-terminator */
-
 static const char *kdf_algorithms[] = {
 	CPRDEF_KDF_ALGORITHM,
 	"PBKDF2HMAC_SHA256",
@@ -138,11 +131,9 @@ static enum key_type resolve_key_type(void)
 	}
 
 	keylen = strlen(user.key);
-	if (user.key[0] == 'x' &&
-	     user.key[1] == '\'' &&
-	      user.key[keylen - 1] == '\'')
+	if (is_binkey_wrp(user.key, keylen))
 	{
-		if (keylen == HK_STRLEN || keylen == SHK_STRLEN)
+		if (is_binkey_len(keylen))
 		{
 			return KT_USRBIN;
 		}
@@ -160,19 +151,17 @@ static enum key_type resolve_key_type(void)
 	}
 }
 
-#define AF(...) AUTOFAIL(setup_failure, rescode, __VA_ARGS__);
+#define AF(...) AUTOFAIL(setup_failure, __VA_ARGS__);
 
 int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 {
 	const char *db_path;
 	bool encrypt_db;
-	int rescode;
 	int fd;
 
 	size_t strkey_len;
 	char *strkey;
 
-	rescode = 0;
 	fd = -1;
 
 	parse_options(argc, argv, prefix, cmd_init_options,
@@ -205,7 +194,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 		return error("Blank passphrase is not allowed.");
 	}
 
-	strkey_len = kt == KT_PKBIN ? HKLEN + 3 : strlen(user.key);
+	strkey_len = kt == KT_PKBIN ? HEXKEY_LEN + 3 : strlen(user.key);
 	if (strkey_len > 4096)
 	{
 		return error("Encryption key is too long.");
@@ -217,13 +206,13 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 			return error("Invalid blob key length '%"PRIuMAX"'.",
 					strkey_len);
 		}
-		else if (!is_hexstr(user.key + 2, HKLEN))
+		else if (!is_hexstr(user.key + 2, HEXKEY_LEN))
 		{
 			return error("Blob key \"%s\" contains invalid char.",
 					user.key);
 		}
 		else if (strkey_len == SHK_STRLEN &&
-			  !is_saltstr(user.key + 2 + HKLEN, SALTLEN))
+			  !is_saltstr(user.key + 2 + HEXKEY_LEN, KEYSALT_LEN))
 		{
 			return error("Blob key \"%s\" contains invalid salt.",
 					user.key);
@@ -305,22 +294,16 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	cfgkey = NULL;
 	cfgkey_len = 0;
 
-	strkey = xmalloc(strkey_len + 1);
-
 	switch (kt)
 	{
 	case KT_PKBIN:
-		char *hexkey;
+		cfgkey = random_bytes(BINKEY_LEN);
+		cfgkey_len = BINKEY_LEN;
 
-		cfgkey = random_bytes(BKLEN);
-		cfgkey_len = BKLEN;
-
-		hexkey = bin2hex(xmemdup(cfgkey, BKLEN), BKLEN);
-		snprintf(strkey, strkey_len + 1, "x'%s'", hexkey);
-
-		free(hexkey);
+		strkey = bin2blob(xmemdup(cfgkey, BINKEY_LEN), BINKEY_LEN);
 		break;
 	case KT_USRBIN:
+		strkey = xmalloc(strkey_len + 1);
 		memcpy(strkey, user.key, strkey_len + 1);
 
 		cfgkey = hex2bin(strdup(user.key + 2), strkey_len - 3);
@@ -328,6 +311,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 
 		break;
 	case KT_PASSPHRASE:
+		strkey = xmalloc(strkey_len + 1);
 		memcpy(strkey, user.key, strkey_len + 1);
 
 		cfgkey = xmemdup(user.key, strkey_len);
@@ -354,22 +338,25 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	/* cc stands for cipher config */
 	uint8_t *cc_buf, *cc_digest;
 	size_t cc_size;
+	const struct cipher_key keyobj = {
+		.buf = cfgkey,
+		.size = cfgkey_len,
+		.is_binary = is_binary_key,
+	};
 
-	cc_buf = serialize_cipher_config(&cc, cfgkey, cfgkey_len,
-					   is_binary_key, &cc_size);
+	cc_buf = serialize_cipher_config(&cc, &keyobj, &cc_size);
 
 	cc_digest = digest_message_sha256(cc_buf, cc_size);
 
-	memcpy(cc_buf + cc_size, cc_digest, DIGEST_LENGTH);
+	memcpy(cc_buf + cc_size, cc_digest, CIPHER_DIGEST_LENGTH);
 	clean_digest(cc_digest);
 
-	cc_size += DIGEST_LENGTH;
+	cc_size += CIPHER_DIGEST_LENGTH;
 
 	fd = xopen(cfg_path, O_WRONLY | O_CREAT, FILCRT_BIT);
 	if (write(fd, cc_buf, cc_size) == -1)
 	{
-		rescode = error_errno("Couldn't write config to file '%s'",
-					cfg_path);
+		error_errno("Couldn't write config to file '%s'", cfg_path);
 		goto setup_failure;
 	}
 
@@ -433,5 +420,5 @@ setup_failure:
 	unlink(db_path);
 	unlink(cfg_path);
 
-	return rescode;
+	return EXIT_FAILURE;
 }

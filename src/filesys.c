@@ -116,25 +116,3 @@ void prepare_file_directory(const char *pathname)
 
 	free(pathcopy);
 }
-
-int access_regfile(const char *name, int type)
-{
-	struct stat st;
-
-	if (stat(name, &st) != 0)
-	{
-		return error_errno("Couldn't access file '%s'", name);
-	}
-
-	if (!S_ISREG(st.st_mode))
-	{
-		return error("File '%s' is not a regular file", name);
-	}
-
-	if (test_file_permission(db_path, &st, type) != 0)
-	{
-		return error("Access denied by file '%s'", name);
-	}
-
-	return 0;
-}

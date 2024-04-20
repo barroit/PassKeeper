@@ -1,3 +1,4 @@
 set(CMAKE_C_COMPILER gcc)
 
-add_compile_definitions(-DLINUX -D_GNU_SOURCE)
+add_compile_definitions(_GNU_SOURCE)
+add_compile_definitions(LINUX SUPPRESS_ACCEPTABLE_LEAKS)

@@ -67,4 +67,16 @@ void die_winerr(const char *format, ...)
 	__attribute__((format(printf, 1, 2), noreturn));
 #endif
 
+void report_openssl_error(void)
+	__attribute__((noreturn));
+
+/**
+ * used for the file name printed by xio_die()
+ * fallback to fd if this variable is NULL
+ */
+extern const char *xio_pathname;
+
+void xio_die(int fd, const char *prefix)
+	__attribute__((noreturn));
+
 #endif /* MESSAGE_H */

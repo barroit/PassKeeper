@@ -34,9 +34,33 @@ static const char *graphical_editors[] = {
 	NULL,
 };
 
-static inline bool is_graphical_editor(const char *editor)
+static inline bool FORCEINLINE is_dumb_term(void)
+{
+#ifdef LINUX
+	return getenv("TERM") == NULL;
+#else
+	return false;
+#endif
+}
+
+static inline bool FORCEINLINE is_graphical_editor(const char *editor)
 {
 	return string_in_array(editor, graphical_editors);
+}
+
+static const char *get_editor(void)
+{
+	const char *editor;
+
+	if ((editor = getenv(PK_EDITOR)) != NULL);
+	else if ((editor = getenv("VISUAL")) != NULL);
+	else if ((editor = getenv("EDITOR")) != NULL);
+	else if (editor == NULL && !is_dumb_term())
+	{
+		editor = DEFAULT_EDITOR;
+	}
+
+	return editor;
 }
 
 int edit_file(const char *pathname)
@@ -44,7 +68,7 @@ int edit_file(const char *pathname)
 	const char *editor, *spinner_style;
 	bool show_spinner;
 
-	if ((editor = getenv(PK_EDITOR)) == NULL)
+	if ((editor = get_editor()) == NULL)
 	{
 		return error("Unable to find an editor; Make sure VISUAL, "
 				"EDITOR or PK_EDITOR is set in env");

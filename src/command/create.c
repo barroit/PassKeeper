@@ -25,6 +25,8 @@
 #include "strbuf.h"
 #include "pkproc.h"
 #include "filesys.h"
+#include "credky.h"
+#include "rawnumop.h"
 
 static struct
 {
@@ -37,10 +39,17 @@ static struct
 	const char *comment;
 } record;
 
+enum creterr
+{
+	CRETERR_CANCELED = 1,
+	CRETERR_MISSING_FIELD,
+};
+
 static struct
 {
 	int use_editor;
 	const char *key;
+	const char *config;
 } user = {
 	.use_editor = 2,
 };
@@ -70,6 +79,7 @@ const struct option cmd_create_options[] = {
 	OPTION_BOOLEAN('e', "nano", &user.use_editor,
 			"use editor to edit records"),
 	OPTION_STRING('k', "key", &user.key, "db encryption key"),
+	OPTION_FILENAME(0, "config", &user.config, "cipher config file"),
 	OPTION_END(),
 };
 
@@ -168,7 +178,7 @@ static bool recfile_line_filter_all(struct strlist_elem *el)
 	return recfile_line_filter(el) && *el->str != ':';
 }
 
-static void reassign_record(struct strlist *sl, struct strbuf *sb)
+static void reassign_record(struct strlist *sl)
 {
 	memset(&record, 0, sizeof(record));
 
@@ -187,10 +197,14 @@ static void reassign_record(struct strlist *sl, struct strbuf *sb)
 		{ COMMENT_ID,  &record.comment  },
 		{ NULL, NULL },
 	}, *fmap;
+	struct strbuf *sb = STRBUF_INIT_PTR;
 
 	for (i = 0; i < sl->size; )
 	{
 
+	/**
+	 * skip leading empty lines
+	 */
 	if (*sl->elvec[i].str != ':')
 	{
 		i++;
@@ -240,15 +254,11 @@ static void reassign_record(struct strlist *sl, struct strbuf *sb)
 	*fmap->value = strbuf_detach(sb);
 
 	}
+
+	strbuf_destroy(sb);
 }
 
-enum creterr
-{
-	CRETERR_CANCELED,
-	CRETERR_MISSING_FIELD,
-};
-
-static inline FORCEINLINE int pcreterr(enum creterr errcode)
+static int pcreterr(enum creterr errcode)
 {
 	switch (errcode)
 	{
@@ -273,7 +283,44 @@ static void rm_recfile(void)
 	}
 }
 
-#define AF(...) AUTOFAIL(cleanup, rescode, __VA_ARGS__);
+static void editrec_die(enum creterr errcode)
+{
+	if (errcode != 0)
+	{
+		pcreterr(errcode);
+	}
+
+	exit(EXIT_FAILURE);
+}
+
+#define AE(...) AUTOEXIT(SQLITE_OK, __VA_ARGS__)
+
+static const char *get_config_file(void)
+{
+	const char *file;
+	struct stat st;
+
+	file = user.config ? user.config : force_getenv(PK_CRED_KY);
+	
+	if (stat(file, &st) != 0)
+	{
+		file = NULL;
+	}
+	else if (!S_ISREG(st.st_mode))
+	{
+		warning("Config file at '%s' is not a regular file, "
+			 "configuration disabled.", file);
+		file = NULL;
+	}
+	else if (test_file_permission(file, &st, R_OK) != 0)
+	{
+		warning("Access was denied by config file '%s', "
+			 "configuration disabled.", file);
+		file = NULL;
+	}
+
+	return file;
+}
 
 int cmd_create(int argc, const char **argv, const char *prefix)
 {
@@ -281,17 +328,8 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 			cmd_create_usages, PARSER_ABORT_NON_OPTION);
 
 	bool setup_editor;
-	int rescode;
-
-	const char *recfile;
-	int recfildes;
 
 	setup_editor = false;
-	rescode = 0;
-
-	recfile = NULL;
-	recfildes = -1;
-
 	atexit(rm_recfile);
 
 	if (user.use_editor == 2 && missing_required_field)
@@ -319,8 +357,7 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 		 * ./pk create --no-nano
 		 * # not use editor and missing required fields
 		 */
-		rescode = pcreterr(CRETERR_MISSING_FIELD);
-		goto cleanup;
+		return pcreterr(CRETERR_MISSING_FIELD);
 	}
 
 	if (!setup_editor)
@@ -328,105 +365,168 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 		goto setup_database;
 	}
 
-	struct strbuf *sb = STRBUF_INIT_PTR;
+	const char *rec_path;
+	struct strbuf *rec_txt = STRBUF_INIT_PTR;
 
-	recfile = force_getenv(PK_RECFILE);
-	recfildes = xopen(recfile, O_RDWR | O_CREAT | O_TRUNC,
-				FILCRT_BIT);
+	rec_path = force_getenv(PK_RECFILE);
+	xio_pathname = rec_path;
 
-	format_recfile_content(sb);
-	xwrite(recfildes, sb->buf, sb->length);
+	format_recfile_content(rec_txt);
 
-	strbuf_trunc(sb);
+	set_file_content(rec_path, rec_txt->buf, rec_txt->length);
+	strbuf_destroy(rec_txt);
 
-	if ((rescode = edit_file(recfile)) != 0)
+	if (edit_file(rec_path) != 0)
 	{
-		goto cleanup;
+		editrec_die(0);
 	}
 
-	off_t recfilesz;
-	char *recbuf;
+	int rec_fd;
+	char *rec_buf;
+	off_t rec_bufsz;
 
-	recfilesz = xlseek(recfildes, 0, SEEK_END);
+	rec_fd = xopen(rec_path, O_RDONLY);
 
-	if (recfilesz == 0)
+	if ((rec_bufsz = xlseek(rec_fd, 0, SEEK_END)) == 0)
 	{
-		pcreterr(CRETERR_CANCELED);
-		goto cleanup;
+		close(rec_fd);
+		editrec_die(CRETERR_CANCELED);
 	}
 
-	xlseek(recfildes, 0, SEEK_SET);
+	xlseek(rec_fd, 0, SEEK_SET);
 
-	recbuf = xmalloc(recfilesz + 1);
-	recbuf[recfilesz] = 0;
+	rec_buf = xmalloc(rec_bufsz + 1);
+	rec_buf[rec_bufsz] = 0;
 
-	if (xread(recfildes, recbuf, recfilesz) == 0)
+	if (xread(rec_fd, rec_buf, rec_bufsz) == 0)
 	{
-		pcreterr(CRETERR_CANCELED);
-		goto cleanup;
-	}
-	close(recfildes);
-
-	struct strlist *sl = STRLIST_INIT_PTR_DUPSTR;
-
-	strlist_split(sl, recbuf, '\n', -1);
-	free(recbuf);
-
-	strlist_filter(sl, recfile_line_filter, false);
-
-	if (sl->size == 0)
-	{
-		pcreterr(CRETERR_CANCELED);
-		goto cleanup;
+		close(rec_fd);
+		editrec_die(CRETERR_CANCELED);
 	}
 
-	reassign_record(sl, sb);
+	close(rec_fd);
+
+	struct strlist *rec_line = STRLIST_INIT_PTR_DUPSTR;
+
+	strlist_split(rec_line, rec_buf, '\n', -1);
+	free(rec_buf);
+
+	strlist_filter(rec_line, recfile_line_filter, false);
+
+	if (rec_line->size == 0)
+	{
+		editrec_die(CRETERR_CANCELED);
+	}
+
+	reassign_record(rec_line);
 
 	if (missing_required_field)
 	{
-		strlist_filter(sl, recfile_line_filter_all, false);
+		strlist_filter(rec_line, recfile_line_filter_all, false);
 
-		if (sl->size == 0)
+		if (rec_line->size == 0)
 		{
-			pcreterr(CRETERR_CANCELED);
+			editrec_die(CRETERR_CANCELED);
 		}
 		else
 		{
-			rescode = pcreterr(CRETERR_MISSING_FIELD);
+			editrec_die(CRETERR_MISSING_FIELD);
 		}
-
-		goto cleanup;
 	}
 
-	strlist_destroy(sl, false);
-	strbuf_destroy(sb);
+	strlist_destroy(rec_line, false);
 
 setup_database:;
 	struct sqlite3 *db;
-	const char *key_path;
-	bool use_key;
+	const char *cfg_path;
+	bool use_cfg, use_usrkey;
 
-	key_path = force_getenv(PK_CRED_KY);
-	use_key = access_regfile(key_path, R_OK) || user.key != NULL;
+	cfg_path = get_config_file();
+	xio_pathname = cfg_path;
 
-	AF(msqlite3_open, force_getenv(PK_CRED_DB), &db);
+	use_cfg = !!cfg_path;
+	use_usrkey = !is_blank_str(user.key);
 
-	if (!use_key)
+	AE(msqlite3_open, force_getenv(PK_CRED_DB), &db);
+
+	if (!use_cfg && !use_usrkey)
 	{
 		goto insert_record;
 	}
 
-insert_record:
+	const char *keystr;
+	size_t keylen;
 
-cleanup:
-	if (recfile != NULL)
+	/**
+	 * config file is optional
+	 */
+	if (!use_cfg)
 	{
-		close(recfildes);
-		/**
-		 * we unlink recfile by calling cleanup
-		 * function rm_recfile registered at atexit
-		 */
+		goto apply_key;
 	}
 
-	return rescode;
+	uint8_t *cc_buf;
+	int cc_fd;
+	off_t cc_size;
+
+	cc_fd = xopen(cfg_path, O_RDONLY);
+	if ((cc_size = xlseek(cc_fd, 0, SEEK_END)) < CIPHER_DIGEST_LENGTH)
+	{
+		die("Cipher config file at '%s' may be corrupted because it's "
+			"too small.", cfg_path);
+	}
+
+	xlseek(cc_fd, 0, SEEK_SET);
+
+	cc_buf = xmalloc(cc_size);
+	xread(cc_fd, cc_buf, cc_size);
+
+	close(cc_fd);
+
+	cc_size -= CIPHER_DIGEST_LENGTH;
+	if (verify_digest_sha256(cc_buf, cc_size, cc_buf + cc_size) != 0)
+	{
+		die("File at '%s' is not a valid config file.", cfg_path);
+	}
+
+	struct cipher_config cc;
+	struct cipher_key ck;
+
+	deserialize_cipher_config(&cc, &ck, cc_buf, cc_size);
+	free(cc_buf);
+
+	if (use_usrkey)
+	{
+		keystr = user.key;
+		keylen = strlen(user.key);
+	}
+	else if (ck.buf == NULL)
+	{
+		warning("Config file at '%s' affects nothing without a key.",
+			  cfg_path);
+
+		free_cipher_config(&cc, &ck);
+		goto insert_record;
+	}
+	else if (!ck.is_binary)
+	{
+		keystr = (char *)ck.buf;
+		keylen = ck.size;
+	}
+	else
+	{
+		keystr = bin2blob(ck.buf, ck.size);
+		keylen = ck.size * 2 + 3;
+
+		ck.buf = (uint8_t *)keystr;
+	}
+
+	free_cipher_config(&cc, &ck);
+
+apply_key:
+
+insert_record:
+	/* perferm db access check here */
+
+	return 0;
 }

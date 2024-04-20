@@ -40,37 +40,35 @@ const struct option cmd_makekey_options[] = {
 
 int cmd_makekey(int argc, const char **argv, const char *prefix)
 {
-	parse_options(argc, argv, prefix, cmd_makekey_options, cmd_makekey_usages, PARSER_ABORT_NON_OPTION);
+	parse_options(argc, argv, prefix, cmd_makekey_options,
+			cmd_makekey_usages, PARSER_ABORT_NON_OPTION);
 
-	FILE *fs = stdout;
+	int fd;
+	size_t hexkey_len;
+
+	hexkey_len = key_size * 2;
+	char buf0[hexkey_len + 3] /* 0x and \n */, *buf, *hexkey;
+
+	fd = STDOUT_FILENO;
+	buf = buf0;
+
 	if (output_file != NULL)
 	{
 		prepare_file_directory(output_file);
 
-		struct stat st;
-		if (stat(output_file, &st) == 0)
-		{
-			if (S_ISDIR(st.st_mode))
-			{
-				return error("'%s' is not a regular file", output_file);
-			}
-			if (test_file_permission(output_file, &st, R_OK) != 0)
-			{
-				return error("write is not allowed on file '%s'", output_file);
-			}
-		}
-
-		fs = xfopen(output_file, "w");
+		fd = xopen(output_file, O_WRONLY | O_CREAT | O_TRUNC,
+				FILCRT_BIT);
 	}
 
-	static char *hex;
+	hexkey = bin2hex(random_bytes(key_size), key_size);
 
-	hex = bin2hex(random_bytes(key_size), key_size);
-	fprintf(fs, "0x%s", hex);
-	if (fs == stdout)
-	{
-		putchar('\n');
-	}
+	*buf++ = '0';
+	*buf++ = 'x';
+	memcpy(buf, hexkey, hexkey_len);
+	buf += hexkey_len;
+	*buf = '\n';
 
-	return 0;
+	xwrite(fd, buf0, sizeof(buf0));
+
+	exit(EXIT_SUCCESS);
 }
