@@ -139,59 +139,65 @@ static inline off_t xlseek(int fd, off_t offset, int whence)
 	return ns;
 }
 
-#define AUTOFAIL(label__, fn__, ...)			\
+#define EXIT_ON_FAILURE(lc__, rc__)			\
 	do						\
 	{						\
-		if (fn__(__VA_ARGS__) != 0)		\
-		{					\
-			goto label__;			\
-		}					\
-	}						\
-	while (0)
-
-#define AUTOEXIT(res__, fn__, ...)			\
-	do						\
-	{						\
-		if (fn__(__VA_ARGS__) != res__)		\
+		if ((lc__) != (rc__))			\
 		{					\
 			exit(EXIT_FAILURE);		\
 		}					\
 	}						\
 	while (0)
 
-static inline int msqlite3_open(const char *db_path, struct sqlite3 **db)
-{
-	if (sqlite3_open(db_path, db) != SQLITE_OK)
-	{
-		return error_sqlerr(*db, "Unable to open database");
-	}
+#define run_sqlite3(db__, fn__, ...)				\
+	do							\
+	{							\
+		if (fn__(__VA_ARGS__) != SQLITE_OK)		\
+		{						\
+			return print_sqlite_error(fn__, db);	\
+		}						\
+		return SQLITE_OK;				\
+	}							\
+	while (0)
 
-	return 0;
+static inline FORCEINLINE int msqlite3_open(const char *filename, struct sqlite3 **db)
+{
+	run_sqlite3(db, sqlite3_open, filename, db);
 }
 
-static inline int msqlite3_key(struct sqlite3 *db, const void *key, int sz)
+static inline FORCEINLINE int msqlite3_open_v2(
+	const char *filename, struct sqlite3 **db, int flags, const char *vfs)
 {
-	if (sqlite3_key(db, key, sz) != SQLITE_OK)
-	{
-		return error("Couldn't apply the key to database");
-	}
-
-	return 0;
+	run_sqlite3(db, sqlite3_open_v2, filename, db, flags, vfs);
 }
 
-static inline int msqlite3_exec(struct sqlite3 *db, const char *sql)
+static inline FORCEINLINE int msqlite3_key(struct sqlite3 *db, const void *key, int sz)
+{
+	run_sqlite3(db, sqlite3_key, db, key, sz);
+}
+
+static inline FORCEINLINE int msqlite3_exec(
+	struct sqlite3 *db, const char *sql,
+	int (*callback)(void *, int, char **, char **), void *cbargv)
 {
 	char *errmsg;
 	int rescode;
 
-	rescode = 0;
-	if (sqlite3_exec(db, sql, NULL, NULL, &errmsg) != SQLITE_OK)
+	rescode = SQLITE_OK;
+	if (sqlite3_exec(db, sql, callback, cbargv, &errmsg) != SQLITE_OK)
 	{
-		rescode = error("Unable to evaluate sql statements; %s", errmsg);
-		sqlite3_free(errmsg);
+		rescode = print_sqlite_error(sqlite3_exec, db, errmsg);
 	}
 
+	sqlite3_free(errmsg);
 	return rescode;
+}
+
+int sqlite3_avail(struct sqlite3 *db);
+
+static inline FORCEINLINE msqlite3_avail(struct sqlite3 *db)
+{
+	run_sqlite3(db, sqlite3_avail, db);
 }
 
 #ifdef WINDOWS_NATIVE

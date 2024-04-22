@@ -144,9 +144,6 @@ void deserialize_cipher_config(
 	struct cipher_config *config, struct cipher_key *key,
 	const uint8_t *buf, size_t buflen)
 {
-	memset(config, 0, sizeof(struct cipher_config));
-	memset(key, 0, sizeof(struct cipher_key));
-
 	const uint8_t *buf_head, *buf_tail;
 	void *fmap[] = {
 		&config->kdf_algorithm,
@@ -215,21 +212,5 @@ void deserialize_cipher_config(
 		break;
 	}
 
-	}
-}
-
-void free_cipher_config(struct cipher_config *config, struct cipher_key *key)
-{
-	void *ptrlist[] = {
-		config->kdf_algorithm,
-		config->hmac_algorithm,
-		key->buf,
-		NULL,
-	}, **iter;
-
-	iter = ptrlist;
-	while (*iter != NULL)
-	{
-		free(*iter++);
 	}
 }

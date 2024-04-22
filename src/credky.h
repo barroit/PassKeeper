@@ -87,6 +87,12 @@ uint8_t *serialize_cipher_config(const struct cipher_config *config, const struc
 
 void deserialize_cipher_config(struct cipher_config *config, struct cipher_key *key, const uint8_t *buf, size_t buflen);
 
-void free_cipher_config(struct cipher_config *config, struct cipher_key *key);
+static inline FORCEINLINE void free_cipher_config(
+	struct cipher_config *config, struct cipher_key *key)
+{
+	free(config->kdf_algorithm);
+	free(config->hmac_algorithm);
+	free(key->buf);
+}
 
 #endif /* CREDKY_H */

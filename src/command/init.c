@@ -27,7 +27,7 @@
 #include "strlist.h"
 #include "strbuf.h"
 
-static const char *alter_table_sqlstr = 
+static const char *init_table_sqlstr = 
 	"CREATE TABLE account ("
 		"id       INTEGER PRIMARY KEY AUTOINCREMENT,"
 		"sitename TEXT NOT NULL,"
@@ -115,8 +115,6 @@ enum key_type
 	KT_USRBIN,
 };
 
-#define is_binary_key (kt != KT_PASSPHRASE)
-
 static enum key_type resolve_key_type(void)
 {
 	size_t keylen;
@@ -151,67 +149,38 @@ static enum key_type resolve_key_type(void)
 	}
 }
 
-#define AF(...) AUTOFAIL(setup_failure, __VA_ARGS__);
-
-int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
+static int precheck_file(const char *name, const char *path)
 {
-	const char *db_path;
-	bool encrypt_db;
-	int fd;
-
-	size_t strkey_len;
-	char *strkey;
-
-	fd = -1;
-
-	parse_options(argc, argv, prefix, cmd_init_options,
-			cmd_init_usages, PARSER_ABORT_NON_OPTION);
-
-	db_path = force_getenv(PK_CRED_DB);
-	if (access(db_path, F_OK) == 0)
+	if (access(path, F_OK) == 0)
 	{
-		return error("Database file '%s' already exists.", db_path);
-	}
-	else
-	{
-		prepare_file_directory(db_path);
+		return error("%s file '%s' already exists", name, path);
 	}
 
-	encrypt_db = !!user.key;
-	if (!encrypt_db)
-	{
-		goto setup_database;
-	}
+	prepare_file_directory(path);
 
-	enum key_type kt;
-	bool use_cfg_file;
+	return 0;
+}
 
-	kt = resolve_key_type();
-
-	/* validate key */
-	if (!is_binary_key && is_blank_str(user.key))
+int validate_key(enum key_type keytype, size_t keylen)
+{
+	if (keytype == KT_PASSPHRASE && is_blank_str(user.key))
 	{
 		return error("Blank passphrase is not allowed.");
 	}
 
-	strkey_len = kt == KT_PKBIN ? HEXKEY_LEN + 3 : strlen(user.key);
-	if (strkey_len > 4096)
+	if (keytype == KT_USRBIN)
 	{
-		return error("Encryption key is too long.");
-	}
-	else if (kt == KT_USRBIN)
-	{
-		if (strkey_len != HK_STRLEN && strkey_len != SHK_STRLEN)
+		if (keylen != HK_STRLEN && keylen != SHK_STRLEN)
 		{
 			return error("Invalid blob key length '%"PRIuMAX"'.",
-					strkey_len);
+					keylen);
 		}
 		else if (!is_hexstr(user.key + 2, HEXKEY_LEN))
 		{
 			return error("Blob key \"%s\" contains invalid char.",
 					user.key);
 		}
-		else if (strkey_len == SHK_STRLEN &&
+		else if (keylen == SHK_STRLEN &&
 			  !is_saltstr(user.key + 2 + HEXKEY_LEN, KEYSALT_LEN))
 		{
 			return error("Blob key \"%s\" contains invalid salt.",
@@ -219,10 +188,15 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 		}
 	}
 
-	/* check if need to use config file */
-	use_cfg_file = false;
+	return 0;
+}
 
-	if (cc.kdf_algorithm && is_binary_key)
+int check_if_cc_needed(enum key_type keytype, bool *out)
+{
+	bool use_cc;
+
+	use_cc = false;
+	if (cc.kdf_algorithm && keytype != KT_PASSPHRASE)
 	{
 		if (!string_in_array(cc.kdf_algorithm, kdf_algorithms))
 		{
@@ -230,8 +204,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 					"list.", cc.kdf_algorithm);
 		}
 
-		use_cfg_file |= strcmp(cc.kdf_algorithm,
-					CPRDEF_KDF_ALGORITHM);
+		use_cc |= strcmp(cc.kdf_algorithm, CPRDEF_KDF_ALGORITHM);
 	}
 
 	if (cc.hmac_algorithm)
@@ -242,11 +215,10 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 					"list.", cc.hmac_algorithm);
 		}
 
-		use_cfg_file |= strcmp(cc.hmac_algorithm,
-					CPRDEF_HMAC_ALGORITHM);
+		use_cc |= strcmp(cc.hmac_algorithm, CPRDEF_HMAC_ALGORITHM);
 	}
 
-	use_cfg_file |= cc.kdf_iter != CPRDEF_KDF_ITER && !is_binary_key;
+	use_cc |= cc.kdf_iter != CPRDEF_KDF_ITER && keytype == KT_PASSPHRASE;
 
 	if (!in_range_u(cc.page_size, CPRMIN_PAGE_SIZE, CPRMAX_PAGE_SIZE, 1) ||
 		!is_pow2(cc.page_size))
@@ -255,7 +227,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	}
 	else
 	{
-		use_cfg_file |= cc.page_size != CPRDEF_PAGE_SIZE;
+		use_cc |= cc.page_size != CPRDEF_PAGE_SIZE;
 	}
 
 	if (!in_range_u(cc.cipher_compat, CPRMIN_COMPATIBILITY,
@@ -266,86 +238,122 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	}
 	else
 	{
-		use_cfg_file |= cc.cipher_compat != CPRDEF_COMPATIBILITY;
+		use_cc |= cc.cipher_compat != CPRDEF_COMPATIBILITY;
 	}
 
-	use_cfg_file |= (is_binary_key && user.store_key) ||
+	use_cc |= (keytype != KT_PASSPHRASE && user.store_key) ||
 			  user.store_key == 1;
 
-	const char *cfg_path;
+	*out = use_cc;
+	return 0;
+}
 
-	cfg_path = force_getenv(PK_CRED_KY);
-	if (use_cfg_file)
+enum cleanup_flag
+{
+	RM_DB_FILE = 1 << 0,
+	RM_CC_FILE = 1 << 1,
+};
+
+static enum cleanup_flag cleanup_flags;
+
+static void cleanup_files(void)
+{
+	if (cleanup_flags & RM_DB_FILE)
 	{
-		if (access(cfg_path, F_OK) == 0)
-		{
-			return error("Config file '%s' already exists", cfg_path);
-		}
-		else
-		{
-			prepare_file_directory(cfg_path);
-		}
+		unlink(force_getenv(PK_CRED_DB));
 	}
 
-	/* process key */
-	uint8_t *cfgkey;
-	size_t cfgkey_len;
-
-	cfgkey = NULL;
-	cfgkey_len = 0;
-
-	switch (kt)
+	if (cleanup_flags & RM_CC_FILE)
 	{
-	case KT_PKBIN:
-		cfgkey = random_bytes(BINKEY_LEN);
-		cfgkey_len = BINKEY_LEN;
-
-		strkey = bin2blob(xmemdup(cfgkey, BINKEY_LEN), BINKEY_LEN);
-		break;
-	case KT_USRBIN:
-		strkey = xmalloc(strkey_len + 1);
-		memcpy(strkey, user.key, strkey_len + 1);
-
-		cfgkey = hex2bin(strdup(user.key + 2), strkey_len - 3);
-		cfgkey_len = (strkey_len - 3) / 2;
-
-		break;
-	case KT_PASSPHRASE:
-		strkey = xmalloc(strkey_len + 1);
-		memcpy(strkey, user.key, strkey_len + 1);
-
-		cfgkey = xmemdup(user.key, strkey_len);
-		cfgkey_len = strkey_len;
-
-		break;
-	default:
-		bug("kt shall not be the value of '%d'", kt);
+		unlink(force_getenv(PK_CRED_KY));
 	}
+}
 
-	if (!user.store_key)
-	{
-		puts(strkey);
+int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
+{
+	const char *db_path;
+	bool encrypt_db;
 
-		free(cfgkey);
-		cfgkey = NULL;
-	}
+	parse_options(argc, argv, prefix, cmd_init_options,
+			cmd_init_usages, PARSER_ABORT_NON_OPTION);
 
-	if (!use_cfg_file)
+	encrypt_db = !!user.key;
+
+	db_path = force_getenv(PK_CRED_DB);
+	precheck_file("Database", db_path);
+
+	atexit(cleanup_files);
+
+	if (!encrypt_db)
 	{
 		goto setup_database;
 	}
 
+	const char *keystr;
+	size_t keylen;
+	enum key_type keytype;
+
+	keytype = resolve_key_type();
+
+	if (keytype == KT_PKBIN)
+	{
+		user.key = bin2blob(random_bytes(BINKEY_LEN), BINKEY_LEN);
+	}
+
+	keylen = strlen(user.key);
+	keystr = user.key;
+
+	EXIT_ON_FAILURE(validate_key(keytype, keylen), 0);
+
+	bool use_cc;
+	const char *cc_path;
+
+	EXIT_ON_FAILURE(check_if_cc_needed(keytype, &use_cc), 0);
+	cc_path = force_getenv(PK_CRED_KY);
+
+	if (use_cc)
+	{
+		precheck_file("Config", cc_path);
+	}
+	else
+	{
+		goto setup_database;
+	}
+
+	struct cipher_key ck = { 0 };
+
+	if (!user.store_key)
+	{
+		puts(keystr);
+		goto setup_cc;
+	}
+
+	switch (keytype)
+	{
+	case KT_PKBIN:
+	case KT_USRBIN:
+		ck.buf = hex2bin(strdup(keystr + 2), keylen - 3);
+		ck.size = (keylen - 3) / 2;
+		ck.is_binary = true;
+
+		break;
+	case KT_PASSPHRASE:
+		ck.buf = xmemdup(keystr, keylen + 1);
+		ck.size = keylen;
+		ck.is_binary = false;
+
+		break;
+	default:
+		bug("keytype shall not be the value of '%d'", keytype);
+	}
+
+setup_cc:
 	/* cc stands for cipher config */
 	uint8_t *cc_buf, *cc_digest;
 	size_t cc_size;
-	const struct cipher_key keyobj = {
-		.buf = cfgkey,
-		.size = cfgkey_len,
-		.is_binary = is_binary_key,
-	};
+	int cc_fd;
 
-	cc_buf = serialize_cipher_config(&cc, &keyobj, &cc_size);
-
+	cc_buf = serialize_cipher_config(&cc, &ck, &cc_size);
 	cc_digest = digest_message_sha256(cc_buf, cc_size);
 
 	memcpy(cc_buf + cc_size, cc_digest, CIPHER_DIGEST_LENGTH);
@@ -353,31 +361,32 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 
 	cc_size += CIPHER_DIGEST_LENGTH;
 
-	fd = xopen(cfg_path, O_WRONLY | O_CREAT, FILCRT_BIT);
-	if (write(fd, cc_buf, cc_size) == -1)
-	{
-		error_errno("Couldn't write config to file '%s'", cfg_path);
-		goto setup_failure;
-	}
+	xio_pathname = cc_path;
+	cleanup_flags |= RM_CC_FILE;
 
-	close(fd);
+	cc_fd = xopen(cc_path, O_WRONLY | O_CREAT, FILCRT_BIT);
+	xwrite(cc_fd, cc_buf, cc_size);
+
+	close(cc_fd);
 	free(cc_buf);
+	free_cipher_config(&cc, &ck);
 
 setup_database:;
 	struct sqlite3 *db;
 	struct strbuf *sb = STRBUF_INIT_PTR;
 
-	AF(msqlite3_open, db_path, &db);
+	cleanup_flags |= RM_DB_FILE;
+	msqlite3_pathname = db_path;
+	EXIT_ON_FAILURE(msqlite3_open(db_path, &db), SQLITE_OK);
 
 	if (!encrypt_db)
 	{
 		goto setup_schema;
 	}
 
-	AF(msqlite3_key, db, strkey, strkey_len);
-	free(strkey);
+	EXIT_ON_FAILURE(msqlite3_key(db, keystr, keylen), SQLITE_OK);
 
-	if (cc.kdf_algorithm && is_binary_key)
+	if (cc.kdf_algorithm && keytype != KT_PASSPHRASE)
 	{
 		strbuf_printf(sb, "PRAGMA cipher_kdf_algorithm = "
 				"%s;", cc.kdf_algorithm);
@@ -389,7 +398,7 @@ setup_database:;
 				"%s;", cc.hmac_algorithm);
 	}
 
-	if (cc.kdf_iter != CPRDEF_KDF_ITER && is_binary_key)
+	if (cc.kdf_iter != CPRDEF_KDF_ITER && keytype != KT_PASSPHRASE)
 	{
 		strbuf_printf(sb, "PRAGMA kdf_iter = %d;", cc.kdf_iter);
 	}
@@ -405,20 +414,14 @@ setup_schema:
 	strbuf_printf(sb, "PRAGMA cipher_compatibility = "
 			"%d;", cc.cipher_compat);
 
-	AF(msqlite3_exec, db, sb->buf);
+	EXIT_ON_FAILURE(msqlite3_exec(db, sb->buf, NULL, NULL), SQLITE_OK);
 	strbuf_destroy(sb);
 
-	AF(msqlite3_exec, db, alter_table_sqlstr);
+	EXIT_ON_FAILURE(msqlite3_exec(db, init_table_sqlstr, NULL, NULL),
+			 SQLITE_OK);
 
 	sqlite3_close(db);
+	cleanup_flags = 0;
+
 	return 0;
-
-setup_failure:
-	sqlite3_close(db);
-	close(fd);
-
-	unlink(db_path);
-	unlink(cfg_path);
-
-	return EXIT_FAILURE;
 }

@@ -1,6 +1,7 @@
 build/
 
-draft*
+draft/
+
 .gdbinit
 
 test/build/

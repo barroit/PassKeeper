@@ -56,6 +56,9 @@ void bug_routine(const char *file, int line, const char *format, ...)
 
 #define bug(...) bug_routine(__FILE__, __LINE__, __VA_ARGS__)
 
+int fprintfln(FILE *stream, const char *fmt, ...)
+	__attribute__((format(printf, 2, 3)));
+
 #ifdef WINDOWS_NATIVE
 /**
  * same as error_errno except this function set errno to GetLastError()
@@ -66,6 +69,10 @@ int error_winerr(const char *format, ...)
 void die_winerr(const char *format, ...)
 	__attribute__((format(printf, 1, 2), noreturn));
 #endif
+
+extern const char *msqlite3_pathname;
+
+int print_sqlite_error(void *sqlite3_fn, struct sqlite3 *db, ...);
 
 void report_openssl_error(void)
 	__attribute__((noreturn));

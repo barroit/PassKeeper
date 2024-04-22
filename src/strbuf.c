@@ -327,24 +327,6 @@ int strtou(const char *str, unsigned *res)
 	return 0;
 }
 
-int fprintfln(FILE *stream, const char *fmt, ...)
-{
-	int wch;
-	va_list ap;
-
-	va_start(ap, fmt);
-	wch = vfprintf(stream, fmt, ap);
-	if (wch < 0)
-	{
-		bug("your vfprintf is broken (returned %d)", wch);
-	}
-
-	putc('\n', stream);
-	va_end(ap);
-
-	return wch;
-}
-
 void replace_char(char *str, char c1, char c2)
 {
 	while (*str)

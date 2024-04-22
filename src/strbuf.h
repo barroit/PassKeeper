@@ -89,8 +89,6 @@ char *u8substr(const char *src, size_t start, size_t count);
 
 int strtou(const char *str, unsigned *res);
 
-int fprintfln(FILE *stream, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
-
 /**
  * Replace `c1` with `c2` in `str` inplace.
  */

@@ -129,6 +129,66 @@ void bug_routine(const char *file, int line, const char *format, ...)
 	exit(EXIT_FAILURE);
 }
 
+int fprintfln(FILE *stream, const char *fmt, ...)
+{
+	int nr;
+	va_list ap;
+
+	va_start(ap, fmt);
+	if ((nr = vfprintf(stream, fmt, ap)) < 0)
+	{
+		bug("your vfprintf is broken (returned %d)", nr);
+	}
+	va_end(ap);
+
+	putc('\n', stream);
+	nr += 1;
+	return nr;
+}
+
+const char *msqlite3_pathname = NULL;
+
+int print_sqlite_error(void *sqlite3_fn, struct sqlite3 *db, ...)
+{
+	if (msqlite3_pathname == NULL)
+	{
+		bug("no value given to msqlite3_pathname "
+			"before print_sqlite_error()");
+	}
+
+	if (sqlite3_fn == sqlite3_open || sqlite3_fn == sqlite3_open_v2)
+	{
+		return error_sqlerr(db, "Unable to open db file '%s'",
+					msqlite3_pathname);
+	}
+	else if (sqlite3_fn == sqlite3_key)
+	{
+		return error("Couldn't apply the key to db '%s'",
+				msqlite3_pathname);
+	}
+	else if (sqlite3_fn == sqlite3_exec)
+	{
+		va_list ap;
+		const char *errmsg;
+
+		va_start(ap, db);
+		errmsg = va_arg(ap, const char *);
+		va_end(ap);
+
+		return error("Unable to evaluate sql statements for db '%s'; "
+				"%s", msqlite3_pathname, errmsg);
+	}
+	else if (sqlite3_fn == sqlite3_avail)
+	{
+		return error("Encryption key is incorrect or '%s' is not a "
+				"valid db file.", msqlite3_pathname);
+	}
+	else
+	{
+		bug("unhandled sqlite3 function pointer %p", sqlite3_fn);
+	}
+}
+
 void report_openssl_error(void)
 {
 	unsigned long errcode;
@@ -137,7 +197,8 @@ void report_openssl_error(void)
 	errcode = ERR_get_error();
 	if (errcode == 0)
 	{
-		bug("calling report_openssl_error() without actual error does not make sense");
+		bug("calling report_openssl_error() without "
+			"actual error does not make sense");
 	}
 
 	reason = ERR_reason_error_string(errcode);

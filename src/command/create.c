@@ -128,7 +128,7 @@ static char *format_missing_field_string(void)
 		strlist_push(sl, *fmap);
 		break;
 	default:
-		bug("format_missing_field_string() executed with an"
+		bug("format_missing_field_string() executed with an "
 			"invalid field count '%d'", fcount);
 	}
 
@@ -293,8 +293,6 @@ static void editrec_die(enum creterr errcode)
 	exit(EXIT_FAILURE);
 }
 
-#define AE(...) AUTOEXIT(SQLITE_OK, __VA_ARGS__)
-
 static const char *get_config_file(void)
 {
 	const char *file;
@@ -321,6 +319,8 @@ static const char *get_config_file(void)
 
 	return file;
 }
+
+// #define JOF(...) SQLITE_JUMP_ON_FAILURE(sqlite_failure, __VA_ARGS__)
 
 int cmd_create(int argc, const char **argv, const char *prefix)
 {
@@ -369,11 +369,10 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 	struct strbuf *rec_txt = STRBUF_INIT_PTR;
 
 	rec_path = force_getenv(PK_RECFILE);
-	xio_pathname = rec_path;
 
 	format_recfile_content(rec_txt);
-
 	set_file_content(rec_path, rec_txt->buf, rec_txt->length);
+
 	strbuf_destroy(rec_txt);
 
 	if (edit_file(rec_path) != 0)
@@ -385,6 +384,7 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 	char *rec_buf;
 	off_t rec_bufsz;
 
+	xio_pathname = rec_path;
 	rec_fd = xopen(rec_path, O_RDONLY);
 
 	if ((rec_bufsz = xlseek(rec_fd, 0, SEEK_END)) == 0)
@@ -438,28 +438,37 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 
 setup_database:;
 	struct sqlite3 *db;
-	const char *cfg_path;
+	const char *cfg_path, *db_path;
 	bool use_cfg, use_usrkey;
 
+	db_path  = force_getenv(PK_CRED_DB);
 	cfg_path = get_config_file();
-	xio_pathname = cfg_path;
 
 	use_cfg = !!cfg_path;
 	use_usrkey = !is_blank_str(user.key);
 
-	AE(msqlite3_open, force_getenv(PK_CRED_DB), &db);
+	msqlite3_pathname = db_path;
+	EXIT_ON_FAILURE(msqlite3_open_v2(db_path, &db, SQLITE_OPEN_READWRITE,
+						NULL), SQLITE_OK);
 
 	if (!use_cfg && !use_usrkey)
 	{
 		goto insert_record;
 	}
 
+	struct cipher_config cc = { 0 };
+	struct cipher_key ck = { 0 };
+
 	const char *keystr;
 	size_t keylen;
 
-	/**
-	 * config file is optional
-	 */
+	keystr = NULL;
+	if (use_usrkey)
+	{
+		keystr = user.key;
+		keylen = strlen(user.key);
+	}
+
 	if (!use_cfg)
 	{
 		goto apply_key;
@@ -469,7 +478,9 @@ setup_database:;
 	int cc_fd;
 	off_t cc_size;
 
+	xio_pathname = cfg_path;
 	cc_fd = xopen(cfg_path, O_RDONLY);
+
 	if ((cc_size = xlseek(cc_fd, 0, SEEK_END)) < CIPHER_DIGEST_LENGTH)
 	{
 		die("Cipher config file at '%s' may be corrupted because it's "
@@ -489,18 +500,15 @@ setup_database:;
 		die("File at '%s' is not a valid config file.", cfg_path);
 	}
 
-	struct cipher_config cc;
-	struct cipher_key ck;
-
 	deserialize_cipher_config(&cc, &ck, cc_buf, cc_size);
 	free(cc_buf);
 
-	if (use_usrkey)
+	if (keystr)
 	{
-		keystr = user.key;
-		keylen = strlen(user.key);
+		goto apply_key;
 	}
-	else if (ck.buf == NULL)
+
+	if (ck.buf == NULL)
 	{
 		warning("Config file at '%s' affects nothing without a key.",
 			  cfg_path);
@@ -521,12 +529,13 @@ setup_database:;
 		ck.buf = (uint8_t *)keystr;
 	}
 
+apply_key:
+	EXIT_ON_FAILURE(msqlite3_key(db, keystr, keylen), SQLITE_OK);
+
 	free_cipher_config(&cc, &ck);
 
-apply_key:
-
 insert_record:
-	/* perferm db access check here */
+	EXIT_ON_FAILURE(msqlite3_avail(db), SQLITE_OK);
 
 	return 0;
 }

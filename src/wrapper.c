@@ -123,3 +123,9 @@ int xopen(const char *file, int oflag, ...)
 
 	return fd;
 }
+
+int sqlite3_avail(struct sqlite3 *db)
+{
+	return sqlite3_exec(db, "SELECT count(*) FROM sqlite_master;",
+				NULL, NULL, NULL);
+}
