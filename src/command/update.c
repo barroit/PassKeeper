@@ -29,8 +29,8 @@ static struct
 	const char *siteurl;
 	const char *username;
 	const char *password;
-	const char *authtext;
-	const char *bakcode;
+	const char *guard;
+	const char *recovery;
 	const char *comment;
 } record = {
 	.id = OPTUINT_INIT,
@@ -48,8 +48,8 @@ const struct option cmd_update_options[] = {
 	OPTION_STRING(0, "siteurl ",  &record.siteurl,  "url that used for disambiguation"),
 	OPTION_STRING(0, "username", &record.username, "identification that can be used to login"),
 	OPTION_STRING(0, "password", &record.password,  "secret phrase that can be used to login"),
-	OPTION_STRING(0, "authtext", &record.authtext,  "predefined question selected during account creation"),
-	OPTION_STRING(0, "bakcode ",  &record.bakcode, "backup code used for account recovery purposes"),
+	OPTION_STRING(0, "guard", &record.guard,  "predefined question selected during account creation"),
+	OPTION_STRING(0, "recovery ",  &record.recovery, "backup code used for account recovery purposes"),
 	OPTION_STRING(0, "comment ",  &record.comment, "you just write what the fuck you want to"),
 	OPTION_END(),
 };

@@ -159,6 +159,23 @@ char *strbuf_detach(struct strbuf *sb)
 	return bufcopy;
 }
 
+void strbuf_from_buf(struct strbuf *sb, char *buf)
+{
+	if (sb->buf != NULL)
+	{
+		bug("calling strbuf_from_buf() on a non empty strbuf");
+	}
+
+	if (buf != NULL)
+	{
+		sb->buf = buf;
+		sb->length = strlen(buf);
+		sb->capacity = sb->length + 1;
+
+		strbuf_grow(sb, 64);
+	}
+}
+
 bool starts_with(const char *str, const char *prefix)
 {
 	while (*prefix)

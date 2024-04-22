@@ -25,7 +25,7 @@
 #include "strbuf.h"
 #include "pkproc.h"
 #include "filesys.h"
-#include "credky.h"
+#include "cipher-config.h"
 #include "rawnumop.h"
 
 static struct
@@ -34,8 +34,11 @@ static struct
 	const char *siteurl;
 	const char *username;
 	const char *password;
-	const char *authtext;
-	const char *bakcode;
+
+	const char *guard;
+	const char *recovery;
+	const char *memo;
+
 	const char *comment;
 } record;
 
@@ -60,26 +63,29 @@ const char *const cmd_create_usages[] = {
 };
 
 const struct option cmd_create_options[] = {
+	OPTION_BOOLEAN('e', "nano", &user.use_editor,
+			"use editor to edit records"),
+	OPTION_STRING('k', "key", &user.key, "db encryption key"),
+	OPTION_FILENAME(0, "config", &user.config, "cipher config file"),
+	OPTION_GROUP(""),
 	OPTION_STRING(0, "sitename", &record.sitename,
 			"human readable name of a website"),
-	OPTION_STRING(0, "siteurl",  &record.siteurl,
+	OPTION_STRING(0, "siteurl", &record.siteurl,
 			"url that used for disambiguation"),
 	OPTION_STRING(0, "username", &record.username,
 			"identification that can be used to login"),
 	OPTION_STRING(0, "password", &record.password,
 			"secret phrase that can be used to login"),
 	OPTION_GROUP(""),
-	OPTION_STRING(0, "guard", &record.authtext,
+	OPTION_STRING(0, "guard", &record.guard,
 			"text to help verify this account is yours"),
-	OPTION_STRING(0, "recovery",  &record.bakcode,
+	OPTION_STRING(0, "recovery", &record.recovery,
 			"code for account recovery"),
-	OPTION_STRING(0, "comment",  &record.comment,
-			"you just write what the fuck you want to"),
+	OPTION_PATHNAME(0, "memo", &record.recovery,
+			"screenshot of the recovery code"),
 	OPTION_GROUP(""),
-	OPTION_BOOLEAN('e', "nano", &user.use_editor,
-			"use editor to edit records"),
-	OPTION_STRING('k', "key", &user.key, "db encryption key"),
-	OPTION_FILENAME(0, "config", &user.config, "cipher config file"),
+	OPTION_STRING(0, "comment", &record.comment,
+			"you just write what the fuck you want to"),
 	OPTION_END(),
 };
 
@@ -161,8 +167,8 @@ void format_recfile_content(struct strbuf *sb)
 	recfile_field_push(sb, SITEURL_ID,  record.siteurl);
 	recfile_field_push(sb, USERNAME_ID, record.username);
 	recfile_field_push(sb, PASSWORD_ID, record.password);
-	recfile_field_push(sb, AUTHTEXT_ID, record.authtext);
-	recfile_field_push(sb, BAKCODE_ID,  record.bakcode);
+	recfile_field_push(sb, AUTHTEXT_ID, record.guard);
+	recfile_field_push(sb, BAKCODE_ID,  record.recovery);
 	recfile_field_push(sb, COMMENT_ID,  record.comment);
 
 	strbuf_puts(sb, COMMON_RECORD_MESSAGE);
@@ -192,8 +198,8 @@ static void reassign_record(struct strlist *sl)
 		{ SITEURL_ID,  &record.siteurl  },
 		{ USERNAME_ID, &record.username },
 		{ PASSWORD_ID, &record.password },
-		{ AUTHTEXT_ID, &record.authtext },
-		{ BAKCODE_ID,  &record.bakcode  },
+		{ AUTHTEXT_ID, &record.guard },
+		{ BAKCODE_ID,  &record.recovery  },
 		{ COMMENT_ID,  &record.comment  },
 		{ NULL, NULL },
 	}, *fmap;
@@ -536,6 +542,9 @@ apply_key:
 
 insert_record:
 	EXIT_ON_FAILURE(msqlite3_avail(db), SQLITE_OK);
+
+	
+// 361397d42ea60ab4b81d1b4aafa4a5505af06aba4a2ac86f47fc15734da4a932
 
 	return 0;
 }

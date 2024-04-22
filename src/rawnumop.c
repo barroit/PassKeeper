@@ -129,10 +129,6 @@ uint8_t *digest_message_sha256(const uint8_t *message, size_t message_length)
 	EVP_MD_CTX *mdctx;
 	uint8_t *out;
 
-	/**
-	 * upper camel case with no x version api
-	 * ugly and sad :(
-	 */
 	if ((mdctx = EVP_MD_CTX_new()) == NULL)
 	{
 		report_openssl_error();

@@ -3,7 +3,7 @@
 		{
 			"name": "gcc",
 			"defines": [
-				"${defualt}",
+				"${default}",
 				"LINUX",
 				"SQLITE_HAS_CODEC"
 			],

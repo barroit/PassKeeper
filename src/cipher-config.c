@@ -20,8 +20,10 @@
 **
 ****************************************************************************/
 
-#include "credky.h"
+#include "cipher-config.h"
 #include "rawnumop.h"
+#include "strbuf.h"
+#include "strlist.h"
 
 enum cfg_field_type
 {
@@ -45,7 +47,7 @@ enum key_type
 	key_type_count,
 };
 
-struct field_blob
+struct cipher_file_blob
 {
 	uint8_t *buf;
 	size_t size;
@@ -55,15 +57,76 @@ struct field_blob
 #define TYPE_SIZE sizeof(uint8_t)
 #define DLEN_SIZE sizeof(size_t)
 
+static const char *kdf_algorithms[] = {
+	CPRDEF_KDF_ALGORITHM,
+	"PBKDF2_HMAC_SHA256",
+	"PBKDF2_HMAC_SHA1",
+	NULL,
+};
+
+static const char *hmac_algorithms[] = {
+	CPRDEF_HMAC_ALGORITHM,
+	"HMAC_SHA256",
+	"HMAC_SHA1",
+	NULL,
+};
+
+int check_kdf_algorithm(const char *name)
+{
+	if (!string_in_array(name, kdf_algorithms))
+	{
+		return error("'%s' is not found in KDF algorithm "
+				"list.", name);
+	}
+
+	return 0;
+}
+
+int check_hmac_algorithm(const char *name)
+{
+	if (!string_in_array(name, hmac_algorithms))
+	{
+		return error("'%s' is not found in HMAC algorithm "
+				"list.", name);
+	}
+
+	return 0;
+}
+
+int check_page_size(unsigned page_size)
+{
+	if (!in_range_u(page_size, CPRMIN_PAGE_SIZE, CPRMAX_PAGE_SIZE, 1) ||
+		!is_pow2(page_size))
+	{
+		return error("Invalid page size '%u'.", page_size);
+	}
+
+	return 0;
+}
+
+int check_compatibility(unsigned compatibility)
+{
+	if (!in_range_u(compatibility, CPRMIN_COMPATIBILITY,
+			 CPRMAX_COMPATIBILITY, 1))
+	{
+		return error("Unknown cipher compatibility '%u'.",
+				compatibility);
+	}
+
+	return 0;
+}
+
+
 static void append_field(
-	struct field_blob *blob, uint8_t type, const void *data, size_t dlen)
+	struct cipher_file_blob *blob, uint8_t type,
+	const void *data, size_t dlen)
 {
 	size_t required_size;
 
 	required_size = blob->size + TYPE_SIZE + DLEN_SIZE + dlen;
 	CAPACITY_GROW(blob->buf, required_size, blob->cap);
 
-	*blob->buf = type;
+	memcpy(blob->buf + blob->size, &type, TYPE_SIZE);
 	blob->size += TYPE_SIZE;
 
 	memcpy(blob->buf + blob->size, &dlen, DLEN_SIZE);
@@ -80,7 +143,7 @@ uint8_t *serialize_cipher_config(
 	/**
 	 * [(uint8_t cfg_field_type), (size_t data_length), (data)]
 	 */
-	struct field_blob *blob = &(struct field_blob){ 0 };
+	struct cipher_file_blob *blob = &(struct cipher_file_blob){ 0 };
 	CAPACITY_GROW(blob->buf, 64, blob->cap);
 
 	if (config->kdf_algorithm &&
@@ -97,9 +160,9 @@ uint8_t *serialize_cipher_config(
 				strlen(config->hmac_algorithm));
 	}
 
-	if (config->cipher_compat != CPRDEF_COMPATIBILITY)
+	if (config->compatibility != CPRDEF_COMPATIBILITY)
 	{
-		append_field(blob, FIELD_COMPATIBILITY, &config->cipher_compat,
+		append_field(blob, FIELD_COMPATIBILITY, &config->compatibility,
 				sizeof(unsigned));
 	}
 
@@ -148,7 +211,7 @@ void deserialize_cipher_config(
 	void *fmap[] = {
 		&config->kdf_algorithm,
 		&config->hmac_algorithm,
-		&config->cipher_compat,
+		&config->compatibility,
 		&config->page_size,
 		&config->kdf_iter,
 		&key->buf,
@@ -213,4 +276,40 @@ void deserialize_cipher_config(
 	}
 
 	}
+}
+
+char *format_apply_cc_sqlstr(struct cipher_config *cc)
+{
+	struct strbuf *sb = STRBUF_INIT_PTR;
+
+	if (cc->kdf_algorithm)
+	{
+		strbuf_printf(sb, "PRAGMA cipher_kdf_algorithm = %s;",
+				cc->kdf_algorithm);
+	}
+
+	if (cc->hmac_algorithm)
+	{
+		strbuf_printf(sb, "PRAGMA cipher_hmac_algorithm = %s;",
+				cc->hmac_algorithm);
+	}
+
+	if (cc->kdf_iter != CPRDEF_KDF_ITER)
+	{
+		strbuf_printf(sb, "PRAGMA kdf_iter = %d;", cc->kdf_iter);
+	}
+
+	if (cc->page_size != CPRDEF_PAGE_SIZE)
+	{
+		strbuf_printf(sb, "PRAGMA cipher_page_size = %d;",
+				cc->page_size);
+	}
+
+	if (cc->compatibility != CPRDEF_COMPATIBILITY)
+	{
+		strbuf_printf(sb, "PRAGMA cipher_compatibility = %d;",
+				cc->compatibility);
+	}
+
+	return sb->capacity == 0 ? NULL : sb->buf;
 }

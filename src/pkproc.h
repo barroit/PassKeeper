@@ -62,7 +62,7 @@ int mkprocl(struct process_info *ctx, const char *arg, ...);
 int mkprocf(struct process_info *ctx, procfn_t procfn, const void *args);
 
 #ifdef LINUX
-static inline int kill_process(struct process_info *ctx, int sig)
+static inline FORCEINLINE int kill_process(struct process_info *ctx, int sig)
 {
 	return kill(ctx->pid, sig);
 }

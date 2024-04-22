@@ -15,3 +15,5 @@ ext/
 .pk-recfile
 .pk-credfl
 .pk-credky
+
+*.db

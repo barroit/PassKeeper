@@ -20,14 +20,14 @@
 **
 ****************************************************************************/
 
-#ifndef CREDKY_H
-#define CREDKY_H
+#ifndef CIPHER_CONFIG_H
+#define CIPHER_CONFIG_H
 
 struct cipher_config
 {
 	char     *kdf_algorithm;
 	char     *hmac_algorithm;
-	unsigned cipher_compat;
+	unsigned compatibility;
 	unsigned page_size;
 	unsigned kdf_iter;
 };
@@ -79,6 +79,14 @@ static inline FORCEINLINE bool is_binkey_str(const char *key, size_t len)
 	return is_binkey_len(len) && is_binkey_wrp(key, len);
 }
 
+int check_kdf_algorithm(const char *name);
+
+int check_hmac_algorithm(const char *name);
+
+int check_page_size(unsigned page_size);
+
+int check_compatibility(unsigned compatibility);
+
 /**
  * this function guarantees the returned buffer
  * has enough space to place the message digest
@@ -87,6 +95,9 @@ uint8_t *serialize_cipher_config(const struct cipher_config *config, const struc
 
 void deserialize_cipher_config(struct cipher_config *config, struct cipher_key *key, const uint8_t *buf, size_t buflen);
 
+/**
+ * only use this function on config/key created by deserialize_cipher_config()
+ */
 static inline FORCEINLINE void free_cipher_config(
 	struct cipher_config *config, struct cipher_key *key)
 {
@@ -95,4 +106,6 @@ static inline FORCEINLINE void free_cipher_config(
 	free(key->buf);
 }
 
-#endif /* CREDKY_H */
+char *format_apply_cc_sqlstr(struct cipher_config *cc);
+
+#endif /* CIPHER_CONFIG_H */

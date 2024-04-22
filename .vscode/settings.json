@@ -42,7 +42,9 @@
 		"tuple": "c",
 		"credky.h": "c",
 		"rawnumop.h": "c",
-		"typeinfo": "c"
+		"typeinfo": "c",
+		"compare": "c",
+		"complex": "c"
 	},
 	"fileHeaderComment.parameter": {
 		"*": {

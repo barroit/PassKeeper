@@ -23,7 +23,7 @@
 #include "parseopt.h"
 #include "filesys.h"
 #include "rawnumop.h"
-#include "credky.h"
+#include "cipher-config.h"
 #include "strlist.h"
 #include "strbuf.h"
 
@@ -44,6 +44,7 @@ static const char *init_table_sqlstr =
 		"account_id INTEGER PRIMARY KEY,"
 		"guard      TEXT,"
 		"recovery   TEXT,"
+		"memo       BLOB,"
 		"FOREIGN KEY (account_id) REFERENCES account(id) "
 			"ON DELETE CASCADE"
 	");"
@@ -66,7 +67,7 @@ static struct
 static struct cipher_config cc = {
 	.kdf_iter = CPRDEF_KDF_ITER,
 	.page_size = CPRDEF_PAGE_SIZE,
-	.cipher_compat = CPRDEF_COMPATIBILITY,
+	.compatibility = CPRDEF_COMPATIBILITY,
 };
 
 const char *const cmd_init_usages[] = {
@@ -85,26 +86,12 @@ const struct option cmd_init_options[] = {
 	OPTION_STRING(0, "hmac-algorithm", &cc.hmac_algorithm,
 			"HMAC algorithm used to detect "
 			 "illegal data tampering"),
-	OPTION_UNSIGNED(0, "cipher-compat", &cc.cipher_compat,
+	OPTION_UNSIGNED(0, "cipher-compat", &cc.compatibility,
 			 "version of api to used"),
 	OPTION_UNSIGNED(0, "page-size", &cc.page_size, "size of a page"),
 	OPTION_UNSIGNED(0, "kdf-iter", &cc.kdf_iter,
 			 "key derivation iteration times"),
 	OPTION_END(),
-};
-
-static const char *kdf_algorithms[] = {
-	CPRDEF_KDF_ALGORITHM,
-	"PBKDF2HMAC_SHA256",
-	"PBKDF2_HMAC_SHA1",
-	NULL,
-};
-
-static const char *hmac_algorithms[] = {
-	CPRDEF_HMAC_ALGORITHM,
-	"HMAC_SHA256",
-	"HMAC_SHA1",
-	NULL,
 };
 
 enum key_type
@@ -161,7 +148,7 @@ static int precheck_file(const char *name, const char *path)
 	return 0;
 }
 
-int validate_key(enum key_type keytype, size_t keylen)
+static int validate_key(enum key_type keytype, size_t keylen)
 {
 	if (keytype == KT_PASSPHRASE && is_blank_str(user.key))
 	{
@@ -191,65 +178,68 @@ int validate_key(enum key_type keytype, size_t keylen)
 	return 0;
 }
 
-int check_if_cc_needed(enum key_type keytype, bool *out)
+static void process_cipher_config(enum key_type keytype, bool *out)
 {
 	bool use_cc;
 
 	use_cc = false;
-	if (cc.kdf_algorithm && keytype != KT_PASSPHRASE)
+	if (cc.kdf_algorithm == NULL);
+	else if (keytype != KT_PASSPHRASE)
 	{
-		if (!string_in_array(cc.kdf_algorithm, kdf_algorithms))
-		{
-			return error("'%s' is not found in kdf algorithm "
-					"list.", cc.kdf_algorithm);
-		}
+		warning("Setting the KDF algorithm on a "
+			  "non-passphrase key has no effect.");
 
+		cc.kdf_algorithm = NULL;
+	}
+	else
+	{
+		EXIT_ON_FAILURE(check_kdf_algorithm(cc.kdf_algorithm), 0);
+
+		/* kdf algorithm */
 		use_cc |= strcmp(cc.kdf_algorithm, CPRDEF_KDF_ALGORITHM);
 	}
 
 	if (cc.hmac_algorithm)
 	{
-		if (!string_in_array(cc.hmac_algorithm, hmac_algorithms))
-		{
-			return error("'%s' is not found in hmac algorithm "
-					"list.", cc.hmac_algorithm);
-		}
+		EXIT_ON_FAILURE(check_hmac_algorithm(cc.hmac_algorithm), 0);
 
+		/* hmac algorithm */
 		use_cc |= strcmp(cc.hmac_algorithm, CPRDEF_HMAC_ALGORITHM);
 	}
 
-	use_cc |= cc.kdf_iter != CPRDEF_KDF_ITER && keytype == KT_PASSPHRASE;
-
-	if (!in_range_u(cc.page_size, CPRMIN_PAGE_SIZE, CPRMAX_PAGE_SIZE, 1) ||
-		!is_pow2(cc.page_size))
+	/* kdf iter */
+	if (cc.kdf_iter == CPRDEF_KDF_ITER);
+	else if (keytype != KT_PASSPHRASE)
 	{
-		return error("Invalid page size '%u'.", cc.page_size);
+		warning("Setting the KDF iteration times on a "
+			  "non-passphrase key has no effect.");
+
+		cc.kdf_iter = CPRDEF_KDF_ITER;
 	}
 	else
 	{
-		use_cc |= cc.page_size != CPRDEF_PAGE_SIZE;
+		use_cc |= true;
 	}
 
-	if (!in_range_u(cc.cipher_compat, CPRMIN_COMPATIBILITY,
-			 CPRMAX_COMPATIBILITY, 1))
-	{
-		return error("Unknown cipher compatibility '%u'.",
-				cc.cipher_compat);
-	}
-	else
-	{
-		use_cc |= cc.cipher_compat != CPRDEF_COMPATIBILITY;
-	}
+	EXIT_ON_FAILURE(check_page_size(cc.page_size), 0);
+
+	/* page size */
+	use_cc |= cc.page_size != CPRDEF_PAGE_SIZE;
+
+	EXIT_ON_FAILURE(check_compatibility(cc.compatibility), 0);
+
+	/* compatibility */
+	use_cc |= cc.compatibility != CPRDEF_COMPATIBILITY;
 
 	use_cc |= (keytype != KT_PASSPHRASE && user.store_key) ||
 			  user.store_key == 1;
 
 	*out = use_cc;
-	return 0;
 }
 
 enum cleanup_flag
 {
+	RM_RESET,
 	RM_DB_FILE = 1 << 0,
 	RM_CC_FILE = 1 << 1,
 };
@@ -308,7 +298,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	bool use_cc;
 	const char *cc_path;
 
-	EXIT_ON_FAILURE(check_if_cc_needed(keytype, &use_cc), 0);
+	process_cipher_config(keytype, &use_cc);
 	cc_path = force_getenv(PK_CRED_KY);
 
 	if (use_cc)
@@ -369,59 +359,36 @@ setup_cc:
 
 	close(cc_fd);
 	free(cc_buf);
-	free_cipher_config(&cc, &ck);
+	free(ck.buf);
 
 setup_database:;
 	struct sqlite3 *db;
-	struct strbuf *sb = STRBUF_INIT_PTR;
 
 	cleanup_flags |= RM_DB_FILE;
 	msqlite3_pathname = db_path;
 	EXIT_ON_FAILURE(msqlite3_open(db_path, &db), SQLITE_OK);
 
-	if (!encrypt_db)
+	if (encrypt_db)
 	{
-		goto setup_schema;
+		char *apply_cc_sqlstr;
+
+		EXIT_ON_FAILURE(msqlite3_key(db, keystr, keylen), SQLITE_OK);
+
+		apply_cc_sqlstr = format_apply_cc_sqlstr(&cc);
+
+		if (apply_cc_sqlstr != NULL)
+		{
+			EXIT_ON_FAILURE(msqlite3_exec(db, apply_cc_sqlstr,
+							NULL, NULL), SQLITE_OK);
+			free(apply_cc_sqlstr);
+		}
 	}
-
-	EXIT_ON_FAILURE(msqlite3_key(db, keystr, keylen), SQLITE_OK);
-
-	if (cc.kdf_algorithm && keytype != KT_PASSPHRASE)
-	{
-		strbuf_printf(sb, "PRAGMA cipher_kdf_algorithm = "
-				"%s;", cc.kdf_algorithm);
-	}
-
-	if (cc.hmac_algorithm)
-	{
-		strbuf_printf(sb, "PRAGMA cipher_hmac_algorithm = "
-				"%s;", cc.hmac_algorithm);
-	}
-
-	if (cc.kdf_iter != CPRDEF_KDF_ITER && keytype != KT_PASSPHRASE)
-	{
-		strbuf_printf(sb, "PRAGMA kdf_iter = %d;", cc.kdf_iter);
-	}
-
-	if (cc.page_size != CPRDEF_PAGE_SIZE)
-	{
-		strbuf_printf(sb, "PRAGMA cipher_page_size = "
-				"%d;", cc.page_size);
-	}
-
-setup_schema:
-	/* always specify this */
-	strbuf_printf(sb, "PRAGMA cipher_compatibility = "
-			"%d;", cc.cipher_compat);
-
-	EXIT_ON_FAILURE(msqlite3_exec(db, sb->buf, NULL, NULL), SQLITE_OK);
-	strbuf_destroy(sb);
 
 	EXIT_ON_FAILURE(msqlite3_exec(db, init_table_sqlstr, NULL, NULL),
 			 SQLITE_OK);
 
 	sqlite3_close(db);
-	cleanup_flags = 0;
+	cleanup_flags = RM_RESET;
 
 	return 0;
 }

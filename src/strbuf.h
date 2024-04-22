@@ -75,6 +75,8 @@ void strbuf_trim_end(struct strbuf *sb);
  */
 char *strbuf_detach(struct strbuf *sb);
 
+void strbuf_from_buf(struct strbuf *sb, char *buf);
+
 bool starts_with(const char *str, const char *prefix);
 
 /**
