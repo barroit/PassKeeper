@@ -20,7 +20,7 @@
 **
 ****************************************************************************/
 
-#include "parseopt.h"
+#include "parse-option.h"
 #include "strbuf.h"
 
 static bool show_build_options;

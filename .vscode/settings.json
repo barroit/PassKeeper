@@ -3,6 +3,7 @@
 		".gdb*": "plaintext",
 		"gdb*": "plaintext",
 		"cfgmap": "plaintext",
+		"README": "plaintext",
 		"signal.h": "c",
 		"wait.h": "c",
 		"array": "c",
@@ -44,7 +45,9 @@
 		"rawnumop.h": "c",
 		"typeinfo": "c",
 		"compare": "c",
-		"complex": "c"
+		"complex": "c",
+		"handle-record.h": "c",
+		"filesys.h": "c"
 	},
 	"fileHeaderComment.parameter": {
 		"*": {

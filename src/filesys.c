@@ -48,7 +48,8 @@ char *prefix_filename(const char *prefix, const char *filename)
 	 * ./xxx
 	 * .\xxx
 	 */
-	if (*filename && *filename == '.' && (filename[1] == '/' || filename[1] == '\\'))
+	if (*filename && *filename == '.' &&
+		(filename[1] == '/' || filename[1] == '\\'))
 	{
 		filename += 2;
 	}
@@ -115,4 +116,14 @@ void prepare_file_directory(const char *pathname)
 	}
 
 	free(pathcopy);
+}
+
+void populate_file(const char *pathname, const char *buf, size_t buflen)
+{
+	int fd;
+
+	fd = xopen(pathname, O_WRONLY | O_CREAT | O_TRUNC, FILCRT_BIT);
+	xwrite(fd, buf, buflen);
+
+	close(fd);
 }

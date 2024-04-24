@@ -20,7 +20,7 @@
 **
 ****************************************************************************/
 
-#include "parseopt.h"
+#include "parse-option.h"
 #include "filesys.h"
 #include "rawnumop.h"
 

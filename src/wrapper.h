@@ -176,22 +176,7 @@ static inline FORCEINLINE int msqlite3_key(struct sqlite3 *db, const void *key, 
 	run_sqlite3(db, sqlite3_key, db, key, sz);
 }
 
-static inline FORCEINLINE int msqlite3_exec(
-	struct sqlite3 *db, const char *sql,
-	int (*callback)(void *, int, char **, char **), void *cbargv)
-{
-	char *errmsg;
-	int rescode;
-
-	rescode = SQLITE_OK;
-	if (sqlite3_exec(db, sql, callback, cbargv, &errmsg) != SQLITE_OK)
-	{
-		rescode = print_sqlite_error(sqlite3_exec, db, errmsg);
-	}
-
-	sqlite3_free(errmsg);
-	return rescode;
-}
+int msqlite3_exec(struct sqlite3 *db, const char *sql, int (*callback)(void *, int, char **, char **), void *cbargv, char **errmsg);
 
 int sqlite3_avail(struct sqlite3 *db);
 
@@ -199,6 +184,12 @@ static inline FORCEINLINE msqlite3_avail(struct sqlite3 *db)
 {
 	run_sqlite3(db, sqlite3_avail, db);
 }
+
+#define msqlite3_begin_transaction(db__)\
+	msqlite3_exec(db__, "BEGIN TRANSACTION;", NULL, NULL, NULL)
+
+#define msqlite3_end_transaction(db__)\
+	msqlite3_exec(db__, "END TRANSACTION;", NULL, NULL, NULL)
 
 #ifdef WINDOWS_NATIVE
 HANDLE xCreateFile(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);

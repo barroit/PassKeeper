@@ -20,7 +20,7 @@
 **
 ****************************************************************************/
 
-#include "parseopt.h"
+#include "parse-option.h"
 
 static struct
 {

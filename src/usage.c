@@ -64,6 +64,17 @@ void vreportf(const char *prefix, struct report_field *field)
 	iwrite(STDERR_FILENO, buffer0, bufptr - buffer0);
 }
 
+void note_routine(const char *format, ...)
+{
+	struct report_field field = {
+		.format = format,
+	};
+
+	va_start(field.ap, format);
+	vreportf("note: ", &field);
+	va_end(field.ap);
+}
+
 void warning_routine(const char *syserr, const char *format, ...)
 {
 	struct report_field field = {
@@ -169,14 +180,15 @@ int print_sqlite_error(void *sqlite3_fn, struct sqlite3 *db, ...)
 	else if (sqlite3_fn == sqlite3_exec)
 	{
 		va_list ap;
-		const char *errmsg;
+		const char *sql, *errmsg;
 
 		va_start(ap, db);
+		sql = va_arg(ap, const char *);
 		errmsg = va_arg(ap, const char *);
 		va_end(ap);
 
-		return error("Unable to evaluate sql statements for db '%s'; "
-				"%s", msqlite3_pathname, errmsg);
+		return error("Failed to execute '%s' on db '%s'; "
+				"%s", sql, msqlite3_pathname, errmsg);
 	}
 	else if (sqlite3_fn == sqlite3_avail)
 	{

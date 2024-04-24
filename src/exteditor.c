@@ -102,8 +102,8 @@ int edit_file(const char *pathname)
 
 	if (show_spinner && run_spinner(&spinner_ctx, spinner_style) != 0)
 	{
-		fputs("note: something terrible happened, but it's harmless, "
-			"and the program will continue", stderr);
+		note("Something terrible happened, but it's harmless, "
+			"and the program will continue");
 
 		show_spinner = false;
 	}

@@ -20,7 +20,7 @@
 **
 ****************************************************************************/
 
-#include "parseopt.h"
+#include "parse-option.h"
 #include "filesys.h"
 #include "rawnumop.h"
 #include "cipher-config.h"
@@ -34,7 +34,7 @@ static const char *init_table_sqlstr =
 		"siteurl  TEXT,"
 		"username TEXT,"
 		"password TEXT,"
-		"sqltime  DATETIME NOT NULL,"
+		"sqltime  DATETIME DEFAULT (datetime('now', 'utc')),"
 		"modtime  DATETIME"
 	");"
 
@@ -126,7 +126,7 @@ static enum key_type resolve_key_type(void)
 		{
 			warning("Encryption key is wrapped by \"x''\" but "
 				 "does not have a valid raw key data length.");
-			puts("note: Using passphrase.");
+			note("Using passphrase.");
 			return KT_PASSPHRASE;
 		}
 	}
@@ -374,18 +374,17 @@ setup_database:;
 
 		EXIT_ON_FAILURE(msqlite3_key(db, keystr, keylen), SQLITE_OK);
 
-		apply_cc_sqlstr = format_apply_cc_sqlstr(&cc);
-
-		if (apply_cc_sqlstr != NULL)
+		if ((apply_cc_sqlstr = format_apply_cc_sqlstr(&cc)) != NULL)
 		{
-			EXIT_ON_FAILURE(msqlite3_exec(db, apply_cc_sqlstr,
+			EXIT_ON_FAILURE(msqlite3_exec(db, apply_cc_sqlstr, NULL,
 							NULL, NULL), SQLITE_OK);
+
 			free(apply_cc_sqlstr);
 		}
 	}
 
-	EXIT_ON_FAILURE(msqlite3_exec(db, init_table_sqlstr, NULL, NULL),
-			 SQLITE_OK);
+	EXIT_ON_FAILURE(msqlite3_exec(db, init_table_sqlstr, NULL,
+					NULL, NULL), SQLITE_OK);
 
 	sqlite3_close(db);
 	cleanup_flags = RM_RESET;

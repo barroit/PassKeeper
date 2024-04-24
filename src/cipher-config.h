@@ -62,6 +62,15 @@ struct cipher_key
 #define SHK_STRLEN  (HK_STRLEN + KEYSALT_LEN)
 #define HK_MAXLEN   SHK_STRLEN + 1 /* add one for null-terminator */
 
+#define CC_INIT						\
+	{						\
+		.compatibility = CPRDEF_COMPATIBILITY,	\
+		.page_size = CPRDEF_PAGE_SIZE,		\
+		.kdf_iter = CPRDEF_KDF_ITER,		\
+	}
+
+#define CK_INIT { 0 }
+
 static inline FORCEINLINE bool is_binkey_len(size_t len)
 {
 	return len == HK_STRLEN || len == SHK_STRLEN;
@@ -78,6 +87,8 @@ static inline FORCEINLINE bool is_binkey_str(const char *key, size_t len)
 {
 	return is_binkey_len(len) && is_binkey_wrp(key, len);
 }
+
+int resolve_cipher_config_path(const char **pathname);
 
 int check_kdf_algorithm(const char *name);
 

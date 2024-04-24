@@ -124,6 +124,32 @@ int xopen(const char *file, int oflag, ...)
 	return fd;
 }
 
+
+int msqlite3_exec(
+	struct sqlite3 *db, const char *sql,
+	int (*callback)(void *, int, char **, char **),
+	void *cbargv, char **errmsg0)
+{
+	char *errmsg;
+	int rescode;
+
+	rescode = SQLITE_OK;
+	errmsg = NULL;
+
+	if (sqlite3_exec(db, sql, callback, cbargv, &errmsg) != SQLITE_OK)
+	{
+		rescode = print_sqlite_error(sqlite3_exec, db, sql, errmsg);
+	}
+
+	if (errmsg0 == NULL)
+	{
+		sqlite3_free(errmsg);
+	}
+
+	*errmsg0 = errmsg;
+	return rescode;
+}
+
 int sqlite3_avail(struct sqlite3 *db)
 {
 	return sqlite3_exec(db, "SELECT count(*) FROM sqlite_master;",

@@ -32,6 +32,9 @@ struct report_field
 
 void vreportf(const char *prefix, struct report_field *field);
 
+void note_routine(const char *format, ...)
+	__attribute__((format(printf, 1, 2)));
+
 void warning_routine(const char *syserr, const char *format, ...)
 	__attribute__((format(printf, 2, 3)));
 
@@ -43,6 +46,8 @@ void die_routine(const char *syserr, const char *format, ...)
 
 void bug_routine(const char *file, int line, const char *format, ...)
 	__attribute__((format(printf, 3, 4), noreturn));
+
+#define note(...)		note_routine(__VA_ARGS__)
 
 #define warning(...)		warning_routine(NULL, __VA_ARGS__)
 #define warning_errno(...)	warning_routine(strerror(errno), __VA_ARGS__)

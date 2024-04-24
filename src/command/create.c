@@ -20,7 +20,8 @@
 **
 ****************************************************************************/
 
-#include "parseopt.h"
+#include "parse-option.h"
+#include "handle-record.h"
 #include "strlist.h"
 #include "strbuf.h"
 #include "pkproc.h"
@@ -28,25 +29,10 @@
 #include "cipher-config.h"
 #include "rawnumop.h"
 
-static struct
-{
-	const char *sitename;
-	const char *siteurl;
-	const char *username;
-	const char *password;
+// static const char *insert_record_sqlstr = 
+// 	"";
 
-	const char *guard;
-	const char *recovery;
-	const char *memo;
-
-	const char *comment;
-} record;
-
-enum creterr
-{
-	CRETERR_CANCELED = 1,
-	CRETERR_MISSING_FIELD,
-};
+static struct record rec;
 
 static struct
 {
@@ -68,216 +54,26 @@ const struct option cmd_create_options[] = {
 	OPTION_STRING('k', "key", &user.key, "db encryption key"),
 	OPTION_FILENAME(0, "config", &user.config, "cipher config file"),
 	OPTION_GROUP(""),
-	OPTION_STRING(0, "sitename", &record.sitename,
+	OPTION_STRING(0, "sitename", &rec.sitename,
 			"human readable name of a website"),
-	OPTION_STRING(0, "siteurl", &record.siteurl,
+	OPTION_STRING(0, "siteurl", &rec.siteurl,
 			"url that used for disambiguation"),
-	OPTION_STRING(0, "username", &record.username,
+	OPTION_STRING(0, "username", &rec.username,
 			"identification that can be used to login"),
-	OPTION_STRING(0, "password", &record.password,
+	OPTION_STRING(0, "password", &rec.password,
 			"secret phrase that can be used to login"),
 	OPTION_GROUP(""),
-	OPTION_STRING(0, "guard", &record.guard,
+	OPTION_STRING(0, "guard", &rec.guard,
 			"text to help verify this account is yours"),
-	OPTION_STRING(0, "recovery", &record.recovery,
+	OPTION_STRING(0, "recovery", &rec.recovery,
 			"code for account recovery"),
-	OPTION_PATHNAME(0, "memo", &record.recovery,
+	OPTION_PATHNAME(0, "memo", &rec.recovery,
 			"screenshot of the recovery code"),
 	OPTION_GROUP(""),
-	OPTION_STRING(0, "comment", &record.comment,
+	OPTION_STRING(0, "comment", &rec.comment,
 			"you just write what the fuck you want to"),
 	OPTION_END(),
 };
-
-#define missing_required_field				\
-	(is_blank_str(record.sitename) ||		\
-	  is_blank_str(record.password))
-
-#define SITENAME_ID ":sitename:"
-#define SITEURL_ID  ":siteurl:"
-#define USERNAME_ID ":username:"
-#define PASSWORD_ID ":password:"
-#define AUTHTEXT_ID ":authtext:"
-#define BAKCODE_ID  ":bakcode:"
-#define COMMENT_ID  ":comment:"
-
-static char *format_missing_field_string(void)
-{
-	const char *fmap0[2], **fmap;
-	unsigned fcount;
-
-	fcount = 0;
-	fmap = fmap0;
-
-	if (is_blank_str(record.sitename))
-	{
-		fcount++;
-		*fmap++ = "sitename";
-	}
-	else
-	{
-		fcount++;
-		*fmap++ = "password";
-	}
-
-	fmap = fmap0;
-	static char *buf;
-	struct strlist *sl = STRLIST_INIT_PTR_NODUP;
-
-	switch (fcount)
-	{
-	case 2:
-		strlist_push(sl, *fmap++);
-		strlist_push(sl, "and");
-		/* FALLTHRU */
-	case 1:
-		strlist_push(sl, *fmap);
-		break;
-	default:
-		bug("format_missing_field_string() executed with an "
-			"invalid field count '%d'", fcount);
-	}
-
-	buf = strlist_join(sl, " ", EXT_JOIN_TAIL);
-	strlist_destroy(sl, false);
-
-	return buf;
-}
-
-static void recfile_field_push(
-	struct strbuf *sb, const char *comment, const char *field)
-{
-	strbuf_puts(sb, comment);
-
-	if (!is_blank_str(field))
-	{
-		strbuf_puts(sb, field);
-	}
-	else
-	{
-		strbuf_putchar(sb, '\n');
-	}
-
-	strbuf_putchar(sb, '\n');
-}
-
-void format_recfile_content(struct strbuf *sb)
-{
-	recfile_field_push(sb, SITENAME_ID, record.sitename);
-	recfile_field_push(sb, SITEURL_ID,  record.siteurl);
-	recfile_field_push(sb, USERNAME_ID, record.username);
-	recfile_field_push(sb, PASSWORD_ID, record.password);
-	recfile_field_push(sb, AUTHTEXT_ID, record.guard);
-	recfile_field_push(sb, BAKCODE_ID,  record.recovery);
-	recfile_field_push(sb, COMMENT_ID,  record.comment);
-
-	strbuf_puts(sb, COMMON_RECORD_MESSAGE);
-}
-
-static bool recfile_line_filter(struct strlist_elem *el)
-{
-	return *el->str != 0 && *el->str != '#';
-}
-
-static bool recfile_line_filter_all(struct strlist_elem *el)
-{
-	return recfile_line_filter(el) && *el->str != ':';
-}
-
-static void reassign_record(struct strlist *sl)
-{
-	memset(&record, 0, sizeof(record));
-
-	size_t i, ii;
-	struct
-	{
-		const char *key;
-		const char **value;
-	} fmap0[] = {
-		{ SITENAME_ID, &record.sitename },
-		{ SITEURL_ID,  &record.siteurl  },
-		{ USERNAME_ID, &record.username },
-		{ PASSWORD_ID, &record.password },
-		{ AUTHTEXT_ID, &record.guard },
-		{ BAKCODE_ID,  &record.recovery  },
-		{ COMMENT_ID,  &record.comment  },
-		{ NULL, NULL },
-	}, *fmap;
-	struct strbuf *sb = STRBUF_INIT_PTR;
-
-	for (i = 0; i < sl->size; )
-	{
-
-	/**
-	 * skip leading empty lines
-	 */
-	if (*sl->elvec[i].str != ':')
-	{
-		i++;
-		continue;
-	}
-
-	fmap = fmap0;
-	while (fmap->key != NULL)
-	{
-		if (!strcmp(sl->elvec[i].str, fmap->key))
-		{
-			break;
-		}
-
-		fmap++;
-	}
-
-	if (fmap->key == NULL)
-	{
-		i++;
-		continue;
-	}
-
-	ii = i + 1;
-	while (ii < sl->size && *sl->elvec[ii].str != ':')
-	{
-		if (*sl->elvec[ii].str == '|')
-		{
-			strbuf_puts(sb, sl->elvec[ii].str + 1);
-		}
-		else
-		{
-			strbuf_write(sb, sl->elvec[ii].str,
-					strlen(sl->elvec[ii].str));
-		}
-
-		ii++;
-	}
-
-	if (ii == i + 1)
-	{
-		i++;
-		continue;
-	}
-
-	i = ii;
-	*fmap->value = strbuf_detach(sb);
-
-	}
-
-	strbuf_destroy(sb);
-}
-
-static int pcreterr(enum creterr errcode)
-{
-	switch (errcode)
-	{
-	case CRETERR_CANCELED:
-		puts("Creation is aborted due to empty record.");
-		return 0;
-	case CRETERR_MISSING_FIELD:
-		return error("%s missing in the required fields",
-				format_missing_field_string());
-	default:
-		bug("Unknown error code '%d'", errcode);
-	}
-}
 
 static void rm_recfile(void)
 {
@@ -289,45 +85,6 @@ static void rm_recfile(void)
 	}
 }
 
-static void editrec_die(enum creterr errcode)
-{
-	if (errcode != 0)
-	{
-		pcreterr(errcode);
-	}
-
-	exit(EXIT_FAILURE);
-}
-
-static const char *get_config_file(void)
-{
-	const char *file;
-	struct stat st;
-
-	file = user.config ? user.config : force_getenv(PK_CRED_KY);
-	
-	if (stat(file, &st) != 0)
-	{
-		file = NULL;
-	}
-	else if (!S_ISREG(st.st_mode))
-	{
-		warning("Config file at '%s' is not a regular file, "
-			 "configuration disabled.", file);
-		file = NULL;
-	}
-	else if (test_file_permission(file, &st, R_OK) != 0)
-	{
-		warning("Access was denied by config file '%s', "
-			 "configuration disabled.", file);
-		file = NULL;
-	}
-
-	return file;
-}
-
-// #define JOF(...) SQLITE_JUMP_ON_FAILURE(sqlite_failure, __VA_ARGS__)
-
 int cmd_create(int argc, const char **argv, const char *prefix)
 {
 	parse_options(argc, argv, prefix, cmd_create_options,
@@ -338,7 +95,7 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 	setup_editor = false;
 	atexit(rm_recfile);
 
-	if (user.use_editor == 2 && missing_required_field)
+	if (user.use_editor == 2 && is_incomplete_record(&rec))
 	{
 		/**
 		 * ./pk create --sitename="xxx" --username="xxx"
@@ -357,13 +114,14 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 		 */
 		setup_editor = true;
 	}
-	else if (missing_required_field)
+	else if (is_incomplete_record(&rec))
 	{
 		/**
 		 * ./pk create --no-nano
 		 * # not use editor and missing required fields
 		 */
-		return pcreterr(CRETERR_MISSING_FIELD);
+		return error("%s missing in the required fields",
+				format_missing_field(&rec));
 	}
 
 	if (!setup_editor)
@@ -372,75 +130,14 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 	}
 
 	const char *rec_path;
-	struct strbuf *rec_txt = STRBUF_INIT_PTR;
 
 	rec_path = force_getenv(PK_RECFILE);
 
-	format_recfile_content(rec_txt);
-	set_file_content(rec_path, rec_txt->buf, rec_txt->length);
+	populate_record_file(rec_path, &rec);
 
-	strbuf_destroy(rec_txt);
+	EXIT_ON_FAILURE(edit_file(rec_path), 0);
 
-	if (edit_file(rec_path) != 0)
-	{
-		editrec_die(0);
-	}
-
-	int rec_fd;
-	char *rec_buf;
-	off_t rec_bufsz;
-
-	xio_pathname = rec_path;
-	rec_fd = xopen(rec_path, O_RDONLY);
-
-	if ((rec_bufsz = xlseek(rec_fd, 0, SEEK_END)) == 0)
-	{
-		close(rec_fd);
-		editrec_die(CRETERR_CANCELED);
-	}
-
-	xlseek(rec_fd, 0, SEEK_SET);
-
-	rec_buf = xmalloc(rec_bufsz + 1);
-	rec_buf[rec_bufsz] = 0;
-
-	if (xread(rec_fd, rec_buf, rec_bufsz) == 0)
-	{
-		close(rec_fd);
-		editrec_die(CRETERR_CANCELED);
-	}
-
-	close(rec_fd);
-
-	struct strlist *rec_line = STRLIST_INIT_PTR_DUPSTR;
-
-	strlist_split(rec_line, rec_buf, '\n', -1);
-	free(rec_buf);
-
-	strlist_filter(rec_line, recfile_line_filter, false);
-
-	if (rec_line->size == 0)
-	{
-		editrec_die(CRETERR_CANCELED);
-	}
-
-	reassign_record(rec_line);
-
-	if (missing_required_field)
-	{
-		strlist_filter(rec_line, recfile_line_filter_all, false);
-
-		if (rec_line->size == 0)
-		{
-			editrec_die(CRETERR_CANCELED);
-		}
-		else
-		{
-			editrec_die(CRETERR_MISSING_FIELD);
-		}
-	}
-
-	strlist_destroy(rec_line, false);
+	read_record_file(&rec, rec_path);
 
 setup_database:;
 	struct sqlite3 *db;
@@ -448,7 +145,9 @@ setup_database:;
 	bool use_cfg, use_usrkey;
 
 	db_path  = force_getenv(PK_CRED_DB);
-	cfg_path = get_config_file();
+	cfg_path = user.config;
+
+	resolve_cipher_config_path(&cfg_path);
 
 	use_cfg = !!cfg_path;
 	use_usrkey = !is_blank_str(user.key);
@@ -462,8 +161,8 @@ setup_database:;
 		goto insert_record;
 	}
 
-	struct cipher_config cc = { 0 };
-	struct cipher_key ck = { 0 };
+	struct cipher_config cc = CC_INIT;
+	struct cipher_key ck = CK_INIT;
 
 	const char *keystr;
 	size_t keylen;
@@ -538,13 +237,36 @@ setup_database:;
 apply_key:
 	EXIT_ON_FAILURE(msqlite3_key(db, keystr, keylen), SQLITE_OK);
 
+	char *apply_cc_sqlstr;
+
+	if ((apply_cc_sqlstr = format_apply_cc_sqlstr(&cc)) != NULL)
+	{
+		EXIT_ON_FAILURE(msqlite3_exec(db, apply_cc_sqlstr, NULL,
+						NULL, NULL), SQLITE_OK);
+
+		free(apply_cc_sqlstr);
+	}
+
 	free_cipher_config(&cc, &ck);
 
 insert_record:
 	EXIT_ON_FAILURE(msqlite3_avail(db), SQLITE_OK);
 
-	
-// 361397d42ea60ab4b81d1b4aafa4a5505af06aba4a2ac86f47fc15734da4a932
+	bool need_transaction;
+
+	if ((need_transaction = is_need_transaction(&rec)))
+	{
+		EXIT_ON_FAILURE(msqlite3_begin_transaction(db), SQLITE_OK);
+	}
+
+	//
+
+	if (need_transaction)
+	{
+		EXIT_ON_FAILURE(msqlite3_end_transaction(db), SQLITE_OK);
+	}
+
+// 5f492a44494b12da4779e11efede1c76628550b05c5754a26aa7c390030516e9
 
 	return 0;
 }

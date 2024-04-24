@@ -20,26 +20,38 @@
 **
 ****************************************************************************/
 
-#ifndef FILESYS_H
-#define FILESYS_H
+#ifndef HANDLE_RECORD_H
+#define HANDLE_RECORD_H
 
-static inline const char *get_user_home(void)
+struct record
 {
-	const char *home;
-	if ((home = getenv(ENV_USERHOME)) == NULL)
-	{
-		die("your user home corrupted in env");
-	}
-	return home;
+	const char *sitename;
+	const char *siteurl;
+	const char *username;
+	const char *password;
+
+	const char *guard;
+	const char *recovery;
+	const char *memo;
+
+	const char *comment;
+};
+
+void populate_record_file(const char *rec_path, const struct record *rec);
+
+extern bool is_blank_str(const char *str0);
+
+static inline FORCEINLINE bool is_incomplete_record(const struct record *rec)
+{
+	return is_blank_str(rec->sitename) || is_blank_str(rec->password);
 }
 
-/**
- * append `filename` to `prefix` if needed
- */
-char *prefix_filename(const char *prefix, const char *filename);
+bool is_incomplete_record(const struct record *rec);
 
-void prepare_file_directory(const char *pathname);
+char *format_missing_field(const struct record *rec);
 
-void populate_file(const char *name, const char *buf, size_t buflen);
+int read_record_file(struct record *rec, const char *rec_path);
 
-#endif /* FILESYS_H */
+bool is_need_transaction(struct record *rec);
+
+#endif /* HANDLE_RECORD_H */

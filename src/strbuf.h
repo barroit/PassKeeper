@@ -63,6 +63,8 @@ void strbuf_putchar(struct strbuf *sb, char c);
 
 void strbuf_write(struct strbuf *sb, const char *str, size_t sz);
 
+#define strbuf_concat(sb__, str__) strbuf_write(sb__, str__, strlen(str__))
+
 /**
  * DO NOT pass NULL to `str`
  */

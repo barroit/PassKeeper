@@ -1,0 +1,21 @@
+Table Schema
+============
+
+sqltime
+-------
+The calendar time at the record creation. This column stores time in
+UTC.
+
+modtime
+-------
+The calendar time at the last record modification, this column stores
+time in UTC.
+
+Note
+----
+ - Store calendar time in UTC is for consistency. To display the calendar
+   time to end users in their local time zone, the column value should be
+   adjusted by adding the standard time zone offset (e.g., UTC+9 for Japan)
+   and an additional daylight saving time offset where applicable.
+ - For more information on time terminology, see:
+   https://www.gnu.org/software/libc/manual/html_node/Time-Basics.html

@@ -57,6 +57,38 @@ struct cipher_file_blob
 #define TYPE_SIZE sizeof(uint8_t)
 #define DLEN_SIZE sizeof(size_t)
 
+int resolve_cipher_config_path(const char **pathname)
+{
+	const char *file;
+	struct stat st;
+
+	file = *pathname == NULL ? force_getenv(PK_CRED_KY) : *pathname;
+
+	if (stat(file, &st) != 0)
+	{
+		goto failure;
+	}
+	else if (!S_ISREG(st.st_mode))
+	{
+		warning("Config file at '%s' is not a regular file.", file);
+		note("Configuration disabled.");
+		goto failure;
+	}
+	else if (test_file_permission(file, &st, R_OK) != 0)
+	{
+		warning("Access was denied by config file '%s'", file);
+		note("Configuration disabled.");
+		goto failure;
+	}
+
+	*pathname = file;
+	return 0;
+
+failure:
+	*pathname = NULL;
+	return 1;
+}
+
 static const char *kdf_algorithms[] = {
 	CPRDEF_KDF_ALGORITHM,
 	"PBKDF2_HMAC_SHA256",
@@ -115,7 +147,6 @@ int check_compatibility(unsigned compatibility)
 
 	return 0;
 }
-
 
 static void append_field(
 	struct cipher_file_blob *blob, uint8_t type,
@@ -282,13 +313,13 @@ char *format_apply_cc_sqlstr(struct cipher_config *cc)
 {
 	struct strbuf *sb = STRBUF_INIT_PTR;
 
-	if (cc->kdf_algorithm)
+	if (cc->kdf_algorithm != NULL)
 	{
 		strbuf_printf(sb, "PRAGMA cipher_kdf_algorithm = %s;",
 				cc->kdf_algorithm);
 	}
 
-	if (cc->hmac_algorithm)
+	if (cc->hmac_algorithm != NULL)
 	{
 		strbuf_printf(sb, "PRAGMA cipher_hmac_algorithm = %s;",
 				cc->hmac_algorithm);
