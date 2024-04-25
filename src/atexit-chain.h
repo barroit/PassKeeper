@@ -20,22 +20,10 @@
 **
 ****************************************************************************/
 
-struct leakref
-{
-	struct leakref *next;
-	void *ptr;
-};
+typedef void (*atexit_func_t)(void);
 
-static struct leakref *leaks;
+void atexit_chain_push(atexit_func_t func);
 
-void keep_leakref(void *ptr)
-{
-	struct leakref *head;
+atexit_func_t atexit_chain_pop(void);
 
-	head = xmalloc(sizeof(struct leakref));
-
-	head->ptr = ptr;
-	head->next = leaks;
-
-	leaks = head;
-}
+void apply_atexit_chain(void);

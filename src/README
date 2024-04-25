@@ -1,6 +1,23 @@
 Table Schema
 ============
 
+guard
+-----
+A text that verifies account login.
+
+recovery code
+-------------
+Code for account recovery.
+
+memo
+----
+The Picture that stores recovery codes (e.g., Steam Guard Recovery Code)
+or other security-related messages.
+
+comment
+-------
+A very misc part, anything can be stored in this column.
+
 sqltime
 -------
 The calendar time at the record creation. This column stores time in

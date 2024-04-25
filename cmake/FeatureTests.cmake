@@ -25,3 +25,13 @@ check_symbol_exists(dirname libgen.h have_dirname)
 if(NOT have_dirname)
 	add_compile_definitions(NO_DIRNAME)
 endif()
+
+check_symbol_exists(strdup string.h have_strdup)
+if(NOT have_strdup)
+	add_compile_definitions(NO_STRDUP)
+endif()
+
+check_symbol_exists(strndup string.h have_strndup)
+if(NOT have_strndup)
+	add_compile_definitions(NO_STRNDUP)
+endif()

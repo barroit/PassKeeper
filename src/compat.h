@@ -121,6 +121,16 @@ char *pk_dirname(char *path);
 #include <libgen.h>
 #endif
 
+#ifdef NO_STRDUP
+char *pk_strdup(const char *s);
+#define strdup pk_strdup
+#endif
+
+#ifdef NO_STRNDUP
+char *pk_strndup(const char *s, size_t size);
+#define strndup pk_strndup
+#endif
+
 #if defined(LINUX) || defined(PKTEST) /* for test */
 #define mkdir(path) mkdir((path), DIRCRT_BIT)
 #endif

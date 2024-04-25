@@ -28,9 +28,42 @@
 #include "filesys.h"
 #include "cipher-config.h"
 #include "rawnumop.h"
+#include "atexit-chain.h"
 
-// static const char *insert_record_sqlstr = 
-// 	"";
+static const char *insert_common_group_sqlstr =
+	"INSERT INTO account ("
+		"sitename,"
+		"siteurl,"
+		"username,"
+		"password"
+	") VALUES ("
+		":sitename,"
+		":siteurl,"
+		":username,"
+		":password"
+	");";
+
+static const char *insert_security_group_sqlstr =
+	"INSERT INTO account_security ("
+		"account_id,"
+		"guard,"
+		"recovery,"
+		"memo"
+	") VALUES ("
+		":account_id,"
+		":guard,"
+		":recovery,"
+		":memo"
+	");";
+
+static const char *insert_misc_group_sqlstr =
+	"INSERT INTO account_misc ("
+		"account_id,"
+		"comment"
+	") VALUES ("
+		":account_id,"
+		":comment"
+	");";
 
 static struct record rec;
 
@@ -77,11 +110,11 @@ const struct option cmd_create_options[] = {
 
 static void rm_recfile(void)
 {
-	const char *name;
+	const char *pathname;
 
-	if ((name = getenv(PK_RECFILE)) != NULL)
+	if ((pathname = getenv(PK_RECFILE)) != NULL)
 	{
-		unlink(name);
+		unlink(pathname);
 	}
 }
 
@@ -93,8 +126,6 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 	bool setup_editor;
 
 	setup_editor = false;
-	atexit(rm_recfile);
-
 	if (user.use_editor == 2 && is_incomplete_record(&rec))
 	{
 		/**
@@ -131,6 +162,8 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 
 	const char *rec_path;
 
+	atexit_chain_push(rm_recfile);
+
 	rec_path = force_getenv(PK_RECFILE);
 
 	populate_record_file(rec_path, &rec);
@@ -138,6 +171,8 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 	EXIT_ON_FAILURE(edit_file(rec_path), 0);
 
 	read_record_file(&rec, rec_path);
+
+	atexit_chain_pop();
 
 setup_database:;
 	struct sqlite3 *db;
@@ -153,8 +188,7 @@ setup_database:;
 	use_usrkey = !is_blank_str(user.key);
 
 	msqlite3_pathname = db_path;
-	EXIT_ON_FAILURE(msqlite3_open_v2(db_path, &db, SQLITE_OPEN_READWRITE,
-						NULL), SQLITE_OK);
+	xsqlite3_open_v2(db_path, &db, SQLITE_OPEN_READWRITE, NULL);
 
 	if (!use_cfg && !use_usrkey)
 	{
@@ -235,14 +269,13 @@ setup_database:;
 	}
 
 apply_key:
-	EXIT_ON_FAILURE(msqlite3_key(db, keystr, keylen), SQLITE_OK);
+	xsqlite3_key(db, keystr, keylen);
 
 	char *apply_cc_sqlstr;
 
 	if ((apply_cc_sqlstr = format_apply_cc_sqlstr(&cc)) != NULL)
 	{
-		EXIT_ON_FAILURE(msqlite3_exec(db, apply_cc_sqlstr, NULL,
-						NULL, NULL), SQLITE_OK);
+		xsqlite3_exec(db, apply_cc_sqlstr, NULL, NULL, NULL);
 
 		free(apply_cc_sqlstr);
 	}
@@ -250,23 +283,56 @@ apply_key:
 	free_cipher_config(&cc, &ck);
 
 insert_record:
-	EXIT_ON_FAILURE(msqlite3_avail(db), SQLITE_OK);
+	xsqlite3_avail(db);
 
 	bool need_transaction;
 
 	if ((need_transaction = is_need_transaction(&rec)))
 	{
-		EXIT_ON_FAILURE(msqlite3_begin_transaction(db), SQLITE_OK);
+		xsqlite3_begin_transaction(db);
 	}
 
-	//
+	struct sqlite3_stmt *stmt;
+	int64_t account_id;
+
+	xsqlite3_prepare_v2(db, insert_common_group_sqlstr, -1, &stmt, NULL);
+
+	bind_record_basic_column(stmt, &rec);
+
+	xsqlite3_step(stmt);
+
+	account_id = sqlite3_last_insert_rowid(db);
+
+	sqlite3_finalize(stmt);
+
+	if (have_security_group(&rec))
+	{
+		xsqlite3_prepare_v2(db, insert_security_group_sqlstr,
+					-1, &stmt, NULL);
+
+		bind_record_security_column(stmt, account_id, &rec);
+
+		xsqlite3_step(stmt);
+
+		sqlite3_finalize(stmt);
+	}
+
+	if (have_misc_group(&rec))
+	{
+		xsqlite3_prepare_v2(db, insert_misc_group_sqlstr,
+					-1, &stmt, NULL);
+
+		bind_record_misc_column(stmt, account_id, &rec);
+
+		xsqlite3_step(stmt);
+
+		sqlite3_finalize(stmt);
+	}
 
 	if (need_transaction)
 	{
-		EXIT_ON_FAILURE(msqlite3_end_transaction(db), SQLITE_OK);
+		xsqlite3_end_transaction(db);
 	}
-
-// 5f492a44494b12da4779e11efede1c76628550b05c5754a26aa7c390030516e9
 
 	return 0;
 }

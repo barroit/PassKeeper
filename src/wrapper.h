@@ -149,31 +149,24 @@ static inline off_t xlseek(int fd, off_t offset, int whence)
 	}						\
 	while (0)
 
-#define run_sqlite3(db__, fn__, ...)				\
-	do							\
-	{							\
-		if (fn__(__VA_ARGS__) != SQLITE_OK)		\
-		{						\
-			return print_sqlite_error(fn__, db);	\
-		}						\
-		return SQLITE_OK;				\
-	}							\
-	while (0)
+#define run_sqlite3(db__, fn__, ...)\
+	((fn__(__VA_ARGS__) != SQLITE_OK) ? print_sqlite_error(fn__, db__) : SQLITE_OK)
 
-static inline FORCEINLINE int msqlite3_open(const char *filename, struct sqlite3 **db)
+static inline int msqlite3_open(const char *filename, struct sqlite3 **db)
 {
-	run_sqlite3(db, sqlite3_open, filename, db);
+	return run_sqlite3(db, sqlite3_open, filename, db);
 }
 
 static inline FORCEINLINE int msqlite3_open_v2(
 	const char *filename, struct sqlite3 **db, int flags, const char *vfs)
 {
-	run_sqlite3(db, sqlite3_open_v2, filename, db, flags, vfs);
+	return run_sqlite3(db, sqlite3_open_v2, filename, db, flags, vfs);
 }
 
-static inline FORCEINLINE int msqlite3_key(struct sqlite3 *db, const void *key, int sz)
+static inline FORCEINLINE int msqlite3_key(
+	struct sqlite3 *db, const void *key, int sz)
 {
-	run_sqlite3(db, sqlite3_key, db, key, sz);
+	return run_sqlite3(db, sqlite3_key, db, key, sz);
 }
 
 int msqlite3_exec(struct sqlite3 *db, const char *sql, int (*callback)(void *, int, char **, char **), void *cbargv, char **errmsg);
@@ -182,7 +175,49 @@ int sqlite3_avail(struct sqlite3 *db);
 
 static inline FORCEINLINE msqlite3_avail(struct sqlite3 *db)
 {
-	run_sqlite3(db, sqlite3_avail, db);
+	return run_sqlite3(db, sqlite3_avail, db);
+}
+
+static inline FORCEINLINE int msqlite3_prepare_v2(
+	struct sqlite3 *db, const void *sql, int nr,
+	struct sqlite3_stmt **stmt, const char **tail)
+{
+	return run_sqlite3(db, sqlite3_prepare_v2, db, sql, nr, stmt, tail);
+}
+
+static inline FORCEINLINE int msqlite3_bind_blob(
+	struct sqlite3_stmt *stmt, int idx,
+	const void *val, int nr, void (*des)(void *))
+{
+	return run_sqlite3(sqlite3_db_handle(stmt),
+	sqlite3_bind_blob, stmt, idx, val, nr, des);
+}
+
+static inline FORCEINLINE int msqlite3_bind_int64(
+	struct sqlite3_stmt *stmt, int idx, int64_t val)
+{
+	return run_sqlite3(sqlite3_db_handle(stmt),
+	sqlite3_bind_int64, stmt, idx, val);
+}
+
+static inline FORCEINLINE int msqlite3_bind_null(
+	struct sqlite3_stmt *stmt, int idx)
+{
+	return run_sqlite3(sqlite3_db_handle(stmt),
+	sqlite3_bind_null, stmt, idx);
+}
+
+static inline FORCEINLINE int msqlite3_bind_text(
+	struct sqlite3_stmt *stmt, int idx,
+	const void *val, int nr, void (*des)(void *))
+{
+	return run_sqlite3(sqlite3_db_handle(stmt), sqlite3_bind_text,
+			stmt, idx, val, nr, des);
+}
+
+static inline FORCEINLINE int msqlite3_step(struct sqlite3_stmt *stmt)
+{
+	return run_sqlite3(sqlite3_db_handle(stmt), sqlite3_step, stmt);
 }
 
 #define msqlite3_begin_transaction(db__)\
@@ -190,6 +225,60 @@ static inline FORCEINLINE msqlite3_avail(struct sqlite3 *db)
 
 #define msqlite3_end_transaction(db__)\
 	msqlite3_exec(db__, "END TRANSACTION;", NULL, NULL, NULL)
+
+#define xsqlite3_open(filename__, db__)\
+	EXIT_ON_FAILURE(msqlite3_open(filename__, db__), SQLITE_OK)
+
+#define xsqlite3_open_v2(filename__, db__, flags__, vfs__)\
+	EXIT_ON_FAILURE(msqlite3_open_v2(filename__, db__, flags__, vfs__), SQLITE_OK)
+
+#define xsqlite3_key(db__, key__, sz__)\
+	EXIT_ON_FAILURE(msqlite3_key(db__, key__, sz__), SQLITE_OK)
+
+#define xsqlite3_exec(db__, sql__, callback__, cbargv__, errmsg__)\
+	EXIT_ON_FAILURE(msqlite3_exec(db__, sql__, callback__, cbargv__, NULL), SQLITE_OK)
+
+#define xsqlite3_avail(db__)\
+	EXIT_ON_FAILURE(msqlite3_avail(db__), SQLITE_OK)
+
+#define xsqlite3_prepare_v2(db__, sql__, nr__, stmt__, tail__)\
+	EXIT_ON_FAILURE(msqlite3_prepare_v2(db__, sql__, nr__, stmt__, tail__), SQLITE_OK)
+
+#define xsqlite3_bind_blob(stmt__, idx__, val__, nr__, des__)\
+	EXIT_ON_FAILURE(msqlite3_bind_blob(stmt__, idx__, val__, nr__, des__), SQLITE_OK)
+
+#define xsqlite3_bind_null(stmt__, idx__)\
+	EXIT_ON_FAILURE(msqlite3_bind_null(stmt__, idx__), SQLITE_OK)
+
+#define xsqlite3_bind_int64(stmt__, idx__, val__)\
+	EXIT_ON_FAILURE(msqlite3_bind_int64(stmt__, idx__, val__), SQLITE_OK)
+
+#define xsqlite3_bind_text(stmt__, idx__, val__, nr__, des__)\
+	EXIT_ON_FAILURE(msqlite3_bind_text(stmt__, idx__, val__, nr__, des__), SQLITE_OK)
+
+#define xsqlite3_step(stmt__)\
+	EXIT_ON_FAILURE(msqlite3_step(stmt__), SQLITE_OK)
+
+#define xsqlite3_begin_transaction(db__)\
+	EXIT_ON_FAILURE(msqlite3_begin_transaction(db__), SQLITE_OK)
+
+#define xsqlite3_end_transaction(db__)\
+	EXIT_ON_FAILURE(msqlite3_end_transaction(db__), SQLITE_OK)
+
+#define xsqlite3_bind_or_null(ftype__, stmt__, idx__, val__, nr__, des__)	\
+	do									\
+	{									\
+		if ((val__) == NULL)						\
+		{								\
+			xsqlite3_bind_null(stmt__, idx__);			\
+		}								\
+		else								\
+		{								\
+			xsqlite3_bind_##ftype__(stmt__, idx__, val__,		\
+						nr__, des__);			\
+		}								\
+	}									\
+	while (0)
 
 #ifdef WINDOWS_NATIVE
 HANDLE xCreateFile(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
@@ -210,14 +299,5 @@ static inline const char *force_getenv(const char *name)
 
 	return val;
 }
-
-#ifdef SUPPRESS_ACCEPTABLE_LEAKS
-void keep_leakref(void *ptr);
-
-#define UNLEAK(ptr__) keep_leakref(ptr__)
-#else
-#define UNLEAK(ptr__)
-#endif
-
 
 #endif /* WRAPPER_H */

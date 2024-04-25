@@ -23,6 +23,7 @@
 #include "parse-option.h"
 #include "strbuf.h"
 #include "filesys.h"
+#include "atexit-chain.h"
 
 int cmd_count(int argc,   const char **argv, const char *prefix);
 int cmd_create(int argc,  const char **argv, const char *prefix);
@@ -298,5 +299,6 @@ int main(int argc, const char **argv)
 		precheck_command(command->prechecks);
 	}
 
+	atexit(apply_atexit_chain);
 	exit(command->handle(argc, argv, prefix) & 0xff);
 }

@@ -47,7 +47,9 @@
 		"compare": "c",
 		"complex": "c",
 		"handle-record.h": "c",
-		"filesys.h": "c"
+		"filesys.h": "c",
+		"atexit-chain.h": "c",
+		"cstddef": "c"
 	},
 	"fileHeaderComment.parameter": {
 		"*": {

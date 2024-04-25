@@ -52,6 +52,22 @@ char *format_missing_field(const struct record *rec);
 
 int read_record_file(struct record *rec, const char *rec_path);
 
-bool is_need_transaction(struct record *rec);
+static inline FORCEINLINE bool have_security_group(const struct record *rec)
+{
+	return rec->guard || rec->recovery || rec->memo;
+}
+
+static inline FORCEINLINE bool have_misc_group(const struct record *rec)
+{
+	return rec->comment || 0;
+}
+
+bool is_need_transaction(const struct record *rec);
+
+void bind_record_basic_column(struct sqlite3_stmt *stmt, const struct record *rec);
+
+void bind_record_security_column(struct sqlite3_stmt *stmt, int64_t account_id, const struct record *rec);
+
+void bind_record_misc_column(struct sqlite3_stmt *stmt, int64_t account_id, const struct record *rec);
 
 #endif /* HANDLE_RECORD_H */

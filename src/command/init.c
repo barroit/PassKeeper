@@ -26,6 +26,7 @@
 #include "cipher-config.h"
 #include "strlist.h"
 #include "strbuf.h"
+#include "atexit-chain.h"
 
 static const char *init_table_sqlstr = 
 	"CREATE TABLE account ("
@@ -159,6 +160,14 @@ static int validate_key(enum key_type keytype, size_t keylen)
 	{
 		if (keylen != HK_STRLEN && keylen != SHK_STRLEN)
 		{
+			/**
+			 * 7.8.1 Macros for format specifiers
+			 * 
+			 * MS runtime does not yet understand C9x standard "ll"
+			 * length specifier. It appears to treat "ll" as "l".
+			 * The non-standard I64 length specifier causes warning
+			 * in GCC, but understood by MS runtime functions.
+			 */
 			return error("Invalid blob key length '%"PRIuMAX"'.",
 					keylen);
 		}
@@ -237,25 +246,23 @@ static void process_cipher_config(enum key_type keytype, bool *out)
 	*out = use_cc;
 }
 
-enum cleanup_flag
+static void rm_dbfile(void)
 {
-	RM_RESET,
-	RM_DB_FILE = 1 << 0,
-	RM_CC_FILE = 1 << 1,
-};
+	const char *pathname;
 
-static enum cleanup_flag cleanup_flags;
-
-static void cleanup_files(void)
-{
-	if (cleanup_flags & RM_DB_FILE)
+	if ((pathname = getenv(PK_CRED_DB)) != NULL)
 	{
-		unlink(force_getenv(PK_CRED_DB));
+		unlink(pathname);
 	}
+}
 
-	if (cleanup_flags & RM_CC_FILE)
+static void rm_ccfile(void)
+{
+	const char *pathname;
+
+	if ((pathname = getenv(PK_CRED_KY)) != NULL)
 	{
-		unlink(force_getenv(PK_CRED_KY));
+		unlink(pathname);
 	}
 }
 
@@ -271,8 +278,6 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 
 	db_path = force_getenv(PK_CRED_DB);
 	precheck_file("Database", db_path);
-
-	atexit(cleanup_files);
 
 	if (!encrypt_db)
 	{
@@ -337,7 +342,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 		bug("keytype shall not be the value of '%d'", keytype);
 	}
 
-setup_cc:
+setup_cc:;
 	/* cc stands for cipher config */
 	uint8_t *cc_buf, *cc_digest;
 	size_t cc_size;
@@ -352,7 +357,7 @@ setup_cc:
 	cc_size += CIPHER_DIGEST_LENGTH;
 
 	xio_pathname = cc_path;
-	cleanup_flags |= RM_CC_FILE;
+	atexit_chain_push(rm_ccfile);
 
 	cc_fd = xopen(cc_path, O_WRONLY | O_CREAT, FILCRT_BIT);
 	xwrite(cc_fd, cc_buf, cc_size);
@@ -364,30 +369,35 @@ setup_cc:
 setup_database:;
 	struct sqlite3 *db;
 
-	cleanup_flags |= RM_DB_FILE;
+	atexit_chain_push(rm_dbfile);
 	msqlite3_pathname = db_path;
-	EXIT_ON_FAILURE(msqlite3_open(db_path, &db), SQLITE_OK);
+	xsqlite3_open(db_path, &db);
 
 	if (encrypt_db)
 	{
 		char *apply_cc_sqlstr;
 
-		EXIT_ON_FAILURE(msqlite3_key(db, keystr, keylen), SQLITE_OK);
+		xsqlite3_key(db, keystr, keylen);
 
 		if ((apply_cc_sqlstr = format_apply_cc_sqlstr(&cc)) != NULL)
 		{
-			EXIT_ON_FAILURE(msqlite3_exec(db, apply_cc_sqlstr, NULL,
-							NULL, NULL), SQLITE_OK);
+			xsqlite3_exec(db, apply_cc_sqlstr, NULL, NULL, NULL);
 
 			free(apply_cc_sqlstr);
 		}
 	}
 
-	EXIT_ON_FAILURE(msqlite3_exec(db, init_table_sqlstr, NULL,
-					NULL, NULL), SQLITE_OK);
+	xsqlite3_exec(db, init_table_sqlstr, NULL, NULL, NULL);
 
 	sqlite3_close(db);
-	cleanup_flags = RM_RESET;
+
+	/**
+	 * at this point, we know that this command execution succeeds,
+	 * calling pop() twice because we need to remove atexit function
+	 * of both cipher config file and db file
+	 */
+	atexit_chain_pop();
+	atexit_chain_pop();
 
 	return 0;
 }

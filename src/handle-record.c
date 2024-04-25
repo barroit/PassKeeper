@@ -306,18 +306,77 @@ cancelled:
 	return 1;
 }
 
-bool is_need_transaction(struct record *rec)
+bool is_need_transaction(const struct record *rec)
 {
 	int group_count;
 
-	group_count = 0;
+	group_count = 1;
 
 	group_count += rec->sitename || rec->siteurl ||
 			rec->username || rec->password;
 
-	group_count += rec->guard || rec->recovery || rec->memo;
+	group_count += have_security_group(rec);
 
-	group_count += rec->comment || 0;
+	group_count += have_misc_group(rec);
 
 	return group_count > 1;
+}
+
+void bind_record_basic_column(
+	struct sqlite3_stmt *stmt, const struct record *rec)
+{
+	xsqlite3_bind_or_null(text, stmt, 1, rec->sitename, -1, SQLITE_STATIC);
+	xsqlite3_bind_or_null(text, stmt, 2, rec->siteurl,  -1, SQLITE_STATIC);
+	xsqlite3_bind_or_null(text, stmt, 3, rec->username, -1, SQLITE_STATIC);
+	xsqlite3_bind_or_null(text, stmt, 4, rec->password, -1, SQLITE_STATIC);
+}
+
+void bind_record_security_column(
+	struct sqlite3_stmt *stmt, int64_t account_id, const struct record *rec)
+{
+	xsqlite3_bind_int64(stmt, 1, account_id);
+
+	xsqlite3_bind_or_null(text, stmt, 2, rec->guard, -1, SQLITE_STATIC);
+	xsqlite3_bind_or_null(text, stmt, 3, rec->recovery, -1, SQLITE_STATIC);
+
+	uint8_t *memo_buf;
+	off_t memo_bufsz;
+
+	memo_buf = NULL;
+	memo_bufsz = 0;
+
+	if (rec->memo != NULL)
+	{
+		int memo_fd;
+
+		xio_pathname = rec->memo;
+		memo_fd = xopen(rec->memo, O_RDONLY);
+
+		if ((memo_bufsz = xlseek(memo_fd, 0, SEEK_END)) != 0)
+		{
+			xlseek(memo_fd, 0, SEEK_SET);
+
+			memo_buf = xmalloc(memo_bufsz);
+			xread(memo_fd, memo_buf, memo_bufsz);
+		}
+		else
+		{
+			warning("Memo file '%s' is empty.", rec->memo);
+			note("Skip column 'memo'.");
+		}
+
+		close(memo_fd);
+	}
+
+	xsqlite3_bind_or_null(blob, stmt, 4, memo_buf,
+				memo_bufsz, SQLITE_TRANSIENT);
+	free(memo_buf);
+}
+
+void bind_record_misc_column(
+	struct sqlite3_stmt *stmt, int64_t account_id, const struct record *rec)
+{
+	xsqlite3_bind_int64(stmt, 1, account_id);
+
+	xsqlite3_bind_or_null(text, stmt, 1, rec->comment, -1, SQLITE_STATIC);
 }
