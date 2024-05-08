@@ -20,21 +20,49 @@
 **
 ****************************************************************************/
 
-#include "rawnumop.h"
+#include "security.h"
 
-uint8_t *random_bytes(size_t length)
+int random_bytes_routine(uint8_t **buf, size_t len, bool alloc_mem)
 {
-	uint8_t *bin;
-
-	bin = xmalloc(length);
-
-	if (RAND_bytes(bin, length) != 1)
+	if (buf == NULL)
 	{
-		die("failed to generate binary key");
+		bug("buf shall not be NULL");
 	}
 
-	return bin;
+	if (alloc_mem)
+	{
+		*buf = xmalloc(len);
+	}
+
+	if (RAND_bytes(*buf, len) != 1) /* 1 for success */
+	{
+		if (alloc_mem)
+		{
+			free(*buf);
+		}
+
+		*buf = NULL;
+		return 1;
+	}
+
+	return 0;
 }
+
+/**
+ * convert a hex char to decimal integer
+ */
+#define hexchar2decint(c__)				\
+	(						\
+	  isupper(c__) ? ( (c__) - 'A' + 10 ) :		\
+	   islower(c__) ? ( (c__) - 'a' + 10 ) :	\
+	    ( (c__) - '0' )				\
+	)
+
+/**
+ * opposite of hexchar2decint()
+ */
+#define decint2hexchar(n__)\
+	( (n__) < 10 ? ( (n__) + '0' ) : ( (n__) - 10 + 'A' ) )
 
 uint8_t *hex2bin(char *hex, size_t hexsz)
 {
@@ -45,7 +73,7 @@ uint8_t *hex2bin(char *hex, size_t hexsz)
 	bintail = binhead + (hexsz / 2);
 	while (binit < bintail)
 	{
-		*binit = (hexchar2decnum(hex[0]) << 4) | hexchar2decnum(hex[1]);
+		*binit = (hexchar2decint(hex[0]) << 4) | hexchar2decint(hex[1]);
 
 		binit++;
 		hex += 2;
@@ -68,8 +96,8 @@ char *bin2hex(uint8_t *bin, size_t binsz)
 
 	while (binit >= bin)
 	{
-		*(hexit - 0) = decnum2hexchar(*binit & 0x0F);
-		*(hexit - 1) = decnum2hexchar(*binit >> 4);
+		*(hexit - 0) = hexchar2decint(*binit & 0x0F);
+		*(hexit - 1) = hexchar2decint(*binit >> 4);
 		binit--;
 		hexit -= 2;
 	}
@@ -92,6 +120,9 @@ char *bin2blob(uint8_t *binkey, size_t binlen)
 	free(hexkey);
 	return blobkey;
 }
+
+#define is_hexchar(c__)\
+	in_range_i(c__, 'A', 'F') || in_range_i(c__, 'a', 'f') || isdigit(c__)
 
 bool is_hexstr(const char *hex, size_t size)
 {
@@ -172,4 +203,15 @@ int verify_digest_sha256(
 	clean_digest(next_digest);
 
 	return rescode;
+}
+
+void secure_destroy(void *ptr, size_t len)
+{
+	zeromem(ptr, len);
+	free(ptr);
+}
+
+size_t read_cmdkey(char **buf0)
+{
+	//
 }

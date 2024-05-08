@@ -46,8 +46,6 @@ static inline FORCEINLINE bool is_incomplete_record(const struct record *rec)
 	return is_blank_str(rec->sitename) || is_blank_str(rec->password);
 }
 
-bool is_incomplete_record(const struct record *rec);
-
 char *format_missing_field(const struct record *rec);
 
 int read_record_file(struct record *rec, const char *rec_path);
@@ -69,5 +67,7 @@ void bind_record_basic_column(struct sqlite3_stmt *stmt, const struct record *re
 void bind_record_security_column(struct sqlite3_stmt *stmt, int64_t account_id, const struct record *rec);
 
 void bind_record_misc_column(struct sqlite3_stmt *stmt, int64_t account_id, const struct record *rec);
+
+void rm_journal_file(void);
 
 #endif /* HANDLE_RECORD_H */

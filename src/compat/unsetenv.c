@@ -20,23 +20,6 @@
 **
 ****************************************************************************/
 
-/**
- * The unsetenv() function shall remove an environment variable from the
- * environment of the calling process. The name argument points to a string,
- * which is the name of the variable to be removed. The named argument shall
- * not contain an '=' character. If the named variable does not exist in the
- * current environment, the environment shall be unchanged and the function
- * is considered to have completed successfully.
- * 
- * Upon successful completion, zero shall be returned. Otherwise, -1 shall be
- * returned, errno set to indicate the error, and the environment shall be
- * unchanged.
- * 
- * The unsetenv() function shall fail if:
- * [EINVAL]
- *     The name argument points to an empty string, or points to a string
- *     containing an '=' character.
- */
 int pk_unsetenv(const char *name)
 {
 	if (*name == 0 || strchr(name, '='))

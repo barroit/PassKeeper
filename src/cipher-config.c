@@ -21,30 +21,28 @@
 ****************************************************************************/
 
 #include "cipher-config.h"
-#include "rawnumop.h"
+#include "security.h"
 #include "strbuf.h"
 #include "strlist.h"
+#include "filesys.h"
 
-enum cfg_field_type
+enum field_type
 {
+	field_type_start,
 	FIELD_KDF_ALGORITHM,
 	FIELD_HMAC_ALGORITHM,
 	FIELD_COMPATIBILITY,
 	FIELD_PAGE_SIZE,
 	FIELD_KDF_ITER,
 	FIELD_KEY,
-	cfg_field_type_count,
-};
 
-enum key_type
-{
 	/**
 	 * for FIELD_KEY + is_binary_key
 	 * order shall not be changed
 	 */
-	KEY_PASSPHRASE,
-	KEY_BINARY,
-	key_type_count,
+	FIELD_KEY_PASSPHRASE,
+	FIELD_KEY_BINARY,
+	field_type_end,
 };
 
 struct cipher_file_blob
@@ -56,38 +54,6 @@ struct cipher_file_blob
 
 #define TYPE_SIZE sizeof(uint8_t)
 #define DLEN_SIZE sizeof(size_t)
-
-int resolve_cipher_config_path(const char **pathname)
-{
-	const char *file;
-	struct stat st;
-
-	file = *pathname == NULL ? force_getenv(PK_CRED_KY) : *pathname;
-
-	if (stat(file, &st) != 0)
-	{
-		goto failure;
-	}
-	else if (!S_ISREG(st.st_mode))
-	{
-		warning("Config file at '%s' is not a regular file.", file);
-		note("Configuration disabled.");
-		goto failure;
-	}
-	else if (test_file_permission(file, &st, R_OK) != 0)
-	{
-		warning("Access was denied by config file '%s'", file);
-		note("Configuration disabled.");
-		goto failure;
-	}
-
-	*pathname = file;
-	return 0;
-
-failure:
-	*pathname = NULL;
-	return 1;
-}
 
 static const char *kdf_algorithms[] = {
 	CPRDEF_KDF_ALGORITHM,
@@ -127,7 +93,7 @@ int check_hmac_algorithm(const char *name)
 
 int check_page_size(unsigned page_size)
 {
-	if (!in_range_u(page_size, CPRMIN_PAGE_SIZE, CPRMAX_PAGE_SIZE, 1) ||
+	if (!in_range_i(page_size, CPRMIN_PAGE_SIZE, CPRMAX_PAGE_SIZE) ||
 		!is_pow2(page_size))
 	{
 		return error("Invalid page size '%u'.", page_size);
@@ -138,8 +104,8 @@ int check_page_size(unsigned page_size)
 
 int check_compatibility(unsigned compatibility)
 {
-	if (!in_range_u(compatibility, CPRMIN_COMPATIBILITY,
-			 CPRMAX_COMPATIBILITY, 1))
+	if (!in_range_i(compatibility, CPRMIN_COMPATIBILITY,
+			 CPRMAX_COMPATIBILITY))
 	{
 		return error("Unknown cipher compatibility '%u'.",
 				compatibility);
@@ -172,7 +138,7 @@ uint8_t *serialize_cipher_config(
 	const struct cipher_key *key, size_t *outlen)
 {
 	/**
-	 * [(uint8_t cfg_field_type), (size_t data_length), (data)]
+	 * [(uint8_t field_type), (size_t data_length), (data)]
 	 */
 	struct cipher_file_blob *blob = &(struct cipher_file_blob){ 0 };
 	CAPACITY_GROW(blob->buf, 64, blob->cap);
@@ -212,7 +178,7 @@ uint8_t *serialize_cipher_config(
 	if (key->buf != NULL)
 	{
 		append_field(blob, FIELD_KEY + key->is_binary,
-				key->buf, key->size);
+				key->buf, key->len);
 	}
 
 	CAPACITY_GROW(blob->buf, blob->size + CIPHER_DIGEST_LENGTH, blob->cap);
@@ -254,11 +220,11 @@ void deserialize_cipher_config(
 	while (39)
 	{
 
-	enum cfg_field_type type;
+	enum field_type type;
 	size_t dlen;
 
 	type = *buf;
-	if (!in_range(type, 0, cfg_field_type_count + key_type_count, false))
+	if (!in_range_e(type, field_type_start, field_type_end))
 	{
 		bug("field type value shall not be %d", type);
 	}
@@ -282,13 +248,13 @@ void deserialize_cipher_config(
 		memcpy(fmap[type], buf, dlen);
 
 		break;
-	case FIELD_KEY + KEY_PASSPHRASE:
-	case FIELD_KEY + KEY_BINARY:
+	case FIELD_KEY_PASSPHRASE:
+	case FIELD_KEY_BINARY:
 		*(uint8_t **)fmap[FIELD_KEY] = xmalloc(dlen);
 
 		memcpy(*(uint8_t **)fmap[FIELD_KEY], buf, dlen);
-		key->size = dlen;
-		key->is_binary = type - FIELD_KEY == KEY_BINARY;
+		key->len = dlen;
+		key->is_binary = type == FIELD_KEY_BINARY;
 
 		break;
 	default:
@@ -307,6 +273,76 @@ void deserialize_cipher_config(
 	}
 
 	}
+}
+
+void free_cipher_config(struct cipher_config *cc, struct cipher_key *ck)
+{
+	free(cc->kdf_algorithm);
+	free(cc->hmac_algorithm);
+	secure_destroy(ck->buf, ck->len);
+}
+
+void resolve_cred_cc_realpath(const char **realpath)
+{
+	struct stat st;
+
+	if (stat(cred_cc_path, &st) != 0)
+	{
+		*realpath = NULL;
+	}
+	else if (!S_ISREG(st.st_mode))
+	{
+		warning("Config file at '%s' is not a regular file.",
+			  cred_cc_path);
+		note("Configuration disabled.");
+
+		*realpath = NULL;
+	}
+	else if (test_file_permission(realpath, &st, R_OK) != 0)
+	{
+		warning("Access was denied by config file '%s'", cred_cc_path);
+		note("Configuration disabled.");
+
+		*realpath = NULL;
+	}
+	else
+	{
+		*realpath = cred_cc_path;
+	}
+}
+
+void resolve_cipher_config_file(
+	const char *pathname, uint8_t **outbuf, off_t *outlen)
+{
+	int cc_fd;
+	uint8_t *cc_buf;
+	off_t cc_len;
+
+	xio_pathname = pathname;
+	cc_fd = xopen(pathname, O_RDONLY);
+
+	if ((cc_len = xlseek(cc_fd, 0, SEEK_END)) < CIPHER_DIGEST_LENGTH)
+	{
+		die("Cipher config file at '%s' may be corrupted because it's "
+			"too small.", pathname);
+	}
+
+	xlseek(cc_fd, 0, SEEK_SET);
+
+	cc_buf = xmalloc(cc_len);
+	xread(cc_fd, cc_buf, cc_len);
+
+	close(cc_fd);
+
+	cc_len -= CIPHER_DIGEST_LENGTH;
+	if (verify_digest_sha256(cc_buf, cc_len, cc_buf + cc_len) != 0)
+	{
+		die("File at '%s' is not a valid cipher config file.",
+			pathname);
+	}
+
+	*outbuf = cc_buf;
+	*outlen = cc_len;
 }
 
 char *format_apply_cc_sqlstr(struct cipher_config *cc)

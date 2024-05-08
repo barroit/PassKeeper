@@ -87,6 +87,8 @@ bool starts_with(const char *str, const char *prefix);
  */
 bool skip_prefix(const char *str, const char *prefix, const char **out);
 
+char *concat(const char *str1, const char *str2);
+
 size_t u8strlen(const char *iter);
 
 char *u8substr(const char *src, size_t start, size_t count);

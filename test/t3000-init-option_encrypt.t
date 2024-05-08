@@ -1,11 +1,11 @@
 use v5.38;
 use Test::More;
-use Env qw(TEST_TMP_PREFIX PKBIN $PK_CRED_KY $PK_CRED_DB);
+use Env qw(TEST_TMP_PREFIX PKBIN $PK_CRED_CC $PK_CRED_DB);
 use autodie;
 use IPC::Run 'run';
 
 $PK_CRED_DB="$TEST_TMP_PREFIX/t3000-db";
-$PK_CRED_KY="$TEST_TMP_PREFIX/t3000-ky";
+$PK_CRED_CC="$TEST_TMP_PREFIX/t3000-ky";
 
 my @args;
 my $arg;
@@ -64,12 +64,12 @@ foreach (@args)
 
 	if ($has_key_file)
 	{
-		ok(-e $PK_CRED_KY, "key file exists");
-		unlink($PK_CRED_KY);
+		ok(-e $PK_CRED_CC, "key file exists");
+		unlink($PK_CRED_CC);
 	}
 	else
 	{
-		ok(! -e $PK_CRED_KY, "key file not exists");
+		ok(! -e $PK_CRED_CC, "key file not exists");
 	}
 
 	ok(-e $PK_CRED_DB, "db file exists");

@@ -20,35 +20,34 @@
 **
 ****************************************************************************/
 
-int pk_setenv(const char *envname, const char *envval, int overwrite)
+ssize_t pk_getline(
+	char **restrict lineptr, size_t *restrict n, FILE *restrict stream)
 {
-	if (envname == NULL || *envname == 0 || strchr(envname, '='))
+	if (lineptr == NULL || n == NULL)
 	{
 		errno = EINVAL;
 		return -1;
 	}
-
-	if (getenv(envname) && !overwrite)
+	else if (ferror(stream)) /* no null-check */
 	{
-		return 0;
+		errno = EINVAL;
+		return -1;
 	}
-
-	size_t envname_len, envval_len;
-	char *buf;
-
-	envname_len = strlen(envname);
-	envval_len = strlen(envval);
-	if ((buf = malloc(envname_len + envval_len + 2)) == NULL)
+	else if (feof(stream))
 	{
-		errno = ENOMEM;
 		return -1;
 	}
 
-	memcpy(buf, envname, envname_len);
-	buf[envname_len] = '=';
-	memcpy(buf + envname_len + 1, envval, envval_len);
-	buf[envname_len + 1 + envval_len] = 0;
+	bool alloc_buf;
 
-	putenv(buf);
+	alloc_buf = *lineptr == NULL;
+
+	char c;
+
+	while ((c = fgetc(stream)) != '\n' && c != EOF)
+	{
+		
+	}
+
 	return 0;
 }

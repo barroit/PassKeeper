@@ -22,7 +22,7 @@
 
 #include "parse-option.h"
 #include "filesys.h"
-#include "rawnumop.h"
+#include "security.h"
 
 static const char *output_file;
 static unsigned key_size = 32;
@@ -60,7 +60,10 @@ int cmd_makekey(int argc, const char **argv, const char *prefix)
 				FILCRT_BIT);
 	}
 
-	hexkey = bin2hex(random_bytes(key_size), key_size);
+	uint8_t *binkey;
+
+	EXIT_ON_FAILURE(random_bytes_alloc(&binkey, key_size), 0);
+	hexkey = bin2hex(binkey, key_size);
 
 	*buf++ = '0';
 	*buf++ = 'x';

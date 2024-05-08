@@ -49,7 +49,11 @@
 		"handle-record.h": "c",
 		"filesys.h": "c",
 		"atexit-chain.h": "c",
-		"cstddef": "c"
+		"cstddef": "c",
+		"parse-option.h": "c",
+		"security.h": "c",
+		"cipher-config.h": "c",
+		"enval.h": "c"
 	},
 	"fileHeaderComment.parameter": {
 		"*": {

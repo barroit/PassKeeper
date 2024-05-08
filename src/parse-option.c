@@ -544,17 +544,17 @@ static int print_option_argh(const struct option *opt, FILE *stream)
 	return fprintf(stream, fmt, opt->argh ? opt->argh : "...");
 }
 
-int option_usage_alignment = OPTION_USAGE_ALIGNMENT;
+int optmsg_alignment = DEFAULT_OPTMSG_ALIGNMENT;
 
 static void pad_usage(FILE *stream, int pos)
 {
-	if (pos < option_usage_alignment)
+	if (pos < optmsg_alignment)
 	{
-		fprintf(stream, "%*s", option_usage_alignment - pos, "");
+		fprintf(stream, "%*s", optmsg_alignment - pos, "");
 	}
 	else
 	{
-		fprintf(stream, "\n%*s", option_usage_alignment, "");
+		fprintf(stream, "\n%*s", optmsg_alignment, "");
 	}
 }
 

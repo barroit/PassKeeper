@@ -20,35 +20,15 @@
 **
 ****************************************************************************/
 
-int pk_setenv(const char *envname, const char *envval, int overwrite)
-{
-	if (envname == NULL || *envname == 0 || strchr(envname, '='))
-	{
-		errno = EINVAL;
-		return -1;
-	}
+#ifndef ENVAL_H
+#define ENVAL_H
 
-	if (getenv(envname) && !overwrite)
-	{
-		return 0;
-	}
+extern const char *cred_db_path;
+extern const char *cred_cc_path;
 
-	size_t envname_len, envval_len;
-	char *buf;
+extern const char *tmp_rec_path;
 
-	envname_len = strlen(envname);
-	envval_len = strlen(envval);
-	if ((buf = malloc(envname_len + envval_len + 2)) == NULL)
-	{
-		errno = ENOMEM;
-		return -1;
-	}
+extern const char *ext_editor;
+extern const char *spinner_style;
 
-	memcpy(buf, envname, envname_len);
-	buf[envname_len] = '=';
-	memcpy(buf + envname_len + 1, envval, envval_len);
-	buf[envname_len + 1 + envval_len] = 0;
-
-	putenv(buf);
-	return 0;
-}
+#endif /* ENVAL */

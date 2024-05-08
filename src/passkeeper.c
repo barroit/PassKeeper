@@ -25,33 +25,25 @@
 #include "filesys.h"
 #include "atexit-chain.h"
 
-int cmd_count(int argc,   const char **argv, const char *prefix);
-int cmd_create(int argc,  const char **argv, const char *prefix);
-int cmd_delete(int argc,  const char **argv, const char *prefix);
-int cmd_help(int argc,    const char **argv, const char *prefix);
-int cmd_init(int argc,    const char **argv, const char *prefix);
-int cmd_makekey(int argc, const char **argv, const char *prefix);
-int cmd_read(int argc,    const char **argv, const char *prefix);
-int cmd_update(int argc,  const char **argv, const char *prefix);
-int cmd_version(int argc, const char **argv, const char *prefix);
+int cmd_count  (int argc,  const char **argv, const char *prefix);
+int cmd_create (int argc,  const char **argv, const char *prefix);
+int cmd_delete (int argc,  const char **argv, const char *prefix);
+int cmd_help   (int argc,  const char **argv, const char *prefix);
+int cmd_init   (int argc,  const char **argv, const char *prefix);
+int cmd_makekey(int argc,  const char **argv, const char *prefix);
+int cmd_read   (int argc,  const char **argv, const char *prefix);
+int cmd_reset  (int argc,  const char **argv, const char *prefix);
+int cmd_update (int argc,  const char **argv, const char *prefix);
+int cmd_version(int argc,  const char **argv, const char *prefix);
 
-enum precheck_flag
-{
-	/* credfile shall exist */
-	USE_CREDFILE = 1 << 0,
-	/**
-	 * recfile shall be available for open/create, this file
-	 * is not created by this flag, and the file shall be
-	 * removed by command handler after command executing
-	 */
-	USE_RECFILE  = 1 << 1,
-};
+#define USE_CREDFILE (1 << 0)
+#define USE_RECFILE  (1 << 1)
 
 struct command_info
 {
 	const char *name;
 	int (*handle)(int argc, const char **argv, const char *prefix);
-	enum precheck_flag prechecks;
+	unsigned precheck_flags;
 };
 
 static struct command_info commands[] = {
@@ -62,6 +54,9 @@ static struct command_info commands[] = {
 	{ "init",     cmd_init },
 	{ "makekey",  cmd_makekey },
 	{ "read",     cmd_read, USE_CREDFILE },
+#ifdef PK_DEBUG
+	{ "reset",    cmd_reset, USE_CREDFILE },
+#endif
 	/* { "show",     cmd_show, USE_CREDFILE  }, */
 	{ "update",   cmd_update, USE_CREDFILE | USE_RECFILE },
 	{ "version",  cmd_version },
@@ -69,42 +64,74 @@ static struct command_info commands[] = {
 	{ NULL },
 };
 
-static struct
-{
-	const char *db_path;
-	const char *key_path;
-	const char *recfile;
-	const char *editor;
-	const char *spinner_style;
-} environment = {
-	.spinner_style = "0",
-};
-
-const char *const cmd_pk_usages[] = {
-	"pk [--db-path <file>] [--key-path <file>] [--editor <name>] \n"
-	"   [--[no]-spinner[=<style>]] <command> [<args>]",
+static const char *const cmd_pk_usages[] = {
+	"pk [--cred-db <file>] [--cred-cc <file>] [--temp-rc <file>]\n"
+	"   [--editor <name>] [--[no]-spinner[=<style>]] <command>\n"
+	"   [<args>]",
 	NULL,
 };
 
-const struct option cmd_pk_options[] = {
-	OPTION_HIDDEN_PATHNAME(0, "db-path", &environment.db_path),
-	OPTION_HIDDEN_PATHNAME(0, "key-path", &environment.key_path),
-	OPTION_HIDDEN_STRING(0, "editor", &environment.editor),
-	OPTION_HIDDEN_OPTARG_ALLONEG(0, "spinner", &environment.spinner_style,
-					"default"),
-	OPTION_COMMAND("count",   "Count the number of records"),
-	OPTION_COMMAND("create",  "Create a record"),
-	OPTION_COMMAND("delete",  "Delete a record"),
-	OPTION_COMMAND("help",    "Display help information about PassKeeper"),
+static const struct option cmd_pk_options[] = {
+	OPTION_FILENAME_H(0, "cred-db",  &cred_db_path),
+	OPTION_FILENAME_H(0, "cred-cc",  &cred_cc_path),
+	OPTION_FILENAME_H(0, "tmp-rec",  &tmp_rec_path),
+	OPTION_STRING_H  (0, "editor",   &ext_editor),
+	OPTION_OPTARG_HN (0, "spinner",  &spinner_style, "default"),
+
+	OPTION_GROUP("database manipulation"),
 	OPTION_COMMAND("init",    "Initialize database files for "
 				  "storing credentials"),
-	OPTION_COMMAND("makekey", "Generate random bytes using a CSPRNG"),
+	OPTION_COMMAND("create",  "Create a record"),
 	OPTION_COMMAND("read",    "Read a record"),
 	OPTION_COMMAND("update",  "Update a record"),
+	OPTION_COMMAND("delete",  "Delete a record"),
+	OPTION_COMMAND("count",   "Count the number of records"),
+
+	OPTION_GROUP("utility"),
+	OPTION_COMMAND("makekey", "Generate random bytes using a CSPRNG"),
+
+	OPTION_GROUP("helper"),
+	OPTION_COMMAND("help",    "Display help information about PassKeeper"),
 	OPTION_COMMAND("version", "Display version information about "
 				  "PassKeeper"),
 	OPTION_END(),
 };
+
+static void init_enval(void)
+{
+	if (cred_db_path == NULL)
+	{
+		if ((cred_db_path = getenv(PK_CRED_DB)) == NULL)
+		{
+			cred_db_path = PK_CRED_DB_DEFPATH;
+		}
+	}
+
+	if (cred_cc_path == NULL)
+	{
+		if ((cred_cc_path = getenv(PK_CRED_CC)) == NULL)
+		{
+			cred_cc_path = PK_CRED_CC_DEFPATH;
+		}
+	}
+
+	if (tmp_rec_path == NULL)
+	{
+		if ((tmp_rec_path = getenv(PK_TMP_REC)) == NULL)
+		{
+			tmp_rec_path = PK_TMP_REC_DEFPATH;
+		}
+	}
+
+	if (ext_editor != NULL);
+	else if ((ext_editor = getenv(PK_EDITOR)) != NULL);
+	else if ((ext_editor = getenv("VISUAL")) != NULL);
+	else if ((ext_editor = getenv("EDITOR")) != NULL);
+	else if ((ext_editor == NULL) && !is_dumb_term)
+	{
+		ext_editor = DEFAULT_EXT_EDITOR;
+	}
+}
 
 static struct command_info *find_command(const char *cmdname)
 {
@@ -122,116 +149,7 @@ static struct command_info *find_command(const char *cmdname)
 	return NULL;
 }
 
-bool is_command(const char *cmdname)
-{
-	return find_command(cmdname);
-}
-
-static char *resolve_working_dir(void)
-{
-	size_t size;
-	char *buf;
-
-	size = 96;
-	while (39)
-	{
-		buf = xmalloc(size);
-
-		if (getcwd(buf, size) == buf)
-		{
-			return buf;
-		}
-
-		if (errno == ERANGE)
-		{
-			free(buf);
-			size = fixed_growth(size);
-			continue;
-		}
-
-		die_errno("Unable to get the current working directory");
-	}
-
-	return buf;
-}
-
-static const char *fallback_command[] = { "help", "pk", NULL };
-
-void handle_command_not_found(const char *name);
-
-/**
- * do not use '__' as parameter prefix
- * program name should NOT be in the argv
- */
-static void calibrate_argv(int *argc, const char ***argv)
-{
-	/* turn "pk cmd --help" into "pk help cmd" */
-	if (*argc > 1 && !strcmp((*argv)[1], "--help"))
-	{
-		(*argv)[1] = (*argv)[0];
-		(*argv)[0] = "help";
-	}
-	/**
-	 * - no command passed, set argv to "pk help pk"
-	 * - turn "pk help" into "pk help pk"
-	 */
-	else if (*argc == 0 || (*argc == 1 && !strcmp(**argv, "help")))
-	{
-		*argc = 2;
-		*argv = fallback_command;
-	}
-	else if (!strcmp(**argv, "pk"))
-	{
-		handle_command_not_found(**argv);
-	}
-	else if (!is_command(**argv))
-	{
-		/**
-		 * turn "pk dummycmd" into "pk help dummycmd" so that
-		 * command 'help' can generate messages
-		 */
-		fallback_command[1] = **argv;
-		*argc = 2;
-		*argv = fallback_command;
-	}
-}
-
-static inline FORCEINLINE void adaptive_setenv(
-	const char *name, const char *value, const char *defval)
-{
-	setenv(name, value == NULL ? defval : value, value != NULL);
-}
-
-static int handle_global_options(
-	int argc, const char **argv, const char *prefix)
-{
-	option_usage_alignment = 13;
-	argc = parse_options(argc, argv, prefix, cmd_pk_options, cmd_pk_usages,
-			      PARSER_STOP_AT_NON_OPTION | PARSER_NO_SHORT_HELP);
-	option_usage_alignment = OPTION_USAGE_ALIGNMENT;
-
-	adaptive_setenv(PK_CRED_DB, environment.db_path,  PK_CRED_DB_NM);
-	adaptive_setenv(PK_CRED_KY, environment.key_path, PK_CRED_KY_NM);
-	adaptive_setenv(PK_RECFILE, environment.recfile,  PK_RECFILE_NM);
-
-	if (environment.editor)
-	{
-		setenv(PK_EDITOR, environment.editor, 1);
-	}
-
-	if (environment.spinner_style)
-	{
-		setenv(PK_SPINNER, environment.spinner_style, 1);
-	}
-	else
-	{
-		unsetenv(PK_SPINNER);
-	}
-
-	return argc;
-}
-
-static bool is_skip_precheck(int argc, const char **argv)
+static bool skip_precheck(int argc, const char *const *argv)
 {
 	for ( ; argc > 0; argc--)
 	{
@@ -244,29 +162,29 @@ static bool is_skip_precheck(int argc, const char **argv)
 	return false;
 }
 
-static void precheck_command(enum precheck_flag prechecks)
+static void precheck_command(unsigned flags)
 {
-	if (prechecks & USE_RECFILE)
+	if (flags & USE_RECFILE)
 	{
-		prepare_file_directory(force_getenv(PK_RECFILE));
+		prepare_file_directory(tmp_rec_path);
 	}
 
-	if (prechecks & USE_CREDFILE)
+	if (flags & USE_CREDFILE)
 	{
 		struct stat st;
-		const char *credfl = force_getenv(PK_CRED_DB);
 
-		if (stat(credfl, &st) != 0)
+		if (stat(cred_db_path, &st) != 0)
 		{
-			die_errno("Couldn't access file '%s'", credfl);
+			die_errno("Couldn't access file '%s'", cred_db_path);
 		}
 		else if (!S_ISREG(st.st_mode))
 		{
-			die("File '%s' is not a regular file", credfl);
+			die("File '%s' is not a regular file", cred_db_path);
 		}
-		else if (test_file_permission(credfl, &st, R_OK | W_OK) != 0)
+		else if (test_file_permission(cred_db_path, &st,
+						R_OK | W_OK) != 0)
 		{
-			die("Access denied by file '%s'", credfl);
+			die("Access denied by file '%s'", cred_db_path);
 		}
 	}
 }
@@ -279,26 +197,67 @@ int main(int argc, const char **argv)
 	argv++;
 	argc--;
 
-	prefix = resolve_working_dir();
+	prefix = get_working_dir();
 
-	argc = handle_global_options(argc, argv, prefix);
-
-	calibrate_argv(&argc, &argv);
-
-	command = find_command(*argv);
-	if (command == NULL)
+	/**
+	 * turn "pk cmd --help" to "pk help cmd"
+	 */
+	if (argc > 1 && !strcmp(argv[1], "--help"))
 	{
-		bug("your calibrate_argv() is broken");
+		argv[1] = argv[0];
+		argv[0] = "help";
+	}
+	/**
+	 * turn "pk --help" to "pk help pk"
+	 */
+	else if (argc == 1 && !strcmp(argv[0], "--help"))
+	{
+		static const char *fbcmd[] = { "help", "pk" };
+
+		argc = 2;
+		argv = fbcmd;
+	}
+	/**
+	 * turn "pk" to "pk -h"
+	 */
+	else if (argc == 0)
+	{
+		static const char *fbcmd[] = { "-h" };
+
+		argc = 1;
+		argv = fbcmd;
 	}
 
+	optmsg_alignment = 13;
+
+	argc = parse_options(argc, argv, prefix,
+				cmd_pk_options, cmd_pk_usages,
+					PARSER_STOP_AT_NON_OPTION);
+
+	optmsg_alignment = DEFAULT_OPTMSG_ALIGNMENT;
+
+	init_enval();
+
+	if ((command = find_command(argv[0])) == NULL)
+	{
+		exit(error("'%s' is not a command, see 'pk help pk'.",
+				argv[0]));
+	}
+
+	/* skip command */
 	argc--;
 	argv++;
 
-	if (!is_skip_precheck(argc, argv))
+	if (!skip_precheck(argc, argv))
 	{
-		precheck_command(command->prechecks);
+		precheck_command(command->precheck_flags);
 	}
 
 	atexit(apply_atexit_chain);
-	exit(command->handle(argc, argv, prefix) & 0xff);
+	exit(command->handle(argc, argv, prefix));
+}
+
+bool have_command(const char *cmdname)
+{
+	return !!find_command(cmdname);
 }

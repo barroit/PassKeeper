@@ -20,35 +20,19 @@
 **
 ****************************************************************************/
 
-int pk_setenv(const char *envname, const char *envval, int overwrite)
+char *pk_strdup(const char *s)
 {
-	if (envname == NULL || *envname == 0 || strchr(envname, '='))
-	{
-		errno = EINVAL;
-		return -1;
-	}
-
-	if (getenv(envname) && !overwrite)
-	{
-		return 0;
-	}
-
-	size_t envname_len, envval_len;
 	char *buf;
+	size_t bufsz;
 
-	envname_len = strlen(envname);
-	envval_len = strlen(envval);
-	if ((buf = malloc(envname_len + envval_len + 2)) == NULL)
+	bufsz = strlen(s) + 1;
+	if ((buf = malloc(bufsz)) == NULL)
 	{
 		errno = ENOMEM;
-		return -1;
+		return NULL;
 	}
 
-	memcpy(buf, envname, envname_len);
-	buf[envname_len] = '=';
-	memcpy(buf + envname_len + 1, envval, envval_len);
-	buf[envname_len + 1 + envval_len] = 0;
+	memcpy(buf, s, bufsz);
 
-	putenv(buf);
-	return 0;
+	return buf;
 }

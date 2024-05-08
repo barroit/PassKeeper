@@ -20,46 +20,13 @@
 **
 ****************************************************************************/
 
-#ifndef RAWNUMOP_H
-#define RAWNUMOP_H
+#ifndef SECURITY_H
+#define SECURITY_H
 
-static inline bool is_pow2(unsigned x)
-{
-	return x != 0 && (x & (x - 1)) == 0;
-}
+int random_bytes_routine(uint8_t **buf, size_t len, bool alloc_mem);
 
-/**
- * Check if `x` is greater than (or equal to) `r1` and less
- * than (or equal to) `r2`
-*/
-static inline FORCEINLINE bool in_range(int x, int r1, int r2, bool inclusive)
-{
-	return x > (r1 - inclusive) && x < (r2 + inclusive);
-}
-
-static inline FORCEINLINE bool in_range_u(unsigned x, unsigned r1, unsigned r2, bool inclusive)
-{
-	return x > (r1 - inclusive) && x < (r2 + inclusive);
-}
-
-static inline FORCEINLINE uint8_t hexchar2decnum(char c)
-{
-	return isupper(c) ? (c - 'A' + 10) :
-		islower(c) ? (c - 'a' + 10) :
-		 (c - '0');
-}
-
-static inline FORCEINLINE bool is_hexchar(char c)
-{
-	return in_range(c, 'A', 'F', 1) || in_range(c, 'a', 'f', 1) || isdigit(c);
-}
-
-static inline FORCEINLINE char decnum2hexchar(uint8_t n)
-{
-	return n < 10 ? (n + '0') : (n - 10 + 'A');
-}
-
-uint8_t *random_bytes(size_t length);
+#define random_bytes(buf__, len__) random_bytes_routine(buf__, len__, false)
+#define random_bytes_alloc(buf__, len__) random_bytes_routine(buf__, len__, true)
 
 /**
  * convert at most `hexsz` characters of the `hex` string to
@@ -99,11 +66,12 @@ bool is_saltstr(const char *salt, size_t size);
 
 uint8_t *digest_message_sha256(const uint8_t *message, size_t message_length);
 
-static inline FORCEINLINE void clean_digest(uint8_t *digest)
-{
-	OPENSSL_free(digest);
-}
+#define clean_digest(addr__) OPENSSL_free(addr__)
 
 int verify_digest_sha256(const uint8_t *message, size_t message_length, const uint8_t *prev_digest);
 
-#endif /* RAWNUMOP_H */
+void secure_destroy(void *ptr, size_t len);
+
+size_t read_cmdkey(char **buf0);
+
+#endif /* SECURITY_H */

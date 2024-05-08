@@ -21,50 +21,8 @@
 ****************************************************************************/
 
 #include "parse-option.h"
-#include "strbuf.h"
-
-static unsigned record_id = OPTUINT_INIT;
-
-const char *const cmd_delete_usages[] = {
-	"pk delete [--record <id>] [<id>]",
-	NULL,
-};
-
-const struct option cmd_delete_options[] = {
-	OPTION_UNSIGNED_F('i', "record", &record_id, "id", "id points to the record to be deleted", OPTION_SHOWARGH),
-	OPTION_END(),
-};
-
-static void set_record_id(int argc, const char *arg)
-{
-	if (argc == 0)
-	{
-		exit(error("no option or argument gives a value to record id"));
-	}
-
-	if (argc > 1)
-	{
-		exit(error("too many arguments give value to record id"));
-	}
-
-	int errcode;
-
-	errcode = strtou(arg, &record_id);
-	errcode = process_get_unsigned_argument_result(errcode, arg, "record id");
-
-	if (errcode)
-	{
-		exit(errcode);
-	}
-}
 
 int cmd_delete(int argc, const char **argv, const char *prefix)
 {
-	argc = parse_options(argc, argv, prefix, cmd_delete_options, cmd_delete_usages, PARSER_ONE_SHOT);
-	if (OPTUINT_UNCHANGED(record_id))
-	{
-		set_record_id(argc, *argv);
-	}
-
 	return 0;
 }

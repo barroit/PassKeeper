@@ -70,6 +70,12 @@ int run_spinner(struct process_info *ctx, const char *style)
 	}
 	else
 	{
+		if (strcmp(style, "default"))
+		{
+			note("Unknown spinner style '%s', "
+				"fallback to default style.", style);
+		}
+
 		period = DEFAULT_SPINNER_PERIOD * 75;
 		spinner_func = run_default_spinner;
 	}

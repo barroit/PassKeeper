@@ -35,3 +35,8 @@ check_symbol_exists(strndup string.h have_strndup)
 if(NOT have_strndup)
 	add_compile_definitions(NO_STRNDUP)
 endif()
+
+check_symbol_exists(getline stdio.h have_getline)
+if(NOT have_getline)
+	add_compile_definitions(NO_GETLINE)
+endif()

@@ -27,7 +27,7 @@
 #include "pkproc.h"
 #include "filesys.h"
 #include "cipher-config.h"
-#include "rawnumop.h"
+#include "security.h"
 #include "atexit-chain.h"
 
 static const char *insert_common_group_sqlstr =
@@ -67,14 +67,8 @@ static const char *insert_misc_group_sqlstr =
 
 static struct record rec;
 
-static struct
-{
-	int use_editor;
-	const char *key;
-	const char *config;
-} user = {
-	.use_editor = 2,
-};
+static int  use_editor = INITIAL_BOL;
+static bool use_cmdkey;
 
 const char *const cmd_create_usages[] = {
 	"pk create [--[no]-nano] [<field>...]",
@@ -82,10 +76,10 @@ const char *const cmd_create_usages[] = {
 };
 
 const struct option cmd_create_options[] = {
-	OPTION_BOOLEAN('e', "nano", &user.use_editor,
+	OPTION_SWITCH('e', "nano", &use_editor,
 			"use editor to edit records"),
-	OPTION_STRING('k', "key", &user.key, "db encryption key"),
-	OPTION_FILENAME(0, "config", &user.config, "cipher config file"),
+	OPTION_SWITCH('k', "key", &use_cmdkey,
+			"enter the key from the command line"),
 	OPTION_GROUP(""),
 	OPTION_STRING(0, "sitename", &rec.sitename,
 			"human readable name of a website"),
@@ -100,7 +94,7 @@ const struct option cmd_create_options[] = {
 			"text to help verify this account is yours"),
 	OPTION_STRING(0, "recovery", &rec.recovery,
 			"code for account recovery"),
-	OPTION_PATHNAME(0, "memo", &rec.recovery,
+	OPTION_PATHNAME(0, "memo", &rec.memo,
 			"screenshot of the recovery code"),
 	OPTION_GROUP(""),
 	OPTION_STRING(0, "comment", &rec.comment,
@@ -108,14 +102,9 @@ const struct option cmd_create_options[] = {
 	OPTION_END(),
 };
 
-static void rm_recfile(void)
+static void rm_tmp_rec(void)
 {
-	const char *pathname;
-
-	if ((pathname = getenv(PK_RECFILE)) != NULL)
-	{
-		unlink(pathname);
-	}
+	unlink(tmp_rec_path);
 }
 
 int cmd_create(int argc, const char **argv, const char *prefix)
@@ -126,7 +115,7 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 	bool setup_editor;
 
 	setup_editor = false;
-	if (user.use_editor == 2 && is_incomplete_record(&rec))
+	if (use_editor == INITIAL_BOL && is_incomplete_record(&rec))
 	{
 		/**
 		 * ./pk create --sitename="xxx" --username="xxx"
@@ -134,7 +123,7 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 		 */
 		setup_editor = true;
 	}
-	else if (user.use_editor == 1)
+	else if (use_editor == OPTION_SWITCH_TRUE)
 	{
 		/**
 		 * ./pk create --sitename="xxx" --username="xxx"
@@ -160,37 +149,27 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 		goto setup_database;
 	}
 
-	const char *rec_path;
+	atexit_chain_push(rm_tmp_rec);
 
-	atexit_chain_push(rm_recfile);
+	populate_record_file(tmp_rec_path, &rec);
 
-	rec_path = force_getenv(PK_RECFILE);
+	EXIT_ON_FAILURE(edit_file(tmp_rec_path), 0);
 
-	populate_record_file(rec_path, &rec);
-
-	EXIT_ON_FAILURE(edit_file(rec_path), 0);
-
-	read_record_file(&rec, rec_path);
-
-	atexit_chain_pop();
+	EXIT_ON_FAILURE(read_record_file(&rec, tmp_rec_path), 0);
 
 setup_database:;
 	struct sqlite3 *db;
-	const char *cfg_path, *db_path;
-	bool use_cfg, use_usrkey;
+	bool use_cipher_config;
 
-	db_path  = force_getenv(PK_CRED_DB);
-	cfg_path = user.config;
+	msqlite3_pathname = cred_db_path;
+	xsqlite3_open_v2(cred_db_path, &db, SQLITE_OPEN_READWRITE, NULL);
 
-	resolve_cipher_config_path(&cfg_path);
+	const char *cred_cc_realpath;
 
-	use_cfg = !!cfg_path;
-	use_usrkey = !is_blank_str(user.key);
+	resolve_cred_cc_realpath(&cred_cc_realpath);
+	use_cipher_config = cred_cc_realpath != NULL;
 
-	msqlite3_pathname = db_path;
-	xsqlite3_open_v2(db_path, &db, SQLITE_OPEN_READWRITE, NULL);
-
-	if (!use_cfg && !use_usrkey)
+	if (!use_cipher_config && !use_cmdkey)
 	{
 		goto insert_record;
 	}
@@ -202,55 +181,37 @@ setup_database:;
 	size_t keylen;
 
 	keystr = NULL;
-	if (use_usrkey)
+	if (use_cmdkey)
 	{
-		keystr = user.key;
-		keylen = strlen(user.key);
+		ck.len = read_cmdkey(&ck.buf);
+
+		keystr = ck.buf;
+		keylen = ck.len;
 	}
 
-	if (!use_cfg)
+	if (!use_cipher_config)
 	{
 		goto apply_key;
 	}
 
 	uint8_t *cc_buf;
-	int cc_fd;
 	off_t cc_size;
 
-	xio_pathname = cfg_path;
-	cc_fd = xopen(cfg_path, O_RDONLY);
-
-	if ((cc_size = xlseek(cc_fd, 0, SEEK_END)) < CIPHER_DIGEST_LENGTH)
-	{
-		die("Cipher config file at '%s' may be corrupted because it's "
-			"too small.", cfg_path);
-	}
-
-	xlseek(cc_fd, 0, SEEK_SET);
-
-	cc_buf = xmalloc(cc_size);
-	xread(cc_fd, cc_buf, cc_size);
-
-	close(cc_fd);
-
-	cc_size -= CIPHER_DIGEST_LENGTH;
-	if (verify_digest_sha256(cc_buf, cc_size, cc_buf + cc_size) != 0)
-	{
-		die("File at '%s' is not a valid config file.", cfg_path);
-	}
+	resolve_cipher_config_file(cred_cc_realpath, &cc_buf, &cc_size);
 
 	deserialize_cipher_config(&cc, &ck, cc_buf, cc_size);
+
 	free(cc_buf);
 
-	if (keystr)
+	if (keystr != NULL)
 	{
 		goto apply_key;
 	}
 
 	if (ck.buf == NULL)
 	{
-		warning("Config file at '%s' affects nothing without a key.",
-			  cfg_path);
+		warning("Cipher config file at '%s' affects nothing "
+			 "without a key.", cred_cc_realpath);
 
 		free_cipher_config(&cc, &ck);
 		goto insert_record;
@@ -258,12 +219,12 @@ setup_database:;
 	else if (!ck.is_binary)
 	{
 		keystr = (char *)ck.buf;
-		keylen = ck.size;
+		keylen = ck.len;
 	}
 	else
 	{
-		keystr = bin2blob(ck.buf, ck.size);
-		keylen = ck.size * 2 + 3;
+		keystr = bin2blob(ck.buf, ck.len);
+		keylen = ck.len * 2 + 3;
 
 		ck.buf = (uint8_t *)keystr;
 	}
@@ -285,9 +246,10 @@ apply_key:
 insert_record:
 	xsqlite3_avail(db);
 
-	bool need_transaction;
+	bool have_transaction;
 
-	if ((need_transaction = is_need_transaction(&rec)))
+	atexit_chain_push(rm_journal_file);
+	if ((have_transaction = is_need_transaction(&rec)))
 	{
 		xsqlite3_begin_transaction(db);
 	}
@@ -329,10 +291,19 @@ insert_record:
 		sqlite3_finalize(stmt);
 	}
 
-	if (need_transaction)
+	if (have_transaction)
 	{
 		xsqlite3_end_transaction(db);
 	}
 
+	sqlite3_close(db);
+
+	/**
+	 * at this point, cleanup journal
+	 * file is unnecessary
+	 */
+	atexit_chain_pop();
+
+	printf("A new record with rowid %"PRId64" was created.\n", account_id);
 	return 0;
 }

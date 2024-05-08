@@ -35,7 +35,7 @@ struct cipher_config
 struct cipher_key
 {
 	uint8_t *buf;
-	size_t  size;
+	size_t  len;
 	bool    is_binary;
 };
 
@@ -71,24 +71,14 @@ struct cipher_key
 
 #define CK_INIT { 0 }
 
-static inline FORCEINLINE bool is_binkey_len(size_t len)
-{
-	return len == HK_STRLEN || len == SHK_STRLEN;
-}
+#define is_binkey_len(l__)\
+	( (l__) == HK_STRLEN || (l__) == SHK_STRLEN )
 
-static inline FORCEINLINE bool is_binkey_wrp(const char *key, size_t len)
-{
-	return key[0] == 'x' &&
-		key[1] == '\'' &&
-		 key[len - 1] == '\'';
-}
+#define is_binkey_wrp(k__, l__)\
+	( (k__)[0] == 'x' && (k__)[1] == '\'' && (k__)[(l__) - 1] == '\'' )
 
-static inline FORCEINLINE bool is_binkey_str(const char *key, size_t len)
-{
-	return is_binkey_len(len) && is_binkey_wrp(key, len);
-}
-
-int resolve_cipher_config_path(const char **pathname);
+#define is_binkey_str(k__, l__)\
+	( is_binkey_len(l__) && is_binkey_wrp(k__, l__) )
 
 int check_kdf_algorithm(const char *name);
 
@@ -109,13 +99,11 @@ void deserialize_cipher_config(struct cipher_config *config, struct cipher_key *
 /**
  * only use this function on config/key created by deserialize_cipher_config()
  */
-static inline FORCEINLINE void free_cipher_config(
-	struct cipher_config *config, struct cipher_key *key)
-{
-	free(config->kdf_algorithm);
-	free(config->hmac_algorithm);
-	free(key->buf);
-}
+void free_cipher_config(struct cipher_config *config, struct cipher_key *key);
+
+void resolve_cred_cc_realpath(const char **realpath);
+
+void resolve_cipher_config_file(const char *pathname, uint8_t **buf, off_t *outlen);
 
 char *format_apply_cc_sqlstr(struct cipher_config *cc);
 

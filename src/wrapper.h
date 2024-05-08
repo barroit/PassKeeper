@@ -23,6 +23,25 @@
 #ifndef WRAPPER_H
 #define WRAPPER_H
 
+#define FLEX_ARRAY
+
+#define exit(code__) exit((code__) & 0xff)
+
+#define is_pow2(x__)\
+	( (x__) != 0 && ( (x__) & ( (x__) - 1 ) ) == 0 )
+
+/**
+ * check if `x__` is in range `r1` and `r2` exclusive
+ */
+#define in_range_e(x__, r1__, r2__)\
+	( (x__) > (r1__) && (x__) < (r2__) )
+
+/**
+ * check if `x__` is in range `r1` and `r2` inclusive
+ */
+#define in_range_i(x__, r1__, r2__)\
+	( (x__) >= (r1__) && (x__) <= (r2__) )
+
 static inline void *xmalloc(size_t size)
 {
 	void *ret;
@@ -46,15 +65,19 @@ static inline void *xrealloc(void *ptr, size_t size)
 	return ptr;
 }
 
-static inline FORCEINLINE void *xmemdup(const void *ptr, size_t size)
+#define xmemdup(p__, l__) memcpy(xmalloc(l__), (p__), (l__))
+
+static inline size_t __attribute__((const)) st_add(size_t x, size_t y)
 {
-	return memcpy(xmalloc(size), ptr, size);
+	if ((SIZE_MAX - x) < y)
+	{
+		die("size_t overflow (%"PRIuMAX" + %"PRIuMAX")", x, y);
+	}
+
+	return x + y;
 }
 
-static inline FORCEINLINE size_t __attribute__((const)) fixed_growth(size_t sz)
-{
-	return (sz + 16) * 3 / 2;
-}
+#define st_add3(a__, b__, c__) st_add(st_add((a__), (b__)), (c__))
 
 static inline size_t __attribute__((const)) st_mult(size_t x, size_t y)
 {
@@ -66,9 +89,19 @@ static inline size_t __attribute__((const)) st_mult(size_t x, size_t y)
 	return x * y;
 }
 
+#define fixed_growth(l__) ( st_mult(st_add((l__), 16), 3) / 2 )
+
 #define MOVE_ARRAY(dest, src, size) memmove(dest, src, st_mult(sizeof(*src), size))
 
 #define REALLOC_ARRAY(ptr, size) xrealloc(ptr, st_mult(sizeof(*ptr), size))
+
+#define FLEX_ALLOC_ARRAY(obj__, field__, buf__, len__)			\
+	do								\
+	{								\
+		(obj__) = xmalloc(st_add3(sizeof(*(obj__)), len__, 1));	\
+		memcpy((obj__)->field__, (buf__), len__);		\
+	}								\
+	while (0)
 
 #define CAPACITY_GROW(ptr, size, cap)			\
 	do						\
@@ -189,15 +222,19 @@ static inline FORCEINLINE int msqlite3_bind_blob(
 	struct sqlite3_stmt *stmt, int idx,
 	const void *val, int nr, void (*des)(void *))
 {
-	return run_sqlite3(sqlite3_db_handle(stmt),
-	sqlite3_bind_blob, stmt, idx, val, nr, des);
+	return sqlite3_bind_blob(stmt, idx, val, nr, des) == SQLITE_OK ?
+		SQLITE_OK :
+		print_sqlite_error(sqlite3_bind_blob, sqlite3_db_handle(stmt),
+					val, nr);
 }
 
 static inline FORCEINLINE int msqlite3_bind_int64(
 	struct sqlite3_stmt *stmt, int idx, int64_t val)
 {
-	return run_sqlite3(sqlite3_db_handle(stmt),
-	sqlite3_bind_int64, stmt, idx, val);
+	return sqlite3_bind_int64(stmt, idx, val) == SQLITE_OK ?
+		SQLITE_OK :
+		print_sqlite_error(sqlite3_bind_int64,
+					sqlite3_db_handle(stmt), val);
 }
 
 static inline FORCEINLINE int msqlite3_bind_null(
@@ -211,13 +248,17 @@ static inline FORCEINLINE int msqlite3_bind_text(
 	struct sqlite3_stmt *stmt, int idx,
 	const void *val, int nr, void (*des)(void *))
 {
-	return run_sqlite3(sqlite3_db_handle(stmt), sqlite3_bind_text,
-			stmt, idx, val, nr, des);
+	return sqlite3_bind_text(stmt, idx, val, nr, des) == SQLITE_OK ?
+		SQLITE_OK :
+		print_sqlite_error(sqlite3_bind_text, sqlite3_db_handle(stmt),
+					val, nr);
 }
 
 static inline FORCEINLINE int msqlite3_step(struct sqlite3_stmt *stmt)
 {
-	return run_sqlite3(sqlite3_db_handle(stmt), sqlite3_step, stmt);
+	return sqlite3_step(stmt) == SQLITE_DONE ?
+		SQLITE_DONE :
+		print_sqlite_error(sqlite3_step, sqlite3_db_handle(stmt));
 }
 
 #define msqlite3_begin_transaction(db__)\
@@ -257,7 +298,7 @@ static inline FORCEINLINE int msqlite3_step(struct sqlite3_stmt *stmt)
 	EXIT_ON_FAILURE(msqlite3_bind_text(stmt__, idx__, val__, nr__, des__), SQLITE_OK)
 
 #define xsqlite3_step(stmt__)\
-	EXIT_ON_FAILURE(msqlite3_step(stmt__), SQLITE_OK)
+	EXIT_ON_FAILURE(msqlite3_step(stmt__), SQLITE_DONE)
 
 #define xsqlite3_begin_transaction(db__)\
 	EXIT_ON_FAILURE(msqlite3_begin_transaction(db__), SQLITE_OK)
@@ -288,16 +329,8 @@ WINBOOL xDuplicateHandle(HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HAND
 WINBOOL xSetStdHandle(DWORD nStdHandle, HANDLE hHandle);
 #endif
 
-static inline const char *force_getenv(const char *name)
-{
-	const char *val;
+extern void keep_reference(const void *ptr, size_t size);
 
-	if ((val = getenv(name)) == NULL)
-	{
-		die("Couldn't find the value of env variable '%s'.", name);
-	}
-
-	return val;
-}
+#define UNLEAK(ptr__) keep_reference(&(ptr__), sizeof(ptr__))
 
 #endif /* WRAPPER_H */

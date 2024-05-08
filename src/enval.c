@@ -20,35 +20,12 @@
 **
 ****************************************************************************/
 
-int pk_setenv(const char *envname, const char *envval, int overwrite)
-{
-	if (envname == NULL || *envname == 0 || strchr(envname, '='))
-	{
-		errno = EINVAL;
-		return -1;
-	}
+#include "enval.h"
 
-	if (getenv(envname) && !overwrite)
-	{
-		return 0;
-	}
+const char *cred_db_path = NULL;
+const char *cred_cc_path = NULL;
 
-	size_t envname_len, envval_len;
-	char *buf;
+const char *tmp_rec_path = NULL;
 
-	envname_len = strlen(envname);
-	envval_len = strlen(envval);
-	if ((buf = malloc(envname_len + envval_len + 2)) == NULL)
-	{
-		errno = ENOMEM;
-		return -1;
-	}
-
-	memcpy(buf, envname, envname_len);
-	buf[envname_len] = '=';
-	memcpy(buf + envname_len + 1, envval, envval_len);
-	buf[envname_len + 1 + envval_len] = 0;
-
-	putenv(buf);
-	return 0;
-}
+const char *ext_editor = NULL;
+const char *spinner_style = INITIAL_PTR;

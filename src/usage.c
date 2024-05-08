@@ -20,6 +20,8 @@
 **
 ****************************************************************************/
 
+#include "security.h"
+
 void vreportf(const char *prefix, struct report_field *field)
 {
 	char buffer0[4096], *buffer, *bufptr;
@@ -159,6 +161,79 @@ int fprintfln(FILE *stream, const char *fmt, ...)
 
 const char *msqlite3_pathname = NULL;
 
+static int handle_sqlite3_exec_error(struct sqlite3 *db, va_list ap)
+{
+	const char *sql, *errmsg;
+
+	sql = va_arg(ap, const char *);
+	errmsg = va_arg(ap, const char *);
+
+	return error("Failed to execute '%s' on db '%s'; %s",
+			sql, msqlite3_pathname, errmsg);
+}
+
+static int handle_sqlite3_prepare_v2_error(struct sqlite3 *db, va_list ap)
+{
+	const char *sql;
+
+	sql = va_arg(ap, const char *);
+
+	return error_sqlerr(db, "Failed to prepare statement '%s' on "
+				  "db '%s'", sql, msqlite3_pathname);
+}
+
+static int handle_sqlite3_bind_blob_error(struct sqlite3 *db, va_list ap)
+{
+	const uint8_t *blob;
+	int bloblen;
+
+	char *blobstr;
+	int rescode;
+
+	blob = va_arg(ap, const uint8_t *);
+	bloblen = va_arg(ap, int);
+
+	if (bloblen > 16)
+	{
+		bloblen = 16;
+	}
+	blobstr = bin2hex(xmemdup(blob, bloblen), bloblen);
+
+	rescode = error_sqlerr(db, "Unable to bind blob value '%s%s' on db "
+				"'%s'", blobstr, bloblen > 16 ? "..." : "",
+				 msqlite3_pathname);
+
+	free(blobstr);
+	return rescode;
+}
+
+static int handle_sqlite3_bind_int64_error(struct sqlite3 *db, va_list ap)
+{
+	int64_t val;
+
+	val = va_arg(ap, int64_t);
+
+	return error_sqlerr(db, "Unable to bind int64 value '%"PRId64"' on db "
+				 "'%s'", val, msqlite3_pathname);
+}
+
+static int handle_sqlite3_bind_text_error(struct sqlite3 *db, va_list ap)
+{
+	const char *val;
+	const char *placeholder;
+
+	val = va_arg(ap, const char *);
+	placeholder = "";
+
+	if (va_arg(ap, int) > 16)
+	{
+		placeholder = "...";
+	}
+
+	return error_sqlerr(db, "Unable to bind text value '%.16s%s' on db "
+				 "'%s'", val, placeholder, msqlite3_pathname);
+}
+
 int print_sqlite_error(void *sqlite3_fn, struct sqlite3 *db, ...)
 {
 	if (msqlite3_pathname == NULL)
@@ -167,38 +242,79 @@ int print_sqlite_error(void *sqlite3_fn, struct sqlite3 *db, ...)
 			"before print_sqlite_error()");
 	}
 
+	int rescode;
+
 	if (sqlite3_fn == sqlite3_open || sqlite3_fn == sqlite3_open_v2)
 	{
-		return error_sqlerr(db, "Unable to open db file '%s'",
+		rescode = error_sqlerr(db, "Unable to open db file '%s'",
 					msqlite3_pathname);
 	}
 	else if (sqlite3_fn == sqlite3_key)
 	{
-		return error("Couldn't apply the key to db '%s'",
-				msqlite3_pathname);
+		rescode = error("Couldn't apply the key to db '%s'",
+				  msqlite3_pathname);
 	}
 	else if (sqlite3_fn == sqlite3_exec)
 	{
 		va_list ap;
-		const char *sql, *errmsg;
 
 		va_start(ap, db);
-		sql = va_arg(ap, const char *);
-		errmsg = va_arg(ap, const char *);
+		rescode = handle_sqlite3_exec_error(db, ap);
 		va_end(ap);
-
-		return error("Failed to execute '%s' on db '%s'; "
-				"%s", sql, msqlite3_pathname, errmsg);
 	}
 	else if (sqlite3_fn == sqlite3_avail)
 	{
-		return error("Encryption key is incorrect or '%s' is not a "
+		rescode = error("Encryption key is incorrect or '%s' is not a "
 				"valid db file.", msqlite3_pathname);
+	}
+	else if (sqlite3_fn == sqlite3_prepare_v2)
+	{
+		va_list ap;
+
+		va_start(ap, db);
+		rescode = handle_sqlite3_prepare_v2_error(db, ap);
+		va_end(ap);
+	}
+	else if (sqlite3_fn == sqlite3_bind_blob)
+	{
+		va_list ap;
+
+		va_start(ap, db);
+		rescode = handle_sqlite3_bind_blob_error(db, ap);
+		va_end(ap);
+	}
+	else if (sqlite3_fn == sqlite3_bind_int64)
+	{
+		va_list ap;
+
+		va_start(ap, db);
+		rescode = handle_sqlite3_bind_int64_error(db, ap);
+		va_end(ap);
+	}
+	else if (sqlite3_fn == sqlite3_bind_null)
+	{
+		rescode = error_sqlerr(db, "Unable to bind null value on db "
+					"'%s'", msqlite3_pathname);
+	}
+	else if (sqlite3_fn == sqlite3_bind_text)
+	{
+		va_list ap;
+
+		va_start(ap, db);
+		rescode = handle_sqlite3_bind_text_error(db, ap);
+		va_end(ap);
+	}
+	else if (sqlite3_fn == sqlite3_step)
+	{
+		rescode = error_sqlerr(db, "Failed to step statement on db "
+					"'%s'", msqlite3_pathname);
 	}
 	else
 	{
-		bug("unhandled sqlite3 function pointer %p", sqlite3_fn);
+		bug("unhandled function pointer %p", sqlite3_fn);
 	}
+
+	return rescode;
 }
 
 void report_openssl_error(void)

@@ -124,7 +124,6 @@ int xopen(const char *file, int oflag, ...)
 	return fd;
 }
 
-
 int msqlite3_exec(
 	struct sqlite3 *db, const char *sql,
 	int (*callback)(void *, int, char **, char **),
@@ -134,8 +133,6 @@ int msqlite3_exec(
 	int rescode;
 
 	rescode = SQLITE_OK;
-	errmsg = NULL;
-
 	if (sqlite3_exec(db, sql, callback, cbargv, &errmsg) != SQLITE_OK)
 	{
 		rescode = print_sqlite_error(sqlite3_exec, db, sql, errmsg);
@@ -145,8 +142,11 @@ int msqlite3_exec(
 	{
 		sqlite3_free(errmsg);
 	}
+	else
+	{
+		*errmsg0 = errmsg;
+	}
 
-	*errmsg0 = errmsg;
 	return rescode;
 }
 

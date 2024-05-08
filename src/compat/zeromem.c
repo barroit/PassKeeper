@@ -20,35 +20,17 @@
 **
 ****************************************************************************/
 
-int pk_setenv(const char *envname, const char *envval, int overwrite)
+/**
+ * reset memory block, the changes are reflected in
+ * physical memory, not on the register
+ */
+void pk_zeromem(void *ptr, size_t len)
 {
-	if (envname == NULL || *envname == 0 || strchr(envname, '='))
+	volatile char *p;
+
+	p = ptr;
+	while (len--)
 	{
-		errno = EINVAL;
-		return -1;
+		*p++ = 0;
 	}
-
-	if (getenv(envname) && !overwrite)
-	{
-		return 0;
-	}
-
-	size_t envname_len, envval_len;
-	char *buf;
-
-	envname_len = strlen(envname);
-	envval_len = strlen(envval);
-	if ((buf = malloc(envname_len + envval_len + 2)) == NULL)
-	{
-		errno = ENOMEM;
-		return -1;
-	}
-
-	memcpy(buf, envname, envname_len);
-	buf[envname_len] = '=';
-	memcpy(buf + envname_len + 1, envval, envval_len);
-	buf[envname_len + 1 + envval_len] = 0;
-
-	putenv(buf);
-	return 0;
 }

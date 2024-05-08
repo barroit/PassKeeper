@@ -22,20 +22,52 @@
 
 #include "filesys.h"
 #include "strbuf.h"
-#include "rawnumop.h"
+#include "security.h"
 
-static inline FORCEINLINE bool is_absolute_path(const char *path)
+const char *get_working_dir_routine(bool force_get)
 {
-#ifdef LINUX
-	return *path && *path == '/';
-#else
-	return *path && in_range(*path, 'A', 'Z', true) && path[1] == ':';
-#endif
+	static char *buf;
+	size_t size;
+
+	if (buf != NULL)
+	{
+		if (force_get)
+		{
+			free(buf);
+		}
+		else
+		{
+			return buf;
+		}
+
+	}
+
+	size = 128;
+	while (39)
+	{
+		buf = xmalloc(size);
+
+		if (getcwd(buf, size) == buf)
+		{
+			return buf;
+		}
+
+		if (errno == ERANGE)
+		{
+			free(buf);
+			size = fixed_growth(size);
+			continue;
+		}
+
+		die_errno("Unable to get the current working directory");
+	}
+
+	return buf;
 }
 
 char *prefix_filename(const char *prefix, const char *filename)
 {
-	if (is_absolute_path(filename))
+	if (is_abs_path(filename))
 	{
 		return strdup(filename);
 	}
@@ -60,34 +92,38 @@ char *prefix_filename(const char *prefix, const char *filename)
 }
 
 #ifdef LINUX
-/* check b1 has b2 if a1 has a2 */
-#define check_if_have(a1, a2, b1, b2) (((a1) & (a2)) ? ((b1) & (b2)) : 1)
+/**
+ * if mode `m1__` has flag `f1__` then check if
+ * mode `m2__` has flag `f2__`, else true
+ */
+#define MATCH_MODE(m1__, f1__, m2__, f2__)\
+	( ( (m1__) & (f1__) ) ? ( (m2__) & (f2__) ) : 1 )
 
 int test_file_permission_st(struct stat *st, int mode)
 {
 	if (st->st_uid == geteuid()) /* euid matches owner id? */
 	{
-		if (check_if_have(mode, R_OK, st->st_mode, S_IRUSR) &&
-		     check_if_have(mode, W_OK, st->st_mode, S_IWUSR) &&
-		      check_if_have(mode, X_OK, st->st_mode, S_IXUSR))
+		if (MATCH_MODE(mode, R_OK, st->st_mode, S_IRUSR) &&
+		     MATCH_MODE(mode, W_OK, st->st_mode, S_IWUSR) &&
+		      MATCH_MODE(mode, X_OK, st->st_mode, S_IXUSR))
 		{
 			return 0;
 		}
 	}
 	else if (st->st_gid == getegid()) /* egid matches group id? */
 	{
-		if (check_if_have(mode, R_OK, st->st_mode, S_IRGRP) &&
-		     check_if_have(mode, W_OK, st->st_mode, S_IWGRP) &&
-		      check_if_have(mode, X_OK, st->st_mode, S_IXGRP))
+		if (MATCH_MODE(mode, R_OK, st->st_mode, S_IRGRP) &&
+		     MATCH_MODE(mode, W_OK, st->st_mode, S_IWGRP) &&
+		      MATCH_MODE(mode, X_OK, st->st_mode, S_IXGRP))
 		{
 			return 0;
 		}
 	}
 	else /* check other bits */
 	{
-		if (check_if_have(mode, R_OK, st->st_mode, S_IROTH) &&
-		     check_if_have(mode, W_OK, st->st_mode, S_IWOTH) &&
-		      check_if_have(mode, X_OK, st->st_mode, S_IXOTH))
+		if (MATCH_MODE(mode, R_OK, st->st_mode, S_IROTH) &&
+		     MATCH_MODE(mode, W_OK, st->st_mode, S_IWOTH) &&
+		      MATCH_MODE(mode, X_OK, st->st_mode, S_IXOTH))
 		{
 			return 0;
 		}

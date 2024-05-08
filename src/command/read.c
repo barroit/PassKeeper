@@ -22,25 +22,7 @@
 
 #include "parse-option.h"
 
-static const char *search_pattern = "%";
-static bool verbose;
-static unsigned record_id = OPTUINT_INIT;
-
-const char *const cmd_read_usages[] = {
-	"pk read [<options>] [--] <pattern>",
-	NULL,
-};
-
-const struct option cmd_read_options[] = {
-	OPTION_BOOLEAN('v', "verbose", &verbose, "print more fields of a record"),
-	OPTION_GROUP(""),
-	OPTION_STRING_F(0, "search", &search_pattern, "pattern", "count record for a particular site", OPTION_SHOWARGH),
-	OPTION_UNSIGNED_F('i', "record", &record_id, "id", "id points to the record to be deleted", OPTION_SHOWARGH),
-	OPTION_END(),
-};
-
 int cmd_read(int argc, const char **argv, const char *prefix)
 {
-	argc = parse_options(argc, argv, prefix, cmd_read_options, cmd_read_usages, 0);
 	return 0;
 }

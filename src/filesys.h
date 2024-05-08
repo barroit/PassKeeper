@@ -23,15 +23,26 @@
 #ifndef FILESYS_H
 #define FILESYS_H
 
-static inline const char *get_user_home(void)
-{
-	const char *home;
-	if ((home = getenv(ENV_USERHOME)) == NULL)
-	{
-		die("your user home corrupted in env");
-	}
-	return home;
-}
+const char *get_working_dir_routine(bool force);
+
+/**
+ * get the current working directory, this function
+ * uses internal buffer to cache the result
+ */
+#define get_working_dir() get_working_dir_routine(false)
+
+/**
+ * get the current working directory, this function
+ * refresh the cache
+ */
+#define force_get_working_dir() get_working_dir_routine(true)
+
+#ifdef LINUX
+#define is_abs_path(p__) (*(p__) && *(p__) == '/')
+#else
+#define is_abs_path(p__)\
+	*(p__) && in_range_i(*(p__), 'A', 'Z') && (p__)[1] == ':'
+#endif
 
 /**
  * append `filename` to `prefix` if needed

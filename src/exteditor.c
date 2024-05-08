@@ -34,41 +34,11 @@ static const char *graphical_editors[] = {
 	NULL,
 };
 
-static inline bool FORCEINLINE is_dumb_term(void)
-{
-#ifdef LINUX
-	return getenv("TERM") == NULL;
-#else
-	return false;
-#endif
-}
-
-static inline bool FORCEINLINE is_graphical_editor(const char *editor)
-{
-	return string_in_array(editor, graphical_editors);
-}
-
-static const char *get_editor(void)
-{
-	const char *editor;
-
-	if ((editor = getenv(PK_EDITOR)) != NULL);
-	else if ((editor = getenv("VISUAL")) != NULL);
-	else if ((editor = getenv("EDITOR")) != NULL);
-	else if (editor == NULL && !is_dumb_term())
-	{
-		editor = DEFAULT_EDITOR;
-	}
-
-	return editor;
-}
-
 int edit_file(const char *pathname)
 {
-	const char *editor, *spinner_style;
 	bool show_spinner;
 
-	if ((editor = get_editor()) == NULL)
+	if (ext_editor == NULL)
 	{
 		return error("Unable to find an editor; Make sure VISUAL, "
 				"EDITOR or PK_EDITOR is set in env");
@@ -76,7 +46,7 @@ int edit_file(const char *pathname)
 
 	struct process_info
 		editor_ctx = {
-			.program = editor,
+			.program = ext_editor,
 		},
 		spinner_ctx = {
 			.program = "spinner",
@@ -85,20 +55,17 @@ int edit_file(const char *pathname)
 	signal(SIGINT, SIG_IGN);
 	signal(SIGQUIT, SIG_IGN);
 
-	if (mkprocl(&editor_ctx, editor, editor, pathname, NULL) != 0)
+	if (mkprocl(&editor_ctx, ext_editor, ext_editor, pathname, NULL) != 0)
 	{
 		return error("unable to launch editor '%s'",
-				*editor == 0 ? "(empty)" : editor);
+				*ext_editor == 0 ? "(empty)" : ext_editor);
 	}
 
-	/* with --no-spinner, getenv(PK_SPINNER) returns NULL */
-	spinner_style = getenv(PK_SPINNER);
-
-	show_spinner = spinner_style && /* must not be NULL */
+	show_spinner = spinner_style != NULL /* --no-spinner */ &&
 			/* graphical editor enable this by default */
-			 (is_graphical_editor(editor) ||
+			 (string_in_array(ext_editor, graphical_editors) ||
 			  /* this case, user specified a value */
-			   strcmp(spinner_style, "0"));
+			   spinner_style != INITIAL_PTR);
 
 	if (show_spinner && run_spinner(&spinner_ctx, spinner_style) != 0)
 	{

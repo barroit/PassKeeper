@@ -20,35 +20,16 @@
 **
 ****************************************************************************/
 
-int pk_setenv(const char *envname, const char *envval, int overwrite)
+#include "parse-option.h"
+
+static const char *const cmd_reset_usages[] = {
+	"pk reset",
+	NULL,
+};
+
+int cmd_reset(int argc, const char **argv, const char *prefix)
 {
-	if (envname == NULL || *envname == 0 || strchr(envname, '='))
-	{
-		errno = EINVAL;
-		return -1;
-	}
-
-	if (getenv(envname) && !overwrite)
-	{
-		return 0;
-	}
-
-	size_t envname_len, envval_len;
-	char *buf;
-
-	envname_len = strlen(envname);
-	envval_len = strlen(envval);
-	if ((buf = malloc(envname_len + envval_len + 2)) == NULL)
-	{
-		errno = ENOMEM;
-		return -1;
-	}
-
-	memcpy(buf, envname, envname_len);
-	buf[envname_len] = '=';
-	memcpy(buf + envname_len + 1, envval, envval_len);
-	buf[envname_len + 1 + envval_len] = 0;
-
-	putenv(buf);
+	parse_options(argc, argv, prefix, &(const struct option){ 0 },
+			cmd_reset_usages, PARSER_ABORT_NON_OPTION);
 	return 0;
 }

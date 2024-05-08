@@ -14,7 +14,7 @@ export PKBIN="$build_prefix"/pk
 export TEST_BUILD_PREFIX="$build_prefix"
 export SRC_PREFIX="$PROJECT_PREFIX"/src
 export TEST_TMP_PREFIX="$TEST_SOURCE_PREFIX"/tmp
-export PK_CRED_KY="$TEST_TMP_PREFIX"/key
+export PK_CRED_CC="$TEST_TMP_PREFIX"/key
 export PK_CRED_DB="$TEST_TMP_PREFIX"/db
 
 export PKG_CONFIG_PATH="${LIBRARY_INSTALL_PREFIX}/lib64/pkgconfig:\

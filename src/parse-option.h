@@ -128,14 +128,16 @@ enum option_parser_flag
 	.help = (h),					\
 }
 
-#define OPTION_BOOLEAN_F(s, l, v, h, f)			\
+#define OPTION_SWITCH_TRUE 1
+
+#define OPTION_SWITCH_F(s, l, v, h, f)			\
 {							\
 	.type   = OPTION_SWITCH,			\
 	.alias  = (s),					\
 	.name   = (l),					\
 	.value  = (v),					\
 	.help   = (h),					\
-	.defval = 1,					\
+	.defval = OPTION_SWITCH_TRUE,			\
 	.flags  = OPTION_NOARG | OPTION_ALLONEG | (f),	\
 }
 
@@ -150,57 +152,32 @@ enum option_parser_flag
 	.flags = (f),					\
 }
 
-#define OPTUINT_INIT (unsigned)~0
-#define OPTUINT_UNCHANGED(v) ((v) == OPTUINT_INIT)
-
 #define OPTION_STRING(s, l, v, h) OPTION_STRING_F((s), (l), (v), 0, (h), 0)
-#define OPTION_HIDDEN_STRING(s, l, v) OPTION_STRING_F((s), (l), (v), 0, 0, OPTION_HIDDEN)
+#define OPTION_STRING_H(s, l, v) OPTION_STRING_F((s), (l), (v), 0, 0, OPTION_HIDDEN)
 
-#define OPTION_BOOLEAN(s, l, v, h) OPTION_BOOLEAN_F((s), (l), (v), (h), 0)
+#define OPTION_SWITCH(s, l, v, h) OPTION_SWITCH_F((s), (l), (v), (h), 0)
+#define OPTION_SWITCH_H(s, l, v, h) OPTION_SWITCH_F((s), (l), (v), 0, OPTION_HIDDEN)
 
 #define OPTION_UNSIGNED(s, l, v, h) OPTION_UNSIGNED_F((s), (l), (v), 0, (h), 0)
 
 #define OPTION_FILENAME(s, l, v, h) OPTION_FILENAME_F((s), (l), (v), (h), "path", OPTION_SHOWARGH)
+#define OPTION_FILENAME_H(s, l, v) OPTION_FILENAME_F((s), (l), (v), 0, 0, OPTION_HIDDEN)
 
 #define OPTION_PATHNAME(s, l, v, h) OPTION_FILENAME_F((s), (l), (v), (h), "file", OPTION_REALPATH | OPTION_SHOWARGH)
-#define OPTION_HIDDEN_PATHNAME(s, l, v) OPTION_FILENAME_F((s), (l), (v), 0, 0, OPTION_HIDDEN | OPTION_REALPATH)
 
 #define OPTION_OPTARG(s, l, v, d, a, h) OPTION_OPTARG_F((s), (l), (v), (d), (a), (h), OPTION_SHOWARGH)
-#define OPTION_HIDDEN_OPTARG(s, l, v, d) OPTION_OPTARG_F((s), (l), (v), (d), 0, 0, OPTION_HIDDEN)
-#define OPTION_HIDDEN_OPTARG_ALLONEG(s, l, v, d) OPTION_OPTARG_F((s), (l), (v), (d), 0, 0, OPTION_HIDDEN | OPTION_ALLONEG)
+#define OPTION_OPTARG_HN(s, l, v, d) OPTION_OPTARG_F((s), (l), (v), (d), 0, 0, OPTION_HIDDEN | OPTION_ALLONEG)
 
 #define OPTION_COMMAND(l, h) OPTION_STRING_F(0, (l), 0, 0, (h), OPTION_NOARG | OPTION_NOEMDASH)
 
-#ifndef OPTION_USAGE_ALIGNMENT
-#define OPTION_USAGE_ALIGNMENT 23
+#ifndef DEFAULT_OPTMSG_ALIGNMENT
+#define DEFAULT_OPTMSG_ALIGNMENT 23
 #endif
 
-extern int option_usage_alignment;
+extern int optmsg_alignment;
 
 int process_get_unsigned_argument_result(int rescode, const char *val, const char *field);
 
 int parse_options(int argc, const char **argv, const char *prefix, const struct option *options, const char *const *usages, enum option_parser_flag flags);
-
-extern const char *const cmd_count_usages[];
-extern const char *const cmd_create_usages[];
-extern const char *const cmd_delete_usages[];
-extern const char *const cmd_help_usages[];
-extern const char *const cmd_init_usages[];
-extern const char *const cmd_makekey_usages[];
-extern const char *const cmd_read_usages[];
-extern const char *const cmd_update_usages[];
-extern const char *const cmd_version_usages[];
-extern const char *const cmd_pk_usages[];
-
-extern const struct option cmd_count_options[];
-extern const struct option cmd_create_options[];
-extern const struct option cmd_delete_options[];
-extern const struct option cmd_help_options[];
-extern const struct option cmd_init_options[];
-extern const struct option cmd_makekey_options[];
-extern const struct option cmd_read_options[];
-extern const struct option cmd_update_options[];
-extern const struct option cmd_version_options[];
-extern const struct option cmd_pk_options[];
 
 #endif /* PARSEOPT_H */

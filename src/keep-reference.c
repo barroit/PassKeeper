@@ -20,35 +20,20 @@
 **
 ****************************************************************************/
 
-int pk_setenv(const char *envname, const char *envval, int overwrite)
+struct leakref
 {
-	if (envname == NULL || *envname == 0 || strchr(envname, '='))
-	{
-		errno = EINVAL;
-		return -1;
-	}
+	struct leakref *next;
+	uint8_t data[FLEX_ARRAY];
+};
 
-	if (getenv(envname) && !overwrite)
-	{
-		return 0;
-	}
+static struct leakref *suppressed_leaks;
 
-	size_t envname_len, envval_len;
-	char *buf;
+void keep_reference(const void *ptr, size_t size)
+{
+	struct leakref *head;
 
-	envname_len = strlen(envname);
-	envval_len = strlen(envval);
-	if ((buf = malloc(envname_len + envval_len + 2)) == NULL)
-	{
-		errno = ENOMEM;
-		return -1;
-	}
+	FLEX_ALLOC_ARRAY(head, data, ptr, size);
 
-	memcpy(buf, envname, envname_len);
-	buf[envname_len] = '=';
-	memcpy(buf + envname_len + 1, envval, envval_len);
-	buf[envname_len + 1 + envval_len] = 0;
-
-	putenv(buf);
-	return 0;
+	head->next = suppressed_leaks;
+	suppressed_leaks = head;
 }

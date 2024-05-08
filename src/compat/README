@@ -1,0 +1,9 @@
+Note
+----
+
+The vast majority of functions are replicas of those defined by GNU,
+and their documentation can be accessed via the man pages. However,
+some functions are not part of POSIX, and the following are those
+without man pages.
+
+ - zeromem

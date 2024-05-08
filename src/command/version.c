@@ -31,7 +31,7 @@ const char *const cmd_version_usages[] = {
 };
 
 const struct option cmd_version_options[] = {
-	OPTION_BOOLEAN(0, "build-options", &show_build_options, "also print build information"),
+	OPTION_SWITCH(0, "build-options", &show_build_options, "also print build information"),
 	OPTION_END(),
 };
 

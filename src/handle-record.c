@@ -71,6 +71,7 @@ static char *format_recfile_content(const struct record *rec, size_t *outlen)
 		}
 
 		strbuf_putchar(&message, '\n');
+		fmap++;
 	}
 
 	strbuf_puts(&message, COMMON_RECORD_MESSAGE);
@@ -294,14 +295,17 @@ int read_record_file(struct record *rec, const char *rec_path)
 		}
 		else
 		{
+			UNLEAK(rec_line->elvec);
 			return error("%s missing in the required fields",
 					format_missing_field(rec));
 		}
 	}
 
 	strlist_destroy(rec_line, false);
+	return 0;
 
 cancelled:
+	UNLEAK(rec_line->elvec);
 	puts("Creation is aborted due to empty record.");
 	return 1;
 }
@@ -310,7 +314,7 @@ bool is_need_transaction(const struct record *rec)
 {
 	int group_count;
 
-	group_count = 1;
+	group_count = 0;
 
 	group_count += rec->sitename || rec->siteurl ||
 			rec->username || rec->password;
@@ -334,8 +338,7 @@ void bind_record_basic_column(
 void bind_record_security_column(
 	struct sqlite3_stmt *stmt, int64_t account_id, const struct record *rec)
 {
-	xsqlite3_bind_int64(stmt, 1, account_id);
-
+	xsqlite3_bind_int64  (      stmt, 1, account_id);
 	xsqlite3_bind_or_null(text, stmt, 2, rec->guard, -1, SQLITE_STATIC);
 	xsqlite3_bind_or_null(text, stmt, 3, rec->recovery, -1, SQLITE_STATIC);
 
@@ -343,8 +346,6 @@ void bind_record_security_column(
 	off_t memo_bufsz;
 
 	memo_buf = NULL;
-	memo_bufsz = 0;
-
 	if (rec->memo != NULL)
 	{
 		int memo_fd;
@@ -376,7 +377,17 @@ void bind_record_security_column(
 void bind_record_misc_column(
 	struct sqlite3_stmt *stmt, int64_t account_id, const struct record *rec)
 {
-	xsqlite3_bind_int64(stmt, 1, account_id);
+	xsqlite3_bind_int64  (      stmt, 1, account_id);
+	xsqlite3_bind_or_null(text, stmt, 2, rec->comment, -1, SQLITE_STATIC);
+}
 
-	xsqlite3_bind_or_null(text, stmt, 1, rec->comment, -1, SQLITE_STATIC);
+void rm_journal_file(void)
+{
+	if (cred_db_path != NULL)
+	{
+		static char *pathname;
+
+		pathname = concat(cred_db_path, "-journal");
+		unlink(pathname);
+	}
 }

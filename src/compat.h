@@ -64,12 +64,27 @@
 #include <sys/wait.h>
 #endif
 
-#define PK_CRED_DB  "PK_CRED_DB"
-#define PK_CRED_KY  "PK_CRED_KY"
-#define PK_EDITOR   "PK_EDITOR"
-#define PK_SPINNER  "PK_SPINNER"
-#define PK_RECFILE  "PK_RECFILE"
+#ifndef PK_CRED_DB
+#define PK_CRED_DB "PK_CRED_DB"
+#endif
 
+#ifndef PK_CRED_CC
+#define PK_CRED_CC "PK_CRED_CC"
+#endif
+
+#ifndef PK_TMP_REC
+#define PK_TMP_REC "PK_TMP_REC"
+#endif
+
+#ifndef PK_EDITOR
+#define PK_EDITOR "PK_EDITOR"
+#endif
+
+#ifndef PK_SPINNER
+#define PK_SPINNER "PK_SPINNER"
+#endif
+
+#ifndef COMMON_RECORD_MESSAGE
 #define COMMON_RECORD_MESSAGE							\
 "# Please enter the information for your password record. Lines starting\n"	\
 "# with '#' will be ignored, and an empty record aborts the creation.\n"	\
@@ -77,10 +92,19 @@
 "# meanings for PassKeeper. To include such symbols in the text without\n"	\
 "# invoking their special meanings, start the line with '|'.\n"			\
 "# Run './pk example record' to see the example."
+#endif
 
-#define PK_CRED_DB_NM  ".pk-credfl"
-#define PK_CRED_KY_NM  ".pk-credky"
-#define PK_RECFILE_NM  ".pk-recfile"
+#ifndef PK_CRED_DB_DEFPATH
+#define PK_CRED_DB_DEFPATH  ".pk-cred-db"
+#endif
+
+#ifndef PK_CRED_CC_DEFPATH
+#define PK_CRED_CC_DEFPATH  ".pk-cred-cc"
+#endif
+
+#ifndef PK_TMP_REC_DEFPATH
+#define PK_TMP_REC_DEFPATH  ".pk-tmp-rec"
+#endif
 
 #ifdef LINUX
 #define ENV_USERHOME  "HOME"
@@ -91,6 +115,9 @@
 #define DIRSEPSTR     "\\"
 #define DIRSEPCHAR    '\\'
 #endif
+
+#define INITIAL_BOL -1
+#define INITIAL_PTR ( (void *)-1 )
 
 #define FILCRT_BIT ((S_IRUSR | S_IWUSR) | (S_IRGRP | S_IWGRP) | (S_IROTH))
 #define DIRCRT_BIT ((S_IRWXU) | (S_IRWXG) | (S_IROTH | S_IXOTH))
@@ -143,12 +170,16 @@ int test_file_permission_st(struct stat *st, int mode);
 #define test_file_permission(f, s, m) (access(f, m) == -1)
 #endif
 
-int get_bias(long *bias);
+#ifdef LINUX
+#define is_dumb_term (getenv("TERM") == NULL)
+#else
+#define is_dumb_term (false)
+#endif
 
 #ifdef LINUX
-#define DEFAULT_EDITOR "vi"
+#define DEFAULT_EXT_EDITOR "vi"
 #else
-#define DEFAULT_EDITOR "notepad"
+#define DEFAULT_EXT_EDITOR "notepad"
 #endif
 
 #ifdef LINUX
@@ -159,6 +190,20 @@ int get_bias(long *bias);
 
 #ifndef SIGQUIT
 #define SIGQUIT 3
+#endif
+
+#ifdef __STDC_LIB_EXT1__
+#define zeromem(p__, l__) memset_s((p__), (l__), 0, (l__))
+#else
+void pk_zeromem(void *ptr, size_t len);
+
+#define zeromem pk_zeromem
+#endif
+
+#ifdef NO_GETLINE
+ssize_t pk_getline(char **restrict lineptr, size_t *restrict n, FILE *restrict stream);
+
+#define getline pk_getline
 #endif
 
 #endif /* COMPACT_UTIL_H */

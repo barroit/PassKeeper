@@ -12,7 +12,7 @@ pk [--[no]-nano] [--key <txt>] [<options>]
 == DESCRIPTION
 
 When using the editor, program will create a temporary file named '.pk-recfile'
-in the current working directory unless the environment variable 'PK_RECFILE'
+in the current working directory unless the environment variable 'PK_TMP_REC'
 or the command option '–recfile' is specified. If record-related options are
 passed to the program, the values from these options will automatically be
 inserted into the temporary file at the corresponding positions. Program will
@@ -22,4 +22,4 @@ remove this file automatically after the command is executed.
 
 --nano::
 	Enable the editor. This program will sequentially search for the
-	environment variables 'PK_RECFILE', 'VISUAL', and 'EDITOR'.
+	environment variables 'PK_TMP_REC', 'VISUAL', and 'EDITOR'.

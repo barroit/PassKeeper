@@ -22,7 +22,7 @@
 
 #include "parse-option.h"
 #include "filesys.h"
-#include "rawnumop.h"
+#include "security.h"
 #include "cipher-config.h"
 #include "strlist.h"
 #include "strbuf.h"
@@ -79,7 +79,7 @@ const char *const cmd_init_usages[] = {
 const struct option cmd_init_options[] = {
 	OPTION_OPTARG(0, "encrypt", &user.key, 1, "key",
 			"password used to encryption"),
-	OPTION_BOOLEAN(0, "remember", &user.store_key, "store password"),
+	OPTION_SWITCH(0, "remember", &user.store_key, "store password"),
 	OPTION_GROUP(""),
 	OPTION_STRING(0, "kdf-algorithm", &cc.kdf_algorithm,
 			"KDF algorithm used to generate "
@@ -246,29 +246,18 @@ static void process_cipher_config(enum key_type keytype, bool *out)
 	*out = use_cc;
 }
 
-static void rm_dbfile(void)
+static void rm_cred_db(void)
 {
-	const char *pathname;
-
-	if ((pathname = getenv(PK_CRED_DB)) != NULL)
-	{
-		unlink(pathname);
-	}
+	unlink(cred_db_path);
 }
 
-static void rm_ccfile(void)
+static void rm_cred_cc(void)
 {
-	const char *pathname;
-
-	if ((pathname = getenv(PK_CRED_KY)) != NULL)
-	{
-		unlink(pathname);
-	}
+	unlink(cred_cc_path);
 }
 
 int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 {
-	const char *db_path;
 	bool encrypt_db;
 
 	parse_options(argc, argv, prefix, cmd_init_options,
@@ -276,8 +265,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 
 	encrypt_db = !!user.key;
 
-	db_path = force_getenv(PK_CRED_DB);
-	precheck_file("Database", db_path);
+	precheck_file("Database", cred_db_path);
 
 	if (!encrypt_db)
 	{
@@ -292,7 +280,10 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 
 	if (keytype == KT_PKBIN)
 	{
-		user.key = bin2blob(random_bytes(BINKEY_LEN), BINKEY_LEN);
+		uint8_t *binkey;
+
+		EXIT_ON_FAILURE(random_bytes_alloc(&binkey, BINKEY_LEN), 0);
+		user.key = bin2blob(binkey, BINKEY_LEN);
 	}
 
 	keylen = strlen(user.key);
@@ -301,14 +292,12 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	EXIT_ON_FAILURE(validate_key(keytype, keylen), 0);
 
 	bool use_cc;
-	const char *cc_path;
 
 	process_cipher_config(keytype, &use_cc);
-	cc_path = force_getenv(PK_CRED_KY);
 
 	if (use_cc)
 	{
-		precheck_file("Config", cc_path);
+		precheck_file("Config", cred_cc_path);
 	}
 	else
 	{
@@ -328,13 +317,13 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	case KT_PKBIN:
 	case KT_USRBIN:
 		ck.buf = hex2bin(strdup(keystr + 2), keylen - 3);
-		ck.size = (keylen - 3) / 2;
+		ck.len = (keylen - 3) / 2;
 		ck.is_binary = true;
 
 		break;
 	case KT_PASSPHRASE:
 		ck.buf = xmemdup(keystr, keylen + 1);
-		ck.size = keylen;
+		ck.len = keylen;
 		ck.is_binary = false;
 
 		break;
@@ -356,10 +345,11 @@ setup_cc:;
 
 	cc_size += CIPHER_DIGEST_LENGTH;
 
-	xio_pathname = cc_path;
-	atexit_chain_push(rm_ccfile);
+	atexit_chain_push(rm_cred_cc);
+	xio_pathname = cred_cc_path;
 
-	cc_fd = xopen(cc_path, O_WRONLY | O_CREAT, FILCRT_BIT);
+	cc_fd = xopen(cred_cc_path, O_WRONLY | O_CREAT, FILCRT_BIT);
+
 	xwrite(cc_fd, cc_buf, cc_size);
 
 	close(cc_fd);
@@ -369,9 +359,10 @@ setup_cc:;
 setup_database:;
 	struct sqlite3 *db;
 
-	atexit_chain_push(rm_dbfile);
-	msqlite3_pathname = db_path;
-	xsqlite3_open(db_path, &db);
+	atexit_chain_push(rm_cred_db);
+	msqlite3_pathname = cred_db_path;
+
+	xsqlite3_open(cred_db_path, &db);
 
 	if (encrypt_db)
 	{
