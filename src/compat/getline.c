@@ -33,21 +33,50 @@ ssize_t pk_getline(
 		errno = EINVAL;
 		return -1;
 	}
-	else if (feof(stream))
+
+	char c, *ptr;
+	size_t len;
+
+	if ((c = fgetc(stream)) == EOF)
 	{
 		return -1;
 	}
 
-	bool alloc_buf;
-
-	alloc_buf = *lineptr == NULL;
-
-	char c;
-
-	while ((c = fgetc(stream)) != '\n' && c != EOF)
+	if (*lineptr == NULL)
 	{
-		
+		*n = fixed_growth(64);
+
+		if ((*lineptr = malloc(*n)) == NULL)
+		{
+			errno = ENOMEM;
+			return -1;
+		}
 	}
 
-	return 0;
+	ptr = *lineptr;
+	len = 0;
+
+	while (c != EOF)
+	{
+		if (ptr - *lineptr >= *n - 1) /* -1 for nulterm */
+		{
+			*n = fixed_growth(*n);
+
+			ptr = realloc(ptr, *n);
+		}
+
+		*ptr++ = c;
+		len++;
+
+		if (c == '\n')
+		{
+			break;
+		}
+
+		c = fgetc(stream);
+	}
+
+	*ptr = 0;
+
+	return len;
 }
