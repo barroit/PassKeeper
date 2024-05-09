@@ -206,4 +206,14 @@ ssize_t pk_getline(char **restrict lineptr, size_t *restrict n, FILE *restrict s
 #define getline pk_getline
 #endif
 
+#ifdef LINUX
+#include <termios.h>
+#else
+struct termios
+{
+	stdin_handle;
+	console_mode;
+}
+#endif
+
 #endif /* COMPACT_UTIL_H */

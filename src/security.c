@@ -211,7 +211,48 @@ void secure_destroy(void *ptr, size_t len)
 	free(ptr);
 }
 
-size_t read_cmdkey(char **buf0)
+size_t read_cmdkey(char **key0)
 {
-	//
+	struct termios term;
+	bool no_setattr;
+
+	no_setattr = false;
+	if (termios_disable_echo(&term) == -1)
+	{
+		no_setattr = true;
+	}
+
+	char *key;
+	ssize_t len;
+	size_t cap;
+
+	key = NULL;
+	cap = 0;
+
+	errno = 0;
+	if ((len = getline(&key, &cap, stdin)) == -1)
+	{
+		if (errno != 0)
+		{
+			warning_errno("An error occurred while getting input");
+		}
+
+		len = 0;
+	}
+	else
+	{
+		if (key[len - 1] == '\n')
+		{
+			key[len - 1] = 0;
+		}
+
+		*key0 = key;
+	}
+
+	if (!no_setattr)
+	{
+		termios_restore_config(&term);
+	}
+
+	return len;
 }

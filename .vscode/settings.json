@@ -53,7 +53,8 @@
 		"parse-option.h": "c",
 		"security.h": "c",
 		"cipher-config.h": "c",
-		"enval.h": "c"
+		"enval.h": "c",
+		"termios.h": "c"
 	},
 	"fileHeaderComment.parameter": {
 		"*": {

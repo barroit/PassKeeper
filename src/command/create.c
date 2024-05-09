@@ -183,9 +183,10 @@ setup_database:;
 	keystr = NULL;
 	if (use_cmdkey)
 	{
-		ck.len = read_cmdkey(&ck.buf);
+		ck.len = read_cmdkey((char **)&ck.buf);
+		// todo: check length here
 
-		keystr = ck.buf;
+		keystr = (char *)ck.buf;
 		keylen = ck.len;
 	}
 

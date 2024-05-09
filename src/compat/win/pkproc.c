@@ -95,7 +95,7 @@ int mkprocl(struct process_info *ctx, const char *arg0, ...)
 	if (!CreateProcess(NULL, sb->buf, NULL, NULL, FALSE, 0,
 				NULL, NULL, &ctx->si, &ctx->pi))
 	{
-		warn_winerr("failed to start the program '%s'",
+		warning_winerr("failed to start the program '%s'",
 				ctx->program); /* errno set here */
 		rescode = -1;
 		close_nuldev(ctx);
@@ -119,7 +119,7 @@ int mkprocf(struct process_info *ctx, procfn_t procfn, const void *args)
 		CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)procfn,
 			      (LPVOID)args, 0, NULL)) == NULL)
 	{
-		warn_winerr("failed to start a new thread for program '%s'",
+		warning_winerr("failed to start a new thread for program '%s'",
 				ctx->program);
 		rescode = -1;
 		close_nuldev(ctx);
@@ -140,7 +140,7 @@ int kill_process(struct process_info *ctx, int sig)
 	case PROC_PROCESS:
 		if (!TerminateProcess(ctx->pi.hProcess, sig + 128))
 		{
-			warn_winerr("failed to terminate the program '%s'",
+			warning_winerr("failed to terminate the program '%s'",
 					ctx->program);
 			rescode = -1;
 		}
@@ -148,7 +148,7 @@ int kill_process(struct process_info *ctx, int sig)
 	case PROC_THREAD:
 		if (!TerminateThread(ctx->thread_handle, sig + 128))
 		{
-			warn_winerr("failed to terminate the thread running '%s'",
+			warning_winerr("failed to terminate the thread running '%s'",
 					ctx->program);
 			rescode = -1;
 		}
@@ -177,7 +177,7 @@ int finish_process(struct process_info *ctx, UNUSED bool raised)
 	switch (rescode = WaitForSingleObject(ctx->pi.hProcess, INFINITE))
 	{
 	case WAIT_FAILED:
-		warn_winerr("failed to wait for %s to terminate", ctx->program);
+		warning_winerr("failed to wait for %s to terminate", ctx->program);
 		rescode = -1;
 		errnum = errno;
 		/* FALLTHRU */

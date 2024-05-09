@@ -72,6 +72,10 @@ int verify_digest_sha256(const uint8_t *message, size_t message_length, const ui
 
 void secure_destroy(void *ptr, size_t len);
 
+int termios_disable_echo(struct termios *term0);
+
+int termios_restore_config(struct termios *term0);
+
 size_t read_cmdkey(char **buf0);
 
 #endif /* SECURITY_H */

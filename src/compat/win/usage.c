@@ -53,7 +53,7 @@ static void winerr_routine(const char *format, struct report_field *field, int *
 	memcpy(field, &field0, sizeof(struct report_field));
 }
 
-void warn_winerr(const char *format, ...)
+void warning_winerr(const char *format, ...)
 {
 	struct report_field field;
 	int errnum;
