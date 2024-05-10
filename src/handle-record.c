@@ -295,7 +295,7 @@ int read_record_file(struct record *rec, const char *rec_path)
 		}
 		else
 		{
-			UNLEAK(rec_line->elvec);
+			strlist_destroy(rec_line, false);
 			return error("%s missing in the required fields",
 					format_missing_field(rec));
 		}
@@ -305,7 +305,7 @@ int read_record_file(struct record *rec, const char *rec_path)
 	return 0;
 
 cancelled:
-	UNLEAK(rec_line->elvec);
+	strlist_destroy(rec_line, false);
 	puts("Creation is aborted due to empty record.");
 	return 1;
 }

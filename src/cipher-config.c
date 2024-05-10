@@ -187,7 +187,7 @@ uint8_t *serialize_cipher_config(
 	return blob->buf;
 }
 
-#define SAFE_INCREMENT(buf0__, len0__, buf__, len__)		\
+#define ST_INC(buf0__, len0__, buf__, len__)			\
 	do							\
 	{							\
 		if (buf__ + len__ > buf0__ + len0__)		\
@@ -228,10 +228,10 @@ void deserialize_cipher_config(
 	{
 		bug("field type value shall not be %d", type);
 	}
-	SAFE_INCREMENT(buf_head, buflen, buf, TYPE_SIZE);
+	ST_INC(buf_head, buflen, buf, TYPE_SIZE);
 
 	memcpy(&dlen, buf, DLEN_SIZE);
-	SAFE_INCREMENT(buf_head, buflen, buf, DLEN_SIZE);
+	ST_INC(buf_head, buflen, buf, DLEN_SIZE);
 
 	switch (type)
 	{
@@ -258,9 +258,9 @@ void deserialize_cipher_config(
 
 		break;
 	default:
-		bug("field type value shall not be %d", type);
+		bug("field type shall not be %d", type);
 	}
-	SAFE_INCREMENT(buf_head, buflen, buf, dlen);
+	ST_INC(buf_head, buflen, buf, dlen);
 
 	/* buf must be less than buf tail */
 	if (buf > buf_tail)

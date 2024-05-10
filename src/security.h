@@ -70,8 +70,6 @@ uint8_t *digest_message_sha256(const uint8_t *message, size_t message_length);
 
 int verify_digest_sha256(const uint8_t *message, size_t message_length, const uint8_t *prev_digest);
 
-void secure_destroy(void *ptr, size_t len);
-
 int termios_disable_echo(struct termios *term0);
 
 int termios_restore_config(struct termios *term0);

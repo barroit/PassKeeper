@@ -205,12 +205,6 @@ int verify_digest_sha256(
 	return rescode;
 }
 
-void secure_destroy(void *ptr, size_t len)
-{
-	zeromem(ptr, len);
-	free(ptr);
-}
-
 size_t read_cmdkey(char **key0)
 {
 	struct termios term;

@@ -329,8 +329,12 @@ WINBOOL xDuplicateHandle(HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HAND
 WINBOOL xSetStdHandle(DWORD nStdHandle, HANDLE hHandle);
 #endif
 
-extern void keep_reference(const void *ptr, size_t size);
-
-#define UNLEAK(ptr__) keep_reference(&(ptr__), sizeof(ptr__))
+#define secure_destroy(p__, l__)	\
+	do				\
+	{				\
+		zeromem((p__), (l__));	\
+		free(p__);		\
+	}				\
+	while (1)
 
 #endif /* WRAPPER_H */
