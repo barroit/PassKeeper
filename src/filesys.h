@@ -49,7 +49,7 @@ const char *get_working_dir_routine(bool force);
  */
 char *prefix_filename(const char *prefix, const char *filename);
 
-void prepare_file_directory(const char *pathname);
+int prepare_file_directory(const char *pathname);
 
 void populate_file(const char *name, const char *buf, size_t buflen);
 

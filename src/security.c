@@ -22,13 +22,11 @@
 
 #include "security.h"
 
+#define BLOBKEY_LEN 67
+#define KEYSALT_LEN 32
+
 int random_bytes_routine(uint8_t **buf, size_t len, bool alloc_mem)
 {
-	if (buf == NULL)
-	{
-		bug("buf shall not be NULL");
-	}
-
 	if (alloc_mem)
 	{
 		*buf = xmalloc(len);
@@ -42,7 +40,7 @@ int random_bytes_routine(uint8_t **buf, size_t len, bool alloc_mem)
 		}
 
 		*buf = NULL;
-		return 1;
+		return error_openssl("Failed to generate random bytes");
 	}
 
 	return 0;
@@ -64,95 +62,156 @@ int random_bytes_routine(uint8_t **buf, size_t len, bool alloc_mem)
 #define decint2hexchar(n__)\
 	( (n__) < 10 ? ( (n__) + '0' ) : ( (n__) - 10 + 'A' ) )
 
-uint8_t *hex2bin(char *hex, size_t hexsz)
+size_t hex2bin(uint8_t **out, char *hex0, size_t hex_len)
 {
-	uint8_t *binhead, *binit, *bintail;
+	uint8_t *bin0, *bin_iter, *bin9;
+	size_t bin_len;
 
-	binhead = (uint8_t *)hex;
-	binit = binhead;
-	bintail = binhead + (hexsz / 2);
-	while (binit < bintail)
+	bin_len = hex_len / 2;
+
+	bin0 = (uint8_t *)hex0;
+	bin9 = bin0 + bin_len;
+
+	bin_iter = bin0;
+
+	while (bin_iter < bin9)
 	{
-		*binit = (hexchar2decint(hex[0]) << 4) | hexchar2decint(hex[1]);
+		*bin_iter = (hexchar2decint(hex0[0]) << 4) |
+				hexchar2decint(hex0[1]);
 
-		binit++;
-		hex += 2;
+		bin_iter++;
+		hex0 += 2;
 	}
 
-	return binhead;
+	*out = bin0;
+	return bin_len;
 }
 
-char *bin2hex(uint8_t *bin, size_t binsz)
+size_t bin2hex(char **out, uint8_t *bin0, size_t bin_len)
 {
-	char *hexit, *hexhead;
-	uint8_t *binit;
-	size_t hexsz;
+	char *hex_iter, *hex0;
+	uint8_t *bin_iter;
+	size_t hex_len;
 
-	hexsz = binsz * 2;
-	bin = xrealloc(bin, hexsz + 1);
-	binit = bin + binsz - 1;
-	hexhead = (char *)bin;
-	hexit = hexhead + hexsz - 1;
+	hex_len = bin_len * 2;
 
-	while (binit >= bin)
+	bin0 = xrealloc(bin0, hex_len + 1);
+	bin_iter = bin0 + bin_len - 1;
+
+	hex0 = (char *)bin0;
+	hex_iter = hex0 + hex_len - 1;
+
+	while (bin_iter >= bin0)
 	{
-		*(hexit - 0) = hexchar2decint(*binit & 0x0F);
-		*(hexit - 1) = hexchar2decint(*binit >> 4);
-		binit--;
-		hexit -= 2;
+		*(hex_iter - 0) = decint2hexchar(*bin_iter & 0x0F);
+		*(hex_iter - 1) = decint2hexchar(*bin_iter >> 4);
+
+		bin_iter--;
+		hex_iter -= 2;
 	}
 
-	hexhead[hexsz] = 0;
-	return hexhead;
+	hex0[hex_len] = 0;
+
+	*out = hex0;
+	return hex_len;
 }
 
-char *bin2blob(uint8_t *binkey, size_t binlen)
+size_t bin2blob(char **out, uint8_t *bin, size_t bin_len)
 {
-	char *hexkey, *blobkey;
-	size_t bloblen;
+	char *hex, *blob;
+	size_t hex_len, blob_len;
 
-	hexkey  = bin2hex(binkey, binlen);
-	bloblen = binlen * 2 + 3;
+	hex_len = bin2hex(&hex, bin, bin_len);
 
-	blobkey = xmalloc(bloblen + 1);
-	snprintf(blobkey, bloblen + 1, "x'%s'", hexkey);
+	blob_len = hex_len + 3;
+	blob = xmalloc(blob_len + 1);
 
-	free(hexkey);
-	return blobkey;
+	blob[0] = 'x';
+	blob[1] = '\'';
+
+	memcpy(blob + 2, hex, hex_len);
+	free(hex);
+
+	blob[blob_len - 1] = '\'';
+	blob[blob_len] = 0;
+
+	*out = blob;
+	return blob_len;
 }
 
-#define is_hexchar(c__)\
-	in_range_i(c__, 'A', 'F') || in_range_i(c__, 'a', 'f') || isdigit(c__)
-
-bool is_hexstr(const char *hex, size_t size)
+size_t blob2bin(uint8_t **out, char *blob, size_t blob_len)
 {
-	while (size > 0)
+	uint8_t *bin;
+	size_t bin_len;
+
+	bin_len = hex2bin(&bin, blob + 2, blob_len - 3);
+	memmove(blob, bin, bin_len);
+
+	*out = (uint8_t *)blob;
+	return bin_len;
+}
+
+static bool is_hexstr(const char *str, size_t len)
+{
+	while (len > 0)
 	{
-		if (!is_hexchar(*hex++))
+		if (!in_range_i(*str, 'A', 'F') &&
+		     !in_range_i(*str, 'a', 'f') &&
+		      !isdigit(*str))
 		{
 			return false;
 		}
 
-		size--;
+		str++;
+		len--;
 	}
 
 	return true;
 }
 
-bool is_saltstr(const char *salt, size_t size)
+static bool is_saltstr(const char *str, size_t len)
 {
-	while (size > 0)
+	while (len > 0)
 	{
-		if (*salt != '0' && *salt != '1')
+		if (*str != '0' && *str != '1')
 		{
 			return false;
 		}
 
-		salt++;
-		size--;
+		str++;
+		len--;
 	}
 
 	return true;
+}
+
+bool is_blob_key(const char *key, size_t len)
+{
+	if (len != BLOBKEY_LEN && len != BLOBKEY_LEN + KEYSALT_LEN)
+	{
+		return false;
+	}
+
+	if (key[0] != 'x' || key[1] != '\'' || key[len - 1] != '\'')
+	{
+		return false;
+	}
+
+	if (!is_hexstr(key + 2, HEXKEY_LEN))
+	{
+		return false;
+	}
+
+	if (len == BLOBKEY_LEN + KEYSALT_LEN)
+	{
+		if (!is_saltstr(key + 2 + HEXKEY_LEN, KEYSALT_LEN))
+		{
+			return false;
+		}
+	}
+
+	return true;
+		
 }
 
 uint8_t *digest_message_sha256(const uint8_t *message, size_t message_length)
@@ -162,32 +221,35 @@ uint8_t *digest_message_sha256(const uint8_t *message, size_t message_length)
 
 	if ((mdctx = EVP_MD_CTX_new()) == NULL)
 	{
-		report_openssl_error();
+		goto failure;
 	}
 
 	if (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL) != 1)
 	{
-		report_openssl_error();
+		goto failure;
 	}
 
 	if (EVP_DigestUpdate(mdctx, message, message_length) != 1)
 	{
-		report_openssl_error();
+		goto failure;
 	}
 
 	if ((out = OPENSSL_malloc(EVP_MD_size(EVP_sha256()))) == NULL)
 	{
-		report_openssl_error();
+		goto failure;
 	}
 
 	if (EVP_DigestFinal_ex(mdctx, out, NULL) != 1)
 	{
-		report_openssl_error();
+		goto failure;
 	}
 
 	EVP_MD_CTX_free(mdctx);
 
 	return out;
+
+failure:
+	die_openssl("An error occured while getting message digest");
 }
 
 int verify_digest_sha256(
@@ -205,7 +267,7 @@ int verify_digest_sha256(
 	return rescode;
 }
 
-size_t read_cmdkey(char **key0)
+size_t read_cmdkey(char **key0, const char *message)
 {
 	struct termios term;
 	bool no_setattr;
@@ -224,20 +286,32 @@ size_t read_cmdkey(char **key0)
 	cap = 0;
 
 	errno = 0;
+retry:
+	im_print(message);
 	if ((len = getline(&key, &cap, stdin)) == -1)
 	{
 		if (errno != 0)
 		{
-			warning_errno("An error occurred while getting input");
+			die_errno("An error occurred while getting input");
 		}
 
 		len = 0;
 	}
+	else if (len == 1 && *key == '\n')
+	{
+		im_fputs("\nEmpty keys are not allowed, try again.\n", stderr);
+		free(key);
+
+		key = NULL;
+		len = 0;
+
+		goto retry;
+	}
 	else
 	{
-		if (key[len - 1] == '\n')
+		while (key[len - 1] == '\n')
 		{
-			key[len - 1] = 0;
+			key[--len] = 0;
 		}
 
 		*key0 = key;

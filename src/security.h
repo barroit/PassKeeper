@@ -23,46 +23,42 @@
 #ifndef SECURITY_H
 #define SECURITY_H
 
+#define BINKEY_LEN 32
+#define HEXKEY_LEN 64
+
 int random_bytes_routine(uint8_t **buf, size_t len, bool alloc_mem);
 
-#define random_bytes(buf__, len__) random_bytes_routine(buf__, len__, false)
-#define random_bytes_alloc(buf__, len__) random_bytes_routine(buf__, len__, true)
+#define random_bytes(buf__, len__) random_bytes_routine(buf__, len__, true)
+#define random_bytes_buffered(buf__, len__) random_bytes_routine(buf__, len__, false)
 
 /**
- * convert at most `hexsz` characters of the `hex` string to
- * binary data, `size` must be a multiple of 2, this operation
- * is in-place and `hex` shall be modified, returned pointer
- * is the same as `hex`
- */
-uint8_t *hex2bin(char *hex, size_t hexsz);
-
-/**
- * Convert at most `binsz` bytes of the `bin` binary data to
- * hex characters, and making it null-terminated.
+ * convert at most hex_len characters of the hex0 string to binary data, 
+ * hex_len must be a multiple of 2, this operation is in-place and hex0
+ * shall be modified
  * 
- * The pointer points to `bin` shall be invalid after convert.
- * 
- * Returned value shall be freed by caller.
+ * NOTE: pointer assigend to *out is the same as hex0
  */
-char *bin2hex(uint8_t *bin, size_t binsz);
+size_t hex2bin(uint8_t **out, char *hex0, size_t hex_len);
 
 /**
- * same as the `bin2hex` except it convert binary data to
- * blob string (hex key is wrapped by x'')
+ * convert at most bin_len bytes of the bin0 to hex characters, and making
+ * it null-terminated, pointer points to bin0 shall be invalid after convert
  */
-char *bin2blob(uint8_t *binkey, size_t binlen);
+size_t bin2hex(char **out, uint8_t *bin0, size_t bin_len);
 
 /**
- * check if at most `size` characters of the `hex` string are
- * valid hex characters
+ * same as the bin2hex except it convert binary data to blob string (hex
+ * key is wrapped by x'')
  */
-bool is_hexstr(const char *hex, size_t size);
+size_t bin2blob(char **out, uint8_t *bin_key, size_t bin_len);
 
 /**
- * check if at most `size` characters of the `salt` string are
- * valid hex characters
+ * same as the hex2bin except it convert blob string (hex key is wrapped
+ * by x'') to binary data
  */
-bool is_saltstr(const char *salt, size_t size);
+size_t blob2bin(uint8_t **out, char *blob, size_t blob_len);
+
+bool is_blob_key(const char *key, size_t len);
 
 uint8_t *digest_message_sha256(const uint8_t *message, size_t message_length);
 
@@ -74,6 +70,6 @@ int termios_disable_echo(struct termios *term0);
 
 int termios_restore_config(struct termios *term0);
 
-size_t read_cmdkey(char **buf0);
+size_t read_cmdkey(char **key0, const char *message);
 
 #endif /* SECURITY_H */

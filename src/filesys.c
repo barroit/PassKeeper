@@ -133,7 +133,7 @@ int test_file_permission_st(struct stat *st, int mode)
 }
 #endif
 
-void prepare_file_directory(const char *pathname)
+int prepare_file_directory(const char *pathname)
 {
 	char *pathcopy;
 	const char *dirpath;
@@ -146,12 +146,14 @@ void prepare_file_directory(const char *pathname)
 	{
 		xmkdir(dirpath);
 	}
-	else if (test_file_permission(dirpath, &st, W_OK) != 0)
+	else if (/* TODO: this check breaks SRP, consider removing it */
+	test_file_permission(dirpath, &st, W_OK) != 0)
 	{
-		die("Access denied by file '%s'", dirpath);
+		return error("Access denied by file '%s'", dirpath);
 	}
 
 	free(pathcopy);
+	return 0;
 }
 
 void populate_file(const char *pathname, const char *buf, size_t buflen)

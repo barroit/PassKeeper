@@ -32,9 +32,10 @@ static const char *init_table_sqlstr =
 	"CREATE TABLE account ("
 		"id       INTEGER PRIMARY KEY AUTOINCREMENT,"
 		"sitename TEXT NOT NULL,"
+		"alias    TEXT,"
 		"siteurl  TEXT,"
 		"username TEXT,"
-		"password TEXT,"
+		"password TEXT NOT NULL,"
 		"sqltime  DATETIME DEFAULT (datetime('now', 'utc')),"
 		"modtime  DATETIME"
 	");"
@@ -57,193 +58,119 @@ static const char *init_table_sqlstr =
 			"ON DELETE CASCADE"
 	");";
 
-static struct
-{
-	int store_key;
-	const char *key;
-} user = {
-	.store_key = 2,
-};
-
-static struct cipher_config cc = {
-	.kdf_iter = CPRDEF_KDF_ITER,
-	.page_size = CPRDEF_PAGE_SIZE,
-	.compatibility = CPRDEF_COMPATIBILITY,
-};
-
 const char *const cmd_init_usages[] = {
-	"pk init [--encrypt[=<key>]] [<options>]",
+	"pk init [--encrypt] [--cmdkey] [--[no]-remember] [<options>]",
 	NULL,
 };
 
-const struct option cmd_init_options[] = {
-	OPTION_OPTARG(0, "encrypt", &user.key, 1, "key",
-			"password used to encryption"),
-	OPTION_SWITCH(0, "remember", &user.store_key, "store password"),
-	OPTION_GROUP(""),
-	OPTION_STRING(0, "kdf-algorithm", &cc.kdf_algorithm,
-			"KDF algorithm used to generate "
-			 "encryption key for database"),
-	OPTION_STRING(0, "hmac-algorithm", &cc.hmac_algorithm,
-			"HMAC algorithm used to detect "
-			 "illegal data tampering"),
-	OPTION_UNSIGNED(0, "cipher-compat", &cc.compatibility,
-			 "version of api to used"),
-	OPTION_UNSIGNED(0, "page-size", &cc.page_size, "size of a page"),
-	OPTION_UNSIGNED(0, "kdf-iter", &cc.kdf_iter,
-			 "key derivation iteration times"),
-	OPTION_END(),
-};
+#define assert_valid_file(name, path)						\
+	do									\
+	{									\
+		if (access(path, F_OK) == 0)					\
+		{								\
+			exit(error("%s file '%s' already exists", name, path));	\
+		}								\
+										\
+		EXIT_ON_FAILURE(prepare_file_directory(path), 0);		\
+	}									\
+	while (0)
 
-enum key_type
+#define make_file_avail(path)							\
+	do									\
+	{									\
+		if (access(path, F_OK) == 0)					\
+		{								\
+			EXIT_ON_FAILURE(munlink(path), 0);			\
+		}								\
+		else								\
+		{								\
+			EXIT_ON_FAILURE(prepare_file_directory(path), 0);	\
+		}								\
+	}									\
+	while (0)
+
+static size_t request_cmdkey(char **key)
 {
-	KT_UNKNOWN,
-	KT_PASSPHRASE,
-	KT_PKBIN,
-	KT_USRBIN,
-};
+	char  *cmdkey_buf1, *cmdkey_buf2;
+	size_t cmdkey_len1,  cmdkey_len2;
+	unsigned retry_count;
 
-static enum key_type resolve_key_type(void)
-{
-	size_t keylen;
-	if (user.key == NULL)
+	retry_count = 0;
+retry:
+	if ((cmdkey_len1 =
+		read_cmdkey(&cmdkey_buf1, "[pk] key for encryption: ")) == 0)
 	{
-		bug("user.key shall not be null.");
-	}
+		im_putchar('\n');
+		error("No key was provided.");
 
-	if ((intptr_t)user.key == 1)
-	{
-		return KT_PKBIN;
-	}
-
-	keylen = strlen(user.key);
-	if (is_binkey_wrp(user.key, keylen))
-	{
-		if (is_binkey_len(keylen))
+		if (retry_count > 0)
 		{
-			return KT_USRBIN;
+			note("%u key entry attempt%s made.",
+				retry_count, retry_count > 1 ? "s" : "");
 		}
 		else
 		{
-			warning("Encryption key is wrapped by \"x''\" but "
-				 "does not have a valid raw key data length.");
-			note("Using passphrase.");
-			return KT_PASSPHRASE;
+			note("A key is required.");
 		}
+
+		exit(1);
 	}
-	else
+
+	cmdkey_len2 = read_cmdkey(&cmdkey_buf2, "\n[pk] confirm key: ");
+	im_putchar('\n');
+
+	if (cmdkey_len1 != cmdkey_len2 || strcmp(cmdkey_buf1, cmdkey_buf2))
 	{
-		return KT_PASSPHRASE;
+		sfree(cmdkey_buf1, cmdkey_len1);
+		sfree(cmdkey_buf2, cmdkey_len2);
+
+		im_fputs("Password does not match previous, "
+			  "try again.\n", stderr);
+
+		clearerr(stdin);
+		retry_count++;
+		goto retry;
 	}
+
+	sfree(cmdkey_buf2, cmdkey_len2);
+
+	*key = cmdkey_buf1;
+	return cmdkey_len1;
 }
 
-static int precheck_file(const char *name, const char *path)
+static void persist_cipher_config(
+	const struct cipher_config *cc, const struct cipher_key *ck)
 {
-	if (access(path, F_OK) == 0)
-	{
-		return error("%s file '%s' already exists", name, path);
-	}
+	uint8_t *cc_buf, *cc_digest;
+	size_t cc_size;
+	int cc_fd;
 
-	prepare_file_directory(path);
+	cc_buf = serialize_cipher_config(cc, ck, &cc_size);
+	cc_digest = digest_message_sha256(cc_buf, cc_size);
 
-	return 0;
+	memcpy(cc_buf + cc_size, cc_digest, CIPHER_DIGEST_LENGTH);
+	clean_digest(cc_digest);
+
+	cc_size += CIPHER_DIGEST_LENGTH;
+
+	xio_pathname = cred_cc_path;
+	cc_fd = xopen(cred_cc_path, O_WRONLY | O_CREAT, FILCRT_BIT);
+
+	xwrite(cc_fd, cc_buf, cc_size);
+
+	close(cc_fd);
+	sfree(cc_buf, cc_size);
 }
 
-static int validate_key(enum key_type keytype, size_t keylen)
+/* pointer points to the keybuf */
+static void *keybuf_ref;
+
+static void destroy_key(void)
 {
-	if (keytype == KT_PASSPHRASE && is_blank_str(user.key))
+	if (keybuf_ref != NULL)
 	{
-		return error("Blank passphrase is not allowed.");
+		sfree(keybuf_ref, strlen(*(char **)keybuf_ref));
 	}
-
-	if (keytype == KT_USRBIN)
-	{
-		if (keylen != HK_STRLEN && keylen != SHK_STRLEN)
-		{
-			/**
-			 * 7.8.1 Macros for format specifiers
-			 * 
-			 * MS runtime does not yet understand C9x standard "ll"
-			 * length specifier. It appears to treat "ll" as "l".
-			 * The non-standard I64 length specifier causes warning
-			 * in GCC, but understood by MS runtime functions.
-			 */
-			return error("Invalid blob key length '%"PRIuMAX"'.",
-					keylen);
-		}
-		else if (!is_hexstr(user.key + 2, HEXKEY_LEN))
-		{
-			return error("Blob key \"%s\" contains invalid char.",
-					user.key);
-		}
-		else if (keylen == SHK_STRLEN &&
-			  !is_saltstr(user.key + 2 + HEXKEY_LEN, KEYSALT_LEN))
-		{
-			return error("Blob key \"%s\" contains invalid salt.",
-					user.key);
-		}
-	}
-
-	return 0;
-}
-
-static void process_cipher_config(enum key_type keytype, bool *out)
-{
-	bool use_cc;
-
-	use_cc = false;
-	if (cc.kdf_algorithm == NULL);
-	else if (keytype != KT_PASSPHRASE)
-	{
-		warning("Setting the KDF algorithm on a "
-			  "non-passphrase key has no effect.");
-
-		cc.kdf_algorithm = NULL;
-	}
-	else
-	{
-		EXIT_ON_FAILURE(check_kdf_algorithm(cc.kdf_algorithm), 0);
-
-		/* kdf algorithm */
-		use_cc |= strcmp(cc.kdf_algorithm, CPRDEF_KDF_ALGORITHM);
-	}
-
-	if (cc.hmac_algorithm)
-	{
-		EXIT_ON_FAILURE(check_hmac_algorithm(cc.hmac_algorithm), 0);
-
-		/* hmac algorithm */
-		use_cc |= strcmp(cc.hmac_algorithm, CPRDEF_HMAC_ALGORITHM);
-	}
-
-	/* kdf iter */
-	if (cc.kdf_iter == CPRDEF_KDF_ITER);
-	else if (keytype != KT_PASSPHRASE)
-	{
-		warning("Setting the KDF iteration times on a "
-			  "non-passphrase key has no effect.");
-
-		cc.kdf_iter = CPRDEF_KDF_ITER;
-	}
-	else
-	{
-		use_cc |= true;
-	}
-
-	EXIT_ON_FAILURE(check_page_size(cc.page_size), 0);
-
-	/* page size */
-	use_cc |= cc.page_size != CPRDEF_PAGE_SIZE;
-
-	EXIT_ON_FAILURE(check_compatibility(cc.compatibility), 0);
-
-	/* compatibility */
-	use_cc |= cc.compatibility != CPRDEF_COMPATIBILITY;
-
-	use_cc |= (keytype != KT_PASSPHRASE && user.store_key) ||
-			  user.store_key == 1;
-
-	*out = use_cc;
 }
 
 static void rm_cred_db(void)
@@ -258,103 +185,168 @@ static void rm_cred_cc(void)
 
 int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 {
-	bool encrypt_db;
+	int use_encryption = 0;
+	int use_cmdkey     = 0;
+	int remember_key   = -1;
+	int force_create   = 0;
+
+	struct cipher_config cc = CC_INIT;
+
+	struct option cmd_init_options[] = {
+		OPTION_SWITCH('e', "encrypt", &use_encryption,
+				"encrypt database"),
+		OPTION_SWITCH('k', "inkey", &use_cmdkey,
+				"input key by command line"),
+		OPTION_SWITCH(0, "remember", &remember_key,
+				"store key"),
+		OPTION_SWITCH('f', "force", &force_create,
+				"ignore existing files"),
+		OPTION_GROUP(""),
+		OPTION_STRING(0, "kdf-algorithm", &cc.kdf_algorithm,
+				"KDF algorithm used to generate "
+				 "encryption key for database"),
+		OPTION_STRING(0, "hmac-algorithm", &cc.hmac_algorithm,
+				"HMAC algorithm used to detect "
+				 "illegal data tampering"),
+		OPTION_UNSIGNED(0, "cipher-compat", &cc.compatibility,
+				 "version of api to used"),
+		OPTION_UNSIGNED(0, "page-size", &cc.page_size,
+				"size of a page"),
+		OPTION_UNSIGNED(0, "kdf-iter", &cc.kdf_iter,
+				 "key derivation iteration times"),
+		OPTION_END(),
+	};
 
 	parse_options(argc, argv, prefix, cmd_init_options,
 			cmd_init_usages, PARSER_ABORT_NON_OPTION);
 
-	encrypt_db = !!user.key;
+	if (!force_create)
+	{
+		assert_valid_file("Database", cred_db_path);
+	}
+	else
+	{
+		make_file_avail(cred_db_path);
+	}
 
-	precheck_file("Database", cred_db_path);
-
-	if (!encrypt_db)
+	use_encryption |= use_cmdkey;
+	if (!use_encryption)
 	{
 		goto setup_database;
 	}
 
-	const char *keystr;
+	char  *keybuf;
 	size_t keylen;
-	enum key_type keytype;
 
-	keytype = resolve_key_type();
-
-	if (keytype == KT_PKBIN)
+	if (use_cmdkey)
+	{
+		keylen = request_cmdkey(&keybuf);
+	}
+	else
 	{
 		uint8_t *binkey;
 
-		EXIT_ON_FAILURE(random_bytes_alloc(&binkey, BINKEY_LEN), 0);
-		user.key = bin2blob(binkey, BINKEY_LEN);
+		EXIT_ON_FAILURE(random_bytes(&binkey, BINKEY_LEN), 0);
+		keylen = bin2blob(&keybuf, binkey, BINKEY_LEN);
 	}
 
-	keylen = strlen(user.key);
-	keystr = user.key;
+	bool use_cc, use_passphrase;
 
-	EXIT_ON_FAILURE(validate_key(keytype, keylen), 0);
+	keybuf_ref = &keybuf;
+	atexit_chain_push(destroy_key);
 
-	bool use_cc;
+	use_cc = false;
+	use_passphrase = !is_blob_key(keybuf, keylen);
 
-	process_cipher_config(keytype, &use_cc);
+	/* kdf algorithm */
+	if (cc.kdf_algorithm == NULL);
+	else if (!use_passphrase)
+	{
+		warning("Setting the KDF algorithm on a "
+			  "non-passphrase key has no effect.");
+		cc.kdf_algorithm = NULL;
+	}
+	else
+	{
+		assert_valid_kdf_algorithm(cc.kdf_algorithm);
+		use_cc |= strcmp(cc.kdf_algorithm, CPRDEF_KDF_ALGORITHM);
+	}
+
+	/* hmac algorithm */
+	if (cc.hmac_algorithm != NULL)
+	{
+		assert_valid_hmac_algorithm(cc.hmac_algorithm);
+		use_cc |= strcmp(cc.hmac_algorithm, CPRDEF_HMAC_ALGORITHM);
+	}
+
+	/* kdf iter */
+	if (cc.kdf_iter == CPRDEF_KDF_ITER);
+	else if (!use_passphrase)
+	{
+		warning("Setting the KDF iteration times on a "
+			  "non-passphrase key has no effect.");
+		cc.kdf_iter = CPRDEF_KDF_ITER;
+	}
+	else
+	{
+		use_cc |= true;
+	}
+
+	/* page size */
+	assert_valid_page_size(cc.page_size);
+	use_cc |= cc.page_size != CPRDEF_PAGE_SIZE;
+
+	/* compatibility */
+	assert_valid_compatibility(cc.compatibility);
+	use_cc |= cc.compatibility != CPRDEF_COMPATIBILITY;
+
+	/**
+	 * non passphrase keys are remembered by default, passphrase keys
+	 * are remembered only if the user specifies --remember
+	 */
+	use_cc |= (!use_passphrase && remember_key) || remember_key == 1;
+
+	atexit_chain_pop(/* destroy_key */);
 
 	if (use_cc)
 	{
-		precheck_file("Config", cred_cc_path);
+		if (!force_create)
+		{
+			assert_valid_file("Config", cred_cc_path);
+		}
+		else
+		{
+			make_file_avail(cred_cc_path);
+		}
 	}
 	else
 	{
 		goto setup_database;
 	}
 
-	struct cipher_key ck = { 0 };
+	struct cipher_key ck = CK_INIT;
 
-	if (!user.store_key)
+	if (!remember_key && !use_cmdkey)
 	{
-		puts(keystr);
-		goto setup_cc;
+		puts(keybuf);
 	}
-
-	switch (keytype)
+	else if (use_passphrase)
 	{
-	case KT_PKBIN:
-	case KT_USRBIN:
-		ck.buf = hex2bin(strdup(keystr + 2), keylen - 3);
-		ck.len = (keylen - 3) / 2;
-		ck.is_binary = true;
-
-		break;
-	case KT_PASSPHRASE:
-		ck.buf = xmemdup(keystr, keylen + 1);
+		ck.buf = xmemdup(keybuf, keylen + 1);
 		ck.len = keylen;
 		ck.is_binary = false;
-
-		break;
-	default:
-		bug("keytype shall not be the value of '%d'", keytype);
+	}
+	else
+	{
+		ck.len = blob2bin(&ck.buf, strdup(keybuf), keylen);
+		ck.is_binary = true;
 	}
 
-setup_cc:;
-	/* cc stands for cipher config */
-	uint8_t *cc_buf, *cc_digest;
-	size_t cc_size;
-	int cc_fd;
-
-	cc_buf = serialize_cipher_config(&cc, &ck, &cc_size);
-	cc_digest = digest_message_sha256(cc_buf, cc_size);
-
-	memcpy(cc_buf + cc_size, cc_digest, CIPHER_DIGEST_LENGTH);
-	clean_digest(cc_digest);
-
-	cc_size += CIPHER_DIGEST_LENGTH;
-
 	atexit_chain_push(rm_cred_cc);
-	xio_pathname = cred_cc_path;
 
-	cc_fd = xopen(cred_cc_path, O_WRONLY | O_CREAT, FILCRT_BIT);
+	persist_cipher_config(&cc, &ck);
 
-	xwrite(cc_fd, cc_buf, cc_size);
-
-	close(cc_fd);
-	free(cc_buf);
-	free(ck.buf);
+	sfree(ck.buf, ck.len);
 
 setup_database:;
 	struct sqlite3 *db;
@@ -364,11 +356,11 @@ setup_database:;
 
 	xsqlite3_open(cred_db_path, &db);
 
-	if (encrypt_db)
+	if (use_encryption)
 	{
 		char *apply_cc_sqlstr;
 
-		xsqlite3_key(db, keystr, keylen);
+		xsqlite3_key(db, keybuf, keylen);
 
 		if ((apply_cc_sqlstr = format_apply_cc_sqlstr(&cc)) != NULL)
 		{
@@ -376,6 +368,8 @@ setup_database:;
 
 			free(apply_cc_sqlstr);
 		}
+
+		sfree(keybuf, keylen);
 	}
 
 	xsqlite3_exec(db, init_table_sqlstr, NULL, NULL, NULL);
@@ -387,8 +381,8 @@ setup_database:;
 	 * calling pop() twice because we need to remove atexit function
 	 * of both cipher config file and db file
 	 */
-	atexit_chain_pop();
-	atexit_chain_pop();
+	atexit_chain_pop(/* rm_cred_db */);
+	atexit_chain_pop(/* rm_cred_cc or NULL */);
 
 	return 0;
 }

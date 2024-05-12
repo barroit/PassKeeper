@@ -184,26 +184,26 @@ static int handle_sqlite3_prepare_v2_error(struct sqlite3 *db, va_list ap)
 
 static int handle_sqlite3_bind_blob_error(struct sqlite3 *db, va_list ap)
 {
-	const uint8_t *blob;
-	int bloblen;
+	const uint8_t *bin;
+	int bin_len;
 
-	char *blobstr;
+	char *hex;
 	int rescode;
 
-	blob = va_arg(ap, const uint8_t *);
-	bloblen = va_arg(ap, int);
+	bin = va_arg(ap, const uint8_t *);
+	bin_len = va_arg(ap, int);
 
-	if (bloblen > 16)
+	if (bin_len > 16)
 	{
-		bloblen = 16;
+		bin_len = 16;
 	}
-	blobstr = bin2hex(xmemdup(blob, bloblen), bloblen);
+	bin2hex(&hex, xmemdup(bin, bin_len), bin_len);
 
 	rescode = error_sqlerr(db, "Unable to bind blob value '%s%s' on db "
-				"'%s'", blobstr, bloblen > 16 ? "..." : "",
+				"'%s'", hex, bin_len > 16 ? "..." : "",
 				 msqlite3_pathname);
 
-	free(blobstr);
+	free(hex);
 	return rescode;
 }
 
@@ -315,23 +315,6 @@ int print_sqlite_error(void *sqlite3_fn, struct sqlite3 *db, ...)
 	}
 
 	return rescode;
-}
-
-void report_openssl_error(void)
-{
-	unsigned long errcode;
-	const char *reason;
-
-	errcode = ERR_get_error();
-	if (errcode == 0)
-	{
-		bug("calling report_openssl_error() without "
-			"actual error does not make sense");
-	}
-
-	reason = ERR_reason_error_string(errcode);
-
-	die("openssl reports '%s'", reason);
 }
 
 const char *xio_pathname = NULL;

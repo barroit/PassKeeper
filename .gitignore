@@ -12,8 +12,8 @@ docs/*.1
 
 ext/
 
-.pk-recfile
-.pk-credfl
-.pk-credky
+.pk-cred-db
+.pk-cred-cc
+.pk-tmp-rec
 
 *.db

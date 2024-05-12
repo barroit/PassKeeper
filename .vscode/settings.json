@@ -54,7 +54,8 @@
 		"security.h": "c",
 		"cipher-config.h": "c",
 		"enval.h": "c",
-		"termios.h": "c"
+		"termios.h": "c",
+		"key": "c"
 	},
 	"fileHeaderComment.parameter": {
 		"*": {

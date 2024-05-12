@@ -55,65 +55,6 @@ struct cipher_file_blob
 #define TYPE_SIZE sizeof(uint8_t)
 #define DLEN_SIZE sizeof(size_t)
 
-static const char *kdf_algorithms[] = {
-	CPRDEF_KDF_ALGORITHM,
-	"PBKDF2_HMAC_SHA256",
-	"PBKDF2_HMAC_SHA1",
-	NULL,
-};
-
-static const char *hmac_algorithms[] = {
-	CPRDEF_HMAC_ALGORITHM,
-	"HMAC_SHA256",
-	"HMAC_SHA1",
-	NULL,
-};
-
-int check_kdf_algorithm(const char *name)
-{
-	if (!string_in_array(name, kdf_algorithms))
-	{
-		return error("'%s' is not found in KDF algorithm "
-				"list.", name);
-	}
-
-	return 0;
-}
-
-int check_hmac_algorithm(const char *name)
-{
-	if (!string_in_array(name, hmac_algorithms))
-	{
-		return error("'%s' is not found in HMAC algorithm "
-				"list.", name);
-	}
-
-	return 0;
-}
-
-int check_page_size(unsigned page_size)
-{
-	if (!in_range_i(page_size, CPRMIN_PAGE_SIZE, CPRMAX_PAGE_SIZE) ||
-		!is_pow2(page_size))
-	{
-		return error("Invalid page size '%u'.", page_size);
-	}
-
-	return 0;
-}
-
-int check_compatibility(unsigned compatibility)
-{
-	if (!in_range_i(compatibility, CPRMIN_COMPATIBILITY,
-			 CPRMAX_COMPATIBILITY))
-	{
-		return error("Unknown cipher compatibility '%u'.",
-				compatibility);
-	}
-
-	return 0;
-}
-
 static void append_field(
 	struct cipher_file_blob *blob, uint8_t type,
 	const void *data, size_t dlen)
@@ -279,7 +220,7 @@ void free_cipher_config(struct cipher_config *cc, struct cipher_key *ck)
 {
 	free(cc->kdf_algorithm);
 	free(cc->hmac_algorithm);
-	secure_destroy(ck->buf, ck->len);
+	sfree(ck->buf, ck->len);
 }
 
 void resolve_cred_cc_realpath(const char **realpath)

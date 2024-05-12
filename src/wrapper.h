@@ -329,12 +329,47 @@ WINBOOL xDuplicateHandle(HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HAND
 WINBOOL xSetStdHandle(DWORD nStdHandle, HANDLE hHandle);
 #endif
 
-#define secure_destroy(p__, l__)	\
+#ifndef DISABLE_SFREE
+#define sfree(ptr, len)			\
 	do				\
 	{				\
-		zeromem((p__), (l__));	\
-		free(p__);		\
+		zeromem((ptr), (len));	\
+		free(ptr);		\
 	}				\
-	while (1)
+	while (0)
+#else
+#define sfree(ptr, len) free(ptr)
+#endif
+
+/**
+ * same as fputs except it not use buffer
+ *
+ * NOTE: msg will be evaluated multiple times
+ */
+#define im_fputs(str, stream) xwrite(fileno(stream), (str), strlen(str))
+
+/**
+ * print messages to stdout immediately (without buffer)
+ * messages are not automatically appended with newlines
+ *
+ * NOTE: msg will be evaluated multiple times
+ */
+#define im_print(str) im_fputs((str), stdout)
+
+/**
+ * same as im_print() but only one char will be written
+ * into stdout, and c will only be evaluated once
+ */
+#define im_putchar(c) xwrite(STDOUT_FILENO, &(char){ (c) }, 1)
+
+static inline FORCEINLINE int munlink(const char *name)
+{
+	if (unlink(name) != 0)
+	{
+		return error_errno("Unable to remove file '%s'", name);
+	}
+	
+	return 0;
+}
 
 #endif /* WRAPPER_H */

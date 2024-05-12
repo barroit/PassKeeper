@@ -65,6 +65,12 @@ void strlist_filter(struct strlist *sl, strlist_filter_cb_t pass, bool rmext);
 
 char *strlist_join(struct strlist *sl, char *separator, enum strlist_join_ext_pos join_pos);
 
+#define strlist_have_next(list, iter)\
+	(list->elvec != NULL && iter - list->elvec < list->size)
+
+#define strlist_foreach(list, iter)\
+	for (iter = list->elvec; strlist_have_next(list, iter); iter++)
+
 /**
  * find `str` in `arr`, the last element of `arr` must be NULL
  */

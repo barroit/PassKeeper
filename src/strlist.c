@@ -138,9 +138,9 @@ void strlist_filter(struct strlist *sl, strlist_filter_cb_t pass, bool free_ext)
 		ii = track[i];
 		iii++;
 
-		while (i < tracksz - 1  ?
+		while (i < tracksz - 1 ?
 			++ii != track[i + 1] :
-			++ii < sl->size)
+			 ++ii < sl->size)
 		{
 			sl->elvec[ii - iii] = sl->elvec[ii];
 		}
@@ -155,7 +155,6 @@ char *strlist_join(
 	char *buf0, *buf;
 	size_t bufsz, bufcap, prevsz;
 	size_t strsz, extsz, sepsz;
-	unsigned i;
 
 	bufsz = 0;
 	bufcap = 0;
@@ -164,13 +163,13 @@ char *strlist_join(
 	buf0 = NULL;
 	buf = buf0;
 
-	for (i = 0; i < sl->size; i++)
+	struct strlist_elem *el;
+	strlist_foreach(sl, el)
 	{
 		prevsz = bufsz;
-		strsz = strlen(sl->elvec[i].str);
+		strsz = strlen(el->str);
 		extsz = join_pos != EXT_JOIN_NONE &&
-			 sl->elvec[i].ext != NULL ?
-			  strlen(sl->elvec[i].ext) : 0;
+			 el->ext != NULL ? strlen(el->ext) : 0;
 		bufsz += strsz + extsz + sepsz;
 
 		CAPACITY_GROW(buf0, bufsz, bufcap);
@@ -179,14 +178,14 @@ char *strlist_join(
 		buf += prevsz;
 		if (join_pos == EXT_JOIN_HEAD)
 		{
-			memcpy(buf, sl->elvec[i].ext, extsz);
+			memcpy(buf, el->ext, extsz);
 			buf += extsz;
 		}
-		memcpy(buf, sl->elvec[i].str, strsz);
+		memcpy(buf, el->str, strsz);
 		buf += strsz;
 		if (join_pos == EXT_JOIN_TAIL)
 		{
-			memcpy(buf, sl->elvec[i].ext, extsz);
+			memcpy(buf, el->ext, extsz);
 			buf += extsz;
 		}
 		memcpy(buf, separator, sepsz);

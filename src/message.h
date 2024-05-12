@@ -47,6 +47,8 @@ void die_routine(const char *syserr, const char *format, ...)
 void bug_routine(const char *file, int line, const char *format, ...)
 	__attribute__((format(printf, 3, 4), noreturn));
 
+#define last_openssl_errstr	ERR_reason_error_string(ERR_get_error())
+
 #define note(...)		note_routine(__VA_ARGS__)
 
 #define warning(...)		warning_routine(NULL, __VA_ARGS__)
@@ -55,9 +57,11 @@ void bug_routine(const char *file, int line, const char *format, ...)
 #define error(...)		error_routine(NULL, __VA_ARGS__)
 #define error_errno(...)	error_routine(strerror(errno), __VA_ARGS__)
 #define error_sqlerr(db__, ...)	error_routine(sqlite3_errmsg(db__), __VA_ARGS__)
+#define error_openssl(...)	error_routine(last_openssl_errstr, __VA_ARGS__)
 
 #define die(...)		die_routine(NULL, __VA_ARGS__)
 #define die_errno(...)		die_routine(strerror(errno), __VA_ARGS__)
+#define die_openssl(...)	die_routine(last_openssl_errstr, __VA_ARGS__)
 
 #define bug(...) bug_routine(__FILE__, __LINE__, __VA_ARGS__)
 
@@ -78,9 +82,6 @@ void die_winerr(const char *format, ...)
 extern const char *msqlite3_pathname;
 
 int print_sqlite_error(void *sqlite3_fn, struct sqlite3 *db, ...);
-
-void report_openssl_error(void)
-	__attribute__((noreturn));
 
 /**
  * used for the file name printed by xio_die()

@@ -54,14 +54,6 @@ struct cipher_key
 
 #define CIPHER_DIGEST_LENGTH 32
 
-#define BINKEY_LEN  32
-#define HEXKEY_LEN  64
-#define KEYSALT_LEN 32
-
-#define HK_STRLEN   (HEXKEY_LEN + 3)
-#define SHK_STRLEN  (HK_STRLEN + KEYSALT_LEN)
-#define HK_MAXLEN   SHK_STRLEN + 1 /* add one for null-terminator */
-
 #define CC_INIT						\
 	{						\
 		.compatibility = CPRDEF_COMPATIBILITY,	\
@@ -71,22 +63,54 @@ struct cipher_key
 
 #define CK_INIT { 0 }
 
-#define is_binkey_len(l__)\
-	( (l__) == HK_STRLEN || (l__) == SHK_STRLEN )
+#define assert_valid_kdf_algorithm(algo)					\
+	do									\
+	{									\
+		if (strcmp(CPRDEF_KDF_ALGORITHM, (algo)) &&			\
+		     strcmp("PBKDF2_HMAC_SHA256", (algo)) &&			\
+		      strcmp("PBKDF2_HMAC_SHA1", (algo)))			\
+		{								\
+			exit(error("'%s' is not found in KDF algorithm "	\
+					"list.", (algo)));			\
+		}								\
+	}									\
+	while (0)
 
-#define is_binkey_wrp(k__, l__)\
-	( (k__)[0] == 'x' && (k__)[1] == '\'' && (k__)[(l__) - 1] == '\'' )
+#define assert_valid_hmac_algorithm(algo)					\
+	do									\
+	{									\
+		if (strcmp(CPRDEF_HMAC_ALGORITHM, (algo)) &&			\
+		     strcmp("HMAC_SHA256", (algo)) &&				\
+		      strcmp("HMAC_SHA1", (algo)))				\
+		{								\
+			exit(error("'%s' is not found in HMAC algorithm "	\
+					"list.", (algo)));			\
+		}								\
+	}									\
+	while (0)
 
-#define is_binkey_str(k__, l__)\
-	( is_binkey_len(l__) && is_binkey_wrp(k__, l__) )
+#define assert_valid_page_size(ps)						\
+	do									\
+	{									\
+		if (!in_range_i((ps), CPRMIN_PAGE_SIZE, CPRMAX_PAGE_SIZE) ||	\
+		     !is_pow2((ps)))						\
+		{								\
+			exit(error("Invalid page size '%u'.", (ps)));		\
+		}								\
+	}									\
+	while (0)
 
-int check_kdf_algorithm(const char *name);
-
-int check_hmac_algorithm(const char *name);
-
-int check_page_size(unsigned page_size);
-
-int check_compatibility(unsigned compatibility);
+#define assert_valid_compatibility(cap)						\
+	do									\
+	{									\
+		if (!in_range_i((cap), CPRMIN_COMPATIBILITY,			\
+			CPRMAX_COMPATIBILITY))					\
+		{								\
+			exit(error("Invalid cipher compatibility '%u'.",	\
+					(cap)));				\
+		}								\
+	}									\
+	while (0)
 
 /**
  * this function guarantees the returned buffer

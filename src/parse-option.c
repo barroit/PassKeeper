@@ -436,7 +436,7 @@ static enum parse_option_result parse_option_next(
 		/* skip hyphen */
 		ctx->optstr = argstr + 1;
 
-		while (ctx->optstr != 0)
+		while (ctx->optstr != NULL && *ctx->optstr != 0)
 		{
 			switch ((rescode = parse_short_option(ctx, options, &outopt)))
 			{

@@ -183,8 +183,11 @@ setup_database:;
 	keystr = NULL;
 	if (use_cmdkey)
 	{
-		ck.len = read_cmdkey((char **)&ck.buf);
-		// todo: check length here
+		// TODO
+		if ((ck.len = read_cmdkey((char **)&ck.buf, "")) == 0)
+		{
+			return error("Empty keys are illegal.");
+		}
 
 		keystr = (char *)ck.buf;
 		keylen = ck.len;
@@ -224,10 +227,9 @@ setup_database:;
 	}
 	else
 	{
-		keystr = bin2blob(ck.buf, ck.len);
-		keylen = ck.len * 2 + 3;
-
-		ck.buf = (uint8_t *)keystr;
+		// todo fix this
+		// keylen = bin2blob((char **)&ck.buf, ck.buf, ck.len);
+		// keystr = (char *)ck.buf;
 	}
 
 apply_key:
