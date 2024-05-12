@@ -133,27 +133,31 @@ int test_file_permission_st(struct stat *st, int mode)
 }
 #endif
 
-int prepare_file_directory(const char *pathname)
+int make_fdir_avail(const char *filepath)
 {
 	char *pathcopy;
 	const char *dirpath;
+	int rescode;
 
-	pathcopy = strdup(pathname);
+	pathcopy = strdup(filepath);
 	dirpath = dirname(pathcopy);
 
-	struct stat st;
-	if (stat(dirpath, &st) != 0)
+	rescode = 0;
+	if (mkdir(dirpath) != 0)
 	{
-		xmkdir(dirpath);
-	}
-	else if (/* TODO: this check breaks SRP, consider removing it */
-	test_file_permission(dirpath, &st, W_OK) != 0)
-	{
-		return error("Access denied by file '%s'", dirpath);
+		if (errno != EEXIST)
+		{
+			rescode = error_errno("Unable to create directory at "
+						"'%s'", dirpath);
+		}
+		else if (access(dirpath, W_OK) != 0)
+		{
+			rescode = error("Access denied by '%s'", dirpath);
+		}
 	}
 
 	free(pathcopy);
-	return 0;
+	return rescode;
 }
 
 void populate_file(const char *pathname, const char *buf, size_t buflen)

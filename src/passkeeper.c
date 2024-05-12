@@ -166,7 +166,7 @@ static void precheck_command(unsigned flags)
 {
 	if (flags & USE_RECFILE)
 	{
-		EXIT_ON_FAILURE(prepare_file_directory(tmp_rec_path), 0);
+		EXIT_ON_FAILURE(make_fdir_avail(tmp_rec_path), 0);
 	}
 
 	if (flags & USE_CREDFILE)

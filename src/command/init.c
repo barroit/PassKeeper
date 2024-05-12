@@ -63,31 +63,33 @@ const char *const cmd_init_usages[] = {
 	NULL,
 };
 
-#define assert_valid_file(name, path)						\
-	do									\
-	{									\
-		if (access(path, F_OK) == 0)					\
-		{								\
-			exit(error("%s file '%s' already exists", name, path));	\
-		}								\
-										\
-		EXIT_ON_FAILURE(prepare_file_directory(path), 0);		\
-	}									\
-	while (0)
+static void make_file_avail(const char *path, bool force)
+{
+	if (!force)
+	{
+		if (access(path, F_OK) == 0)
+		{
+			exit(error("file '%s' already exists", path));
+		}
 
-#define make_file_avail(path)							\
-	do									\
-	{									\
-		if (access(path, F_OK) == 0)					\
-		{								\
-			EXIT_ON_FAILURE(munlink(path), 0);			\
-		}								\
-		else								\
-		{								\
-			EXIT_ON_FAILURE(prepare_file_directory(path), 0);	\
-		}								\
-	}									\
-	while (0)
+		EXIT_ON_FAILURE(make_fdir_avail(path), 0);
+	}
+	else
+	{
+		if (access(path, F_OK) == 0)
+		{
+			if (unlink(path) != 0)
+			{
+				exit(error_errno("Unable to remove "
+						  "file '%s'", path));
+			}
+		}
+		else
+		{
+			EXIT_ON_FAILURE(make_fdir_avail(path), 0);
+		}
+	}
+}
 
 static size_t request_cmdkey(char **key)
 {
@@ -195,7 +197,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	struct option cmd_init_options[] = {
 		OPTION_SWITCH('e', "encrypt", &use_encryption,
 				"encrypt database"),
-		OPTION_SWITCH('k', "inkey", &use_cmdkey,
+		OPTION_SWITCH('i', "cmdln-key", &use_cmdkey,
 				"input key by command line"),
 		OPTION_SWITCH(0, "remember", &remember_key,
 				"store key"),
@@ -220,14 +222,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	parse_options(argc, argv, prefix, cmd_init_options,
 			cmd_init_usages, PARSER_ABORT_NON_OPTION);
 
-	if (!force_create)
-	{
-		assert_valid_file("Database", cred_db_path);
-	}
-	else
-	{
-		make_file_avail(cred_db_path);
-	}
+	make_file_avail(cred_db_path, force_create);
 
 	use_encryption |= use_cmdkey;
 	if (!use_encryption)
@@ -308,21 +303,12 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 
 	atexit_chain_pop(/* destroy_key */);
 
-	if (use_cc)
-	{
-		if (!force_create)
-		{
-			assert_valid_file("Config", cred_cc_path);
-		}
-		else
-		{
-			make_file_avail(cred_cc_path);
-		}
-	}
-	else
+	if (!use_cc)
 	{
 		goto setup_database;
 	}
+
+	make_file_avail(cred_db_path, force_create);
 
 	struct cipher_key ck = CK_INIT;
 

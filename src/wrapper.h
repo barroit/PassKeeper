@@ -115,14 +115,6 @@ static inline size_t __attribute__((const)) st_mult(size_t x, size_t y)
 	}						\
 	while (0)
 
-static inline void xmkdir(const char *path)
-{
-	if (mkdir(path) != 0)
-	{
-		die_errno("failed to create a directory at path '%s'", path);
-	}
-}
-
 int xopen(const char *file, int oflag, ...);
 
 ssize_t iread(int fd, void *buf, size_t nbytes);
@@ -361,15 +353,5 @@ WINBOOL xSetStdHandle(DWORD nStdHandle, HANDLE hHandle);
  * into stdout, and c will only be evaluated once
  */
 #define im_putchar(c) xwrite(STDOUT_FILENO, &(char){ (c) }, 1)
-
-static inline FORCEINLINE int munlink(const char *name)
-{
-	if (unlink(name) != 0)
-	{
-		return error_errno("Unable to remove file '%s'", name);
-	}
-	
-	return 0;
-}
 
 #endif /* WRAPPER_H */
