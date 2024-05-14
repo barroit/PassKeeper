@@ -5,7 +5,8 @@
 			"defines": [
 				"${default}",
 				"LINUX",
-				"SQLITE_HAS_CODEC"
+				"SQLITE_HAS_CODEC",
+				"PK_DEBUG"
 			],
 			"intelliSenseMode": "linux-gcc-x64",
 			"compilerPath": "${env:HOME}/.local/bin/gcc",

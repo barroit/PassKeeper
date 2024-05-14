@@ -69,18 +69,15 @@ struct option
 	const char *argh;
 
 	unsigned count;
-	unsigned flags;
+	enum option_flag flags;
 };
 
-enum option_parser_flag
+enum command_parser_flag
 {
 	PARSER_ABORT_NON_OPTION = 1 << 0,
-	PARSER_ONE_SHOT = 1 << 1,
-	PARSER_STOP_AT_NON_OPTION = 1 << 2,
-	/**
-	 * disable -h
-	 */
-	PARSER_NO_SHORT_HELP = 1 << 3,
+	PARSER_ONE_SHOT         = 1 << 1,
+	PARSER_UNTIL_NON_OPTION = 1 << 2,
+	PARSER_NO_SHORT_HELP    = 1 << 3, /* disable -h */
 };
 
 #define OPTION_STRING_F(s, l, v, a, h, f)		\
@@ -176,8 +173,6 @@ enum option_parser_flag
 
 extern int optmsg_alignment;
 
-int process_get_unsigned_argument_result(int rescode, const char *val, const char *field);
-
-int parse_options(int argc, const char **argv, const char *prefix, const struct option *options, const char *const *usages, enum option_parser_flag flags);
+int parse_options(int argc, const char **argv, const char *prefix, const struct option *options, const char *const *usages, enum command_parser_flag flags);
 
 #endif /* PARSEOPT_H */

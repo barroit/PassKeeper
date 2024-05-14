@@ -232,7 +232,7 @@ int main(int argc, const char **argv)
 
 	argc = parse_options(argc, argv, prefix,
 				cmd_pk_options, cmd_pk_usages,
-					PARSER_STOP_AT_NON_OPTION);
+					PARSER_UNTIL_NON_OPTION);
 
 	optmsg_alignment = DEFAULT_OPTMSG_ALIGNMENT;
 

@@ -65,9 +65,6 @@ void bug_routine(const char *file, int line, const char *format, ...)
 
 #define bug(...) bug_routine(__FILE__, __LINE__, __VA_ARGS__)
 
-int fprintfln(FILE *stream, const char *fmt, ...)
-	__attribute__((format(printf, 2, 3)));
-
 #ifdef WINDOWS_NATIVE
 /**
  * same as error_errno except this function set errno to GetLastError()

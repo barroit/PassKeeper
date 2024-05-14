@@ -142,23 +142,6 @@ void bug_routine(const char *file, int line, const char *format, ...)
 	exit(EXIT_FAILURE);
 }
 
-int fprintfln(FILE *stream, const char *fmt, ...)
-{
-	int nr;
-	va_list ap;
-
-	va_start(ap, fmt);
-	if ((nr = vfprintf(stream, fmt, ap)) < 0)
-	{
-		bug("your vfprintf is broken (returned %d)", nr);
-	}
-	va_end(ap);
-
-	putc('\n', stream);
-	nr += 1;
-	return nr;
-}
-
 const char *msqlite3_pathname = NULL;
 
 static int handle_sqlite3_exec_error(struct sqlite3 *db, va_list ap)

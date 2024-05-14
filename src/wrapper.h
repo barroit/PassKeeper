@@ -25,8 +25,6 @@
 
 #define FLEX_ARRAY
 
-#define exit(code__) exit((code__) & 0xff)
-
 #define is_pow2(x__)\
 	( (x__) != 0 && ( (x__) & ( (x__) - 1 ) ) == 0 )
 
@@ -353,5 +351,11 @@ WINBOOL xSetStdHandle(DWORD nStdHandle, HANDLE hHandle);
  * into stdout, and c will only be evaluated once
  */
 #define im_putchar(c) xwrite(STDOUT_FILENO, &(char){ (c) }, 1)
+
+#ifdef PK_DEBUG
+#define debug_run() if (1)
+#else
+#define debug_run() if (0)
+#endif
 
 #endif /* WRAPPER_H */

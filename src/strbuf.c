@@ -316,30 +316,38 @@ char *u8substr(const char *iter, size_t start_index, size_t substr_length)
 	return dest;
 }
 
-int strtou(const char *str, unsigned *res)
+int strtou(const char *str, unsigned *res0)
 {
 	if (*str == '-')
 	{
-		return EINVAL;
+		errno = EINVAL;
+		return -1;
 	}
 
 	char *end;
-	unsigned long int tmpres;
+	unsigned long res;
 
 	errno = 0;
-	tmpres = strtoul(str, &end, 10);
+	res = strtoul(str, &end, 10);
+
+	if (errno != 0)
+	{
+		return -1;
+	}
 
 	if (*end != 0)
 	{
-		return EILSEQ;
+		errno = EILSEQ;
+		return -1;
 	}
 
-	if (errno == ERANGE || tmpres > UINT_MAX)
+	if (res > UINT_MAX)
 	{
-		return ERANGE;
+		errno = ERANGE;
+		return -1;
 	}
 
-	*res = (unsigned)tmpres;
+	*res0 = (unsigned)res;
 
 	return 0;
 }

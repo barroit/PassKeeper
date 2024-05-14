@@ -115,7 +115,7 @@ retry:
 			note("A key is required.");
 		}
 
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	cmdkey_len2 = read_cmdkey(&cmdkey_buf2, "\n[pk] confirm key: ");
@@ -163,15 +163,14 @@ static void persist_cipher_config(
 	close(cc_fd);
 	sfree(cc_buf, cc_size);
 }
-
-/* pointer points to the keybuf */
-static void *keybuf_ref;
+ 
+static char **keybuf_ref;
 
 static void destroy_key(void)
 {
 	if (keybuf_ref != NULL)
 	{
-		sfree(keybuf_ref, strlen(*(char **)keybuf_ref));
+		sfree(*keybuf_ref, strlen(*keybuf_ref));
 	}
 }
 
@@ -222,6 +221,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	parse_options(argc, argv, prefix, cmd_init_options,
 			cmd_init_usages, PARSER_ABORT_NON_OPTION);
 
+	exit(0);
 	make_file_avail(cred_db_path, force_create);
 
 	use_encryption |= use_cmdkey;
