@@ -72,11 +72,13 @@ static const char *const cmd_pk_usages[] = {
 };
 
 static const struct option cmd_pk_options[] = {
-	OPTION_FILENAME_H(0, "cred-db",  &cred_db_path),
-	OPTION_FILENAME_H(0, "cred-cc",  &cred_cc_path),
-	OPTION_FILENAME_H(0, "tmp-rec",  &tmp_rec_path),
-	OPTION_STRING_H  (0, "editor",   &ext_editor),
-	OPTION_OPTARG_HN (0, "spinner",  &spinner_style, "default"),
+	OPTION_FILENAME_F(0, "cred-db", &cred_db_path, 0, 0, OPTION_HIDDEN),
+	OPTION_FILENAME_F(0, "cred-cc", &cred_cc_path, 0, 0, OPTION_HIDDEN),
+	OPTION_FILENAME_F(0, "tmp-rec", &tmp_rec_path, 0, 0, OPTION_HIDDEN),
+
+	OPTION_STRING_F(0, "editor",  &ext_editor,    0, 0, OPTION_HIDDEN),
+	OPTION_OPTARG_F(0, "spinner", &spinner_style, 0, 0, 0,
+				OPTION_HIDDEN | OPTION_ALLONEG),
 
 	OPTION_GROUP("database manipulation"),
 	OPTION_COMMAND("init",    "Initialize database files for "

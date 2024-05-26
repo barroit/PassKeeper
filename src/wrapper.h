@@ -42,14 +42,28 @@
 
 static inline void *xmalloc(size_t size)
 {
-	void *ret;
-	if ((ret = malloc(size)) == NULL)
+	void *mem;
+
+	if ((mem = malloc(size)) == NULL)
 	{
 		die("out of memory, malloc failed (tried to allocate "
 			"%"PRIuMAX" bytes)", size);
 	}
 
-	return ret;
+	return mem;
+}
+
+static inline void *xcalloc(size_t nmemb, size_t size)
+{
+	void *mem;
+
+	if ((mem = calloc(nmemb, size)) == NULL)
+	{
+		die("out of memory, malloc failed (tried to allocate "
+			"%"PRIuMAX" bytes)", size);
+	}
+
+	return mem;
 }
 
 static inline void *xrealloc(void *ptr, size_t size)
@@ -87,11 +101,14 @@ static inline size_t __attribute__((const)) st_mult(size_t x, size_t y)
 	return x * y;
 }
 
-#define fixed_growth(l__) ( st_mult(st_add((l__), 16), 3) / 2 )
+#define fixed_growth(len)\
+	( st_mult(st_add((len), 16), 3) / 2 )
 
-#define MOVE_ARRAY(dest, src, size) memmove(dest, src, st_mult(sizeof(*src), size))
+#define MOVE_ARRAY(dest, src, size)\
+	memmove((dest), (src), st_mult(sizeof(*src), size))
 
-#define REALLOC_ARRAY(ptr, size) xrealloc(ptr, st_mult(sizeof(*ptr), size))
+#define REALLOC_ARRAY(ptr, size)\
+	xrealloc((ptr), st_mult(sizeof(*ptr), size))
 
 #define FLEX_ALLOC_ARRAY(obj__, field__, buf__, len__)			\
 	do								\

@@ -30,76 +30,45 @@
 #include "security.h"
 #include "atexit-chain.h"
 
-static const char *insert_common_group_sqlstr =
-	"INSERT INTO account ("
-		"sitename,"
-		"siteurl,"
-		"username,"
-		"password"
-	") VALUES ("
-		":sitename,"
-		":siteurl,"
-		":username,"
-		":password"
-	");";
+#define INSERT_COMMON_GROUP_SQLSTR		\
+	"INSERT INTO account ("			\
+		"sitename,"			\
+		"siteurl,"			\
+		"username,"			\
+		"password"			\
+	") VALUES ("				\
+		":sitename,"			\
+		":siteurl,"			\
+		":username,"			\
+		":password"			\
+	");"
 
-static const char *insert_security_group_sqlstr =
-	"INSERT INTO account_security ("
-		"account_id,"
-		"guard,"
-		"recovery,"
-		"memo"
-	") VALUES ("
-		":account_id,"
-		":guard,"
-		":recovery,"
-		":memo"
-	");";
+#define INSERT_SECURITY_GROUP_SQLSTR		\
+	"INSERT INTO account_security ("	\
+		"account_id,"			\
+		"guard,"			\
+		"recovery,"			\
+		"memo"				\
+	") VALUES ("				\
+		":account_id,"			\
+		":guard,"			\
+		":recovery,"			\
+		":memo"				\
+	");"
 
-static const char *insert_misc_group_sqlstr =
-	"INSERT INTO account_misc ("
-		"account_id,"
-		"comment"
-	") VALUES ("
-		":account_id,"
-		":comment"
-	");";
+#define INSERT_MISC_GROUP_SQLSTR		\
+	"INSERT INTO account_misc ("		\
+		"account_id,"			\
+		"comment"			\
+	") VALUES ("				\
+		":account_id,"			\
+		":comment"			\
+	");"
 
-static struct record rec;
-
-static int  use_editor = INITIAL_BOL;
-static bool use_cmdkey;
-
-const char *const cmd_create_usages[] = {
-	"pk create [--[no]-nano] [<field>...]",
-	NULL,
-};
-
-const struct option cmd_create_options[] = {
-	OPTION_SWITCH('e', "nano", &use_editor,
-			"use editor to edit records"),
-	OPTION_SWITCH('k', "key", &use_cmdkey,
-			"enter the key from the command line"),
-	OPTION_GROUP(""),
-	OPTION_STRING(0, "sitename", &rec.sitename,
-			"human readable name of a website"),
-	OPTION_STRING(0, "siteurl", &rec.siteurl,
-			"url that used for disambiguation"),
-	OPTION_STRING(0, "username", &rec.username,
-			"identification that can be used to login"),
-	OPTION_STRING(0, "password", &rec.password,
-			"secret phrase that can be used to login"),
-	OPTION_GROUP(""),
-	OPTION_STRING(0, "guard", &rec.guard,
-			"text to help verify this account is yours"),
-	OPTION_STRING(0, "recovery", &rec.recovery,
-			"code for account recovery"),
-	OPTION_PATHNAME(0, "memo", &rec.memo,
-			"screenshot of the recovery code"),
-	OPTION_GROUP(""),
-	OPTION_STRING(0, "comment", &rec.comment,
-			"you just write what the fuck you want to"),
-	OPTION_END(),
+enum key_type {
+	RK_CREDCC = 0,
+	RK_CMDKEY,
+	RK_NOENCR
 };
 
 static void rm_tmp_rec(void)
@@ -109,13 +78,53 @@ static void rm_tmp_rec(void)
 
 int cmd_create(int argc, const char **argv, const char *prefix)
 {
+	struct record rec      = INIT_RECORD;
+	enum key_type rk_mode  = RK_CREDCC;
+	int use_editor         = -1;
+
+	const struct option cmd_create_options[] = {
+		OPTION__NANO(&use_editor),
+		OPTION_CMDMODE(0, "credcc", &rk_mode,
+				"decrypt db by cc file", RK_CREDCC),
+		OPTION_CMDMODE(0, "cmdkey", &rk_mode,
+				"decrypt db by command line key", RK_CMDKEY),
+		OPTION_CMDMODE(0, "noencr", &rk_mode,
+				"no db decryption", RK_NOENCR),
+		OPTION_GROUP(""),
+		OPTION_STRING(0, "sitename", &rec.sitename,
+				"human readable name of a website"),
+		OPTION_STRING(0, "siteurl", &rec.siteurl,
+				"url that used for disambiguation"),
+		OPTION_STRING(0, "username", &rec.username,
+				"identification that can be used to login"),
+		OPTION_STRING(0, "password", &rec.password,
+				"secret phrase that can be used to login"),
+		OPTION_GROUP(""),
+		OPTION_STRING(0, "guard", &rec.guard,
+				"text to help verify this account is yours"),
+		OPTION_STRING(0, "recovery", &rec.recovery,
+				"code for account recovery"),
+		OPTION_PATHNAME(0, "memo", &rec.memo,
+				"screenshot of the recovery code"),
+		OPTION_GROUP(""),
+		OPTION_STRING(0, "comment", &rec.comment,
+				"you just write what the fuck you want to"),
+		OPTION_END(),
+	};
+
+	const char *const cmd_create_usages[] = {
+		"pk create [--nano] [--cmdkey] [<field>...]",
+		NULL,
+	};
+
 	parse_options(argc, argv, prefix, cmd_create_options,
 			cmd_create_usages, PARSER_ABORT_NON_OPTION);
+	exit(0);
 
 	bool setup_editor;
 
 	setup_editor = false;
-	if (use_editor == INITIAL_BOL && is_incomplete_record(&rec))
+	if (use_editor == -1 && is_incomplete_record(&rec))
 	{
 		/**
 		 * ./pk create --sitename="xxx" --username="xxx"
@@ -123,7 +132,7 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 		 */
 		setup_editor = true;
 	}
-	else if (use_editor == OPTION_SWITCH_TRUE)
+	else if (use_editor == 1)
 	{
 		/**
 		 * ./pk create --sitename="xxx" --username="xxx"
@@ -169,7 +178,7 @@ setup_database:;
 	resolve_cred_cc_realpath(&cred_cc_realpath);
 	use_cipher_config = cred_cc_realpath != NULL;
 
-	if (!use_cipher_config && !use_cmdkey)
+	if (!use_cipher_config && !true /* use_cmdkey */)
 	{
 		goto insert_record;
 	}
@@ -181,10 +190,10 @@ setup_database:;
 	size_t keylen;
 
 	keystr = NULL;
-	if (use_cmdkey)
+	if (true/* todo replace use_cmdkey */)
 	{
-		// TODO
-		if ((ck.len = read_cmdkey((char **)&ck.buf, "")) == 0)
+		if ((ck.len = read_cmdkey((char **)&ck.buf,
+				"[pk] key for decryption: ")) == 0)
 		{
 			return error("Empty keys are illegal.");
 		}
@@ -227,9 +236,8 @@ setup_database:;
 	}
 	else
 	{
-		// todo fix this
-		// keylen = bin2blob((char **)&ck.buf, ck.buf, ck.len);
-		// keystr = (char *)ck.buf;
+		keylen = bin2blob((char **)&ck.buf, ck.buf, ck.len);
+		keystr = (char *)ck.buf;
 	}
 
 apply_key:
@@ -260,7 +268,7 @@ insert_record:
 	struct sqlite3_stmt *stmt;
 	int64_t account_id;
 
-	xsqlite3_prepare_v2(db, insert_common_group_sqlstr, -1, &stmt, NULL);
+	xsqlite3_prepare_v2(db, INSERT_COMMON_GROUP_SQLSTR, -1, &stmt, NULL);
 
 	bind_record_basic_column(stmt, &rec);
 
@@ -272,7 +280,7 @@ insert_record:
 
 	if (have_security_group(&rec))
 	{
-		xsqlite3_prepare_v2(db, insert_security_group_sqlstr,
+		xsqlite3_prepare_v2(db, INSERT_SECURITY_GROUP_SQLSTR,
 					-1, &stmt, NULL);
 
 		bind_record_security_column(stmt, account_id, &rec);
@@ -284,7 +292,7 @@ insert_record:
 
 	if (have_misc_group(&rec))
 	{
-		xsqlite3_prepare_v2(db, insert_misc_group_sqlstr,
+		xsqlite3_prepare_v2(db, INSERT_MISC_GROUP_SQLSTR,
 					-1, &stmt, NULL);
 
 		bind_record_misc_column(stmt, account_id, &rec);

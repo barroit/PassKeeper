@@ -37,6 +37,8 @@ struct record
 	const char *comment;
 };
 
+#define INIT_RECORD { 0 }
+
 void populate_record_file(const char *rec_path, const struct record *rec);
 
 extern bool is_blank_str(const char *str0);

@@ -22,10 +22,10 @@
 
 #include "enval.h"
 
-const char *cred_db_path = NULL;
-const char *cred_cc_path = NULL;
+const char *cred_db_path  = NULL;
+const char *cred_cc_path  = NULL;
 
-const char *tmp_rec_path = NULL;
+const char *tmp_rec_path  = NULL;
 
-const char *ext_editor = NULL;
-const char *spinner_style = INITIAL_PTR;
+const char *ext_editor    = NULL;
+const char *spinner_style = (void *)-1;

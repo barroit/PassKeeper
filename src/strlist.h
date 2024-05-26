@@ -68,6 +68,12 @@ char *strlist_join(struct strlist *sl, char *separator, enum strlist_join_ext_po
 #define strlist_foreach(list, iter)\
 	for (iter = list->elvec; iter - list->elvec < list->size; iter++)
 
+#define list_have_next(pos)\
+	( pos->next != NULL )
+
+#define list_for_each(pos, head)\
+	for (pos = (head)->next; list_have_next(pos); pos = pos->next)
+
 /**
  * find `str` in `arr`, the last element of `arr` must be NULL
  */

@@ -48,10 +48,7 @@ enum option_category
 struct command_mode
 {
 	int val, *valptr;
-
 	const struct option *opt;
-	const char *arg;
-
 	enum option_category category;
 
 	struct command_mode *next;
@@ -74,7 +71,7 @@ struct parser_context
 	struct command_mode *cmdmode;
 };
 
-static void prefix_optname(
+static void sem_optname(
 	char *buf, size_t size,
 	const struct option *opt, enum option_category category)
 {
@@ -92,7 +89,7 @@ static void prefix_optname(
 	}
 	else
 	{
-		bug("prefix_optname() got unknown option category "
+		bug("sem_optname() got unknown option category "
 			"'%d'", category);
 	}
 }
@@ -116,7 +113,7 @@ static enum parse_result get_arg_str(
 	else
 	{
 		char optname[64];
-		prefix_optname(optname, sizeof(optname), opt, category);
+		sem_optname(optname, sizeof(optname), opt, category);
 
 		return error("%s requires a value", optname);
 	}
@@ -145,7 +142,7 @@ static enum parse_result get_arg_uint(
 	}
 	else
 	{
-		prefix_optname(optname, sizeof(optname), opt, category);
+		sem_optname(optname, sizeof(optname), opt, category);
 
 		return error("%s requires a value", optname);
 	}
@@ -159,7 +156,7 @@ static enum parse_result get_arg_uint(
 		}
 		else
 		{
-			prefix_optname(optname, sizeof(optname),
+			sem_optname(optname, sizeof(optname),
 					opt, category);
 
 			return error("%s expects a numerical value", optname);
@@ -169,12 +166,12 @@ static enum parse_result get_arg_uint(
 	return 0;
 }
 
-static enum parse_result get_arg(
+static enum parse_result get_arg_routine(
 	struct parser_context *ctx,
 	const struct option *opt,
 	enum option_category category)
 {
-	int rescode;
+	enum parse_result rescode;
 	bool unset;
 	char optname[64];
 	const char **strval;
@@ -182,29 +179,41 @@ static enum parse_result get_arg(
 	unset = category & UNSET_OPTION;
 	if (unset && ctx->optstr)
 	{
-		prefix_optname(optname, sizeof(optname), opt, category);
+		sem_optname(optname, sizeof(optname), opt, category);
 		return error("%s takes no value", optname);
 	}
 
 	if (unset && !(opt->flags & OPTION_ALLONEG))
 	{
-		prefix_optname(optname, sizeof(optname), opt, category);
+		sem_optname(optname, sizeof(optname), opt, category);
 		return error("%s isn't available", optname);
 	}
 
 	if (!(category & SHORT_OPTION) && ctx->optstr &&
 		(opt->flags & OPTION_NOARG))
 	{
-		prefix_optname(optname, sizeof(optname), opt, category);
+		sem_optname(optname, sizeof(optname), opt, category);
 		return error("%s takes no value", optname);
 	}
 
 	switch (opt->type)
 	{
-	case OPTION_SWITCH:
-		*(int *)opt->value = unset ? 0 : opt->defval;
+	case OPTION_INTEGER:
+		if (opt->flags & OPTION_UNSIGNED)
+		{
+			return get_arg_uint(ctx, opt, category,
+						(unsigned *)opt->value);
+		}
+		else
+		{
+			*(int *)opt->value = unset ? 0 : opt->defval;
+		}
 
-		break;
+		return 0;
+	case OPTION_COUNTUP:
+		(*(int *)opt->value)++;
+
+		return 0;
 	case OPTION_STRING:
 		strval = (const char **)opt->value;
 
@@ -221,7 +230,7 @@ static enum parse_result get_arg(
 			return get_arg_str(ctx, opt, category, strval);
 		}
 
-		break;
+		return 0;
 	case OPTION_FILENAME:
 		strval = (const char **)opt->value;
 
@@ -231,15 +240,70 @@ static enum parse_result get_arg(
 		}
 		*strval = prefix_filename(ctx->prefix, *strval);
 
-		break;
-	case OPTION_UNSIGNED:
-		return get_arg_uint(ctx, opt, category,
-					(unsigned *)opt->value);
+		return 0;
 	default:
 		bug("opt->type shall not be '%d'", opt->type);
 	}
+}
 
-	return 0;
+static void prefix_optname(
+	char *buf, size_t size,
+	const struct option *opt, enum option_category category)
+{
+	if (category & SHORT_OPTION)
+	{
+		snprintf(buf, size, "-%c", opt->alias);
+	}
+	else
+	{
+		snprintf(buf, size, "--%s%s",
+			  category & UNSET_OPTION ? "no-" : "", opt->name);
+	}
+}
+
+static enum parse_result get_arg(
+	struct parser_context *ctx,
+	const struct option *opt,
+	enum option_category category)
+{
+	enum parse_result rescode;
+	struct command_mode *iter;
+
+	if ((rescode = get_arg_routine(ctx, opt, category)) != 0)
+	{
+		return rescode;
+	}
+
+	list_for_each(iter, ctx->cmdmode)
+	{
+		if (*iter->valptr == iter->val)
+		{
+			continue;
+		}
+
+		if (iter->opt &&
+			((iter->opt->flags | opt->flags) & OPTION_CMDMODE))
+		{
+			break;
+		}
+
+		iter->opt = opt;
+		iter->category = category;
+		iter->val = *iter->valptr;
+	}
+
+	if (!iter)
+	{
+		return rescode;
+	}
+
+	char optname1[64], optname2[64];
+
+	prefix_optname(optname1, sizeof(optname1), opt, category);
+	prefix_optname(optname2, sizeof(optname2), iter->opt, iter->category);
+
+	return error("options '%s' and '%s' cannot be used together",
+			optname1, optname2);
 }
 
 static enum parse_result parse_long_option(
@@ -536,9 +600,23 @@ finish:
 	return validate_parsed_value(parsed);
 }
 
-#define print_newline(stream) fputc('\n', stream)
+#define INDENT_STRING "    "
 
-#define indent_usage(stream) fprintf(stream, "    ")
+int optmsg_alignment = DEFAULT_OPTMSG_ALIGNMENT;
+
+#define pad_usage(stream, pos)								\
+	do										\
+	{										\
+		if (pos < optmsg_alignment)						\
+		{									\
+			fprintf(stream, "%*s", optmsg_alignment - (int)pos, "");	\
+		}									\
+		else									\
+		{									\
+			fprintf(stream, "\n%*s", optmsg_alignment, "");			\
+		}									\
+	}										\
+	while (0)
 
 static int print_option_argh(const struct option *opt, FILE *stream)
 {
@@ -564,22 +642,6 @@ static int print_option_argh(const struct option *opt, FILE *stream)
 	return fprintf(stream, fmt, opt->argh ? opt->argh : "...");
 }
 
-int optmsg_alignment = DEFAULT_OPTMSG_ALIGNMENT;
-
-#define pad_usage(stream, pos)								\
-	do										\
-	{										\
-		if (pos < optmsg_alignment)						\
-		{									\
-			fprintf(stream, "%*s", optmsg_alignment - (int)pos, "");	\
-		}									\
-		else									\
-		{									\
-			fprintf(stream, "\n%*s", optmsg_alignment, "");			\
-		}									\
-	}										\
-	while (0)
-
 static int print_help(const char *help, size_t pos, FILE *stream)
 {
 	const char *prev_line, *next_line;
@@ -603,9 +665,6 @@ static int print_help(const char *help, size_t pos, FILE *stream)
 	return pos;
 }
 
-#define print_option_help(opt, pos, stream)\
-	print_help(opt->help ? opt->help : "", pos, stream)
-
 static enum parse_result usage_with_options(
 	const char *const *usages,
 	const struct option *options,
@@ -615,7 +674,7 @@ static enum parse_result usage_with_options(
 	const char *next_prefix, *usage_prefix, *or_prefix;
 	struct strlist *sl = STRLIST_INIT_PTR_DUPSTR;
 	size_t usage_length;
-	bool println;
+	bool need_newline;
 	const struct option *iter;
 
 	stream       = is_error ? stderr : stdout;
@@ -654,7 +713,7 @@ static enum parse_result usage_with_options(
 	}
 	strlist_destroy(sl, false);
 
-	println = true;
+	need_newline = true;
 	iter = options;
 
 	while (iter->type != OPTION_END)
@@ -672,8 +731,8 @@ static enum parse_result usage_with_options(
 	negpos_name = NULL;
 	if (iter->type == OPTION_GROUP)
 	{
-		print_newline(stream);
-		println = 0;
+		fputc('\n', stream);
+		need_newline = false;
 
 		if (*iter->help)
 		{
@@ -684,13 +743,13 @@ static enum parse_result usage_with_options(
 		continue;
 	}
 
-	if (println)
+	if (need_newline)
 	{
-		print_newline(stream);
-		println = 0;
+		fputc('\n', stream);
+		need_newline = false;
 	}
 
-	prev_pos = indent_usage(stream);
+	prev_pos = fprintf(stream, INDENT_STRING);
 
 	if (iter->alias)
 	{
@@ -727,7 +786,7 @@ static enum parse_result usage_with_options(
 	}
 
 	/* print help messages and reset position here */
-	prev_pos = print_option_help(iter, prev_pos, stream);
+	prev_pos = print_help(iter->help ? iter->help : "", prev_pos, stream);
 
 	fputc('\n', stream);
 
@@ -741,7 +800,7 @@ static enum parse_result usage_with_options(
 
 		if (options->type != OPTION_END)
 		{
-			prev_pos = indent_usage(stream);
+			prev_pos = fprintf(stream, INDENT_STRING);
 			prev_pos += fprintf(stream, "--%s", negpos_name);
 
 			pad_usage(stream, prev_pos);
@@ -758,6 +817,43 @@ static enum parse_result usage_with_options(
 	return PARSING_HELP;
 }
 
+static void make_cmdmode_list(struct parser_context *ctx, const struct option *iter)
+{
+	struct command_mode *el;
+
+	for (; iter->type != OPTION_END; iter++)
+	{
+		el = ctx->cmdmode;
+
+		if (!(iter->flags & OPTION_CMDMODE))
+		{
+			continue;
+		}
+
+		while (el && (el = el->next));
+
+		el = xmalloc(sizeof(struct command_mode));
+
+		el->valptr = iter->value;
+		el->val = *(int *)iter->value;
+		el->next = ctx->cmdmode;
+		ctx->cmdmode = el;
+	}
+}
+
+static void clean_cmdmode_list(struct parser_context *ctx)
+{
+	struct command_mode *prev;
+
+	while (ctx->cmdmode)
+	{
+		prev = ctx->cmdmode;
+		ctx->cmdmode = ctx->cmdmode->next;
+
+		free(prev);
+	}
+}
+
 int parse_options(
 	int argc, const char **argv,
 	const char *prefix,
@@ -765,7 +861,7 @@ int parse_options(
 	const char *const *usages,
 	enum command_parser_flag flags)
 {
-	struct parser_context *ctx = &(struct parser_context){
+	struct parser_context ctx = {
 		.argc0  = argc,
 		.argc   = argc,
 		.argv   = argv,
@@ -774,50 +870,54 @@ int parse_options(
 		.out    = argv,
 	};
 
-	while (ctx->argc)
+	make_cmdmode_list(&ctx, options);
+
+	while (ctx.argc)
 	{
-		switch (parse_option_next(ctx, options))
+		switch (parse_option_next(&ctx, options))
 		{
 		case PARSING_DONE:
 			break;
 		case PARSING_COMPLETE:
 			goto finish;
 		case PARSING_NON_OPTION:
-			exit(error("unknown argument '%s'", *ctx->argv));
+			exit(error("unknown argument '%s'", *ctx.argv));
 		case PARSING_HELP:
 			usage_with_options(usages, options, false);
 			/* FALLTHRU */
 		case PARSING_ERROR:
 			exit(-1);
 		case PARSING_UNKNOWN:
-			if (ctx->argv[0][1] == '-')
+			if (ctx.argv[0][1] == '-')
 			{
-				error("unknown option '%s'", ctx->argv[0] + 2);
+				error("unknown option '%s'", ctx.argv[0] + 2);
 			}
-			else if (isascii(*ctx->optstr))
+			else if (isascii(*ctx.optstr))
 			{
-				error("unknown switch '%c'", *ctx->optstr);
+				error("unknown switch '%c'", *ctx.optstr);
 			}
 			else
 			{
 				error("unknown non-ascii option in string: "
-					"'%s'", *ctx->argv);
+					"'%s'", *ctx.argv);
 			}
 
 			usage_with_options(usages, options, true);
 			exit(-1);
 		}
 
-		ctx->argc--;
-		ctx->argv++;
+		ctx.argc--;
+		ctx.argv++;
 	}
 
 finish:
-	if (ctx->argc)
+	clean_cmdmode_list(&ctx);
+
+	if (ctx.argc)
 	{
-		MOVE_ARRAY(ctx->out + ctx->idx, ctx->argv, ctx->argc);
+		MOVE_ARRAY(ctx.out + ctx.idx, ctx.argv, ctx.argc);
 	}
 
-	ctx->out[ctx->idx + ctx->argc] = NULL;
-	return ctx->idx + ctx->argc;
+	ctx.out[ctx.idx + ctx.argc] = NULL;
+	return ctx.idx + ctx.argc;
 }

@@ -116,9 +116,6 @@
 #define DIRSEPCHAR    '\\'
 #endif
 
-#define INITIAL_BOL -1
-#define INITIAL_PTR ( (void *)-1 )
-
 #define FILCRT_BIT ((S_IRUSR | S_IWUSR) | (S_IRGRP | S_IWGRP) | (S_IROTH))
 #define DIRCRT_BIT ((S_IRWXU) | (S_IRWXG) | (S_IROTH | S_IXOTH))
 

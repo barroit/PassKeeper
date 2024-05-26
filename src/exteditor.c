@@ -65,7 +65,7 @@ int edit_file(const char *pathname)
 			/* graphical editor enable this by default */
 			 (string_in_array(ext_editor, graphical_editors) ||
 			  /* this case, user specified a value */
-			   spinner_style != INITIAL_PTR);
+			   spinner_style != (void *)-1);
 
 	if (show_spinner && run_spinner(&spinner_ctx, spinner_style) != 0)
 	{

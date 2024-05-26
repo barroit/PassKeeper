@@ -28,40 +28,35 @@
 #include "strbuf.h"
 #include "atexit-chain.h"
 
-static const char *init_table_sqlstr = 
-	"CREATE TABLE account ("
-		"id       INTEGER PRIMARY KEY AUTOINCREMENT,"
-		"sitename TEXT NOT NULL,"
-		"alias    TEXT,"
-		"siteurl  TEXT,"
-		"username TEXT,"
-		"password TEXT NOT NULL,"
-		"sqltime  DATETIME DEFAULT (datetime('now', 'utc')),"
-		"modtime  DATETIME"
+#define INIT_TABLE_SQLSTR						\
+	"CREATE TABLE account ("					\
+		"id       INTEGER PRIMARY KEY AUTOINCREMENT,"		\
+		"sitename TEXT NOT NULL,"				\
+		"alias    TEXT,"					\
+		"siteurl  TEXT,"					\
+		"username TEXT,"					\
+		"password TEXT NOT NULL,"				\
+		"sqltime  DATETIME DEFAULT (datetime('now', 'utc')),"	\
+		"modtime  DATETIME"					\
+	");"								\
+									\
+	"CREATE INDEX idx_sitename ON account(sitename);"		\
+									\
+	"CREATE TABLE account_security ("				\
+		"account_id INTEGER PRIMARY KEY,"			\
+		"guard      TEXT,"					\
+		"recovery   TEXT,"					\
+		"memo       BLOB,"					\
+		"FOREIGN KEY (account_id) REFERENCES account(id) "	\
+			"ON DELETE CASCADE"				\
+	");"								\
+									\
+	"CREATE TABLE account_misc ("					\
+		"account_id INTEGER PRIMARY KEY,"			\
+		"comment    TEXT,"					\
+		"FOREIGN KEY (account_id) REFERENCES account(id) "	\
+			"ON DELETE CASCADE"				\
 	");"
-
-	"CREATE INDEX idx_sitename ON account(sitename);"
-
-	"CREATE TABLE account_security ("
-		"account_id INTEGER PRIMARY KEY,"
-		"guard      TEXT,"
-		"recovery   TEXT,"
-		"memo       BLOB,"
-		"FOREIGN KEY (account_id) REFERENCES account(id) "
-			"ON DELETE CASCADE"
-	");"
-
-	"CREATE TABLE account_misc ("
-		"account_id INTEGER PRIMARY KEY,"
-		"comment    TEXT,"
-		"FOREIGN KEY (account_id) REFERENCES account(id) "
-			"ON DELETE CASCADE"
-	");";
-
-const char *const cmd_init_usages[] = {
-	"pk init [--encrypt] [--cmdkey] [--[no]-remember] [<options>]",
-	NULL,
-};
 
 static void make_file_avail(const char *path, bool force)
 {
@@ -193,14 +188,14 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 
 	struct cipher_config cc = CC_INIT;
 
-	struct option cmd_init_options[] = {
-		OPTION_SWITCH('e', "encrypt", &use_encryption,
+	const struct option cmd_init_options[] = {
+		OPTION_COUNTUP('e', "encrypt", &use_encryption,
 				"encrypt database"),
-		OPTION_SWITCH('i', "cmdln-key", &use_cmdkey,
-				"input key by command line"),
+		OPTION_COUNTUP('k', "cmdkey", &use_cmdkey,
+				"input key from command line"),
 		OPTION_SWITCH(0, "remember", &remember_key,
 				"store key"),
-		OPTION_SWITCH('f', "force", &force_create,
+		OPTION_COUNTUP('f', "force", &force_create,
 				"ignore existing files"),
 		OPTION_GROUP(""),
 		OPTION_STRING(0, "kdf-algorithm", &cc.kdf_algorithm,
@@ -218,10 +213,15 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 		OPTION_END(),
 	};
 
+	const char *const cmd_init_usages[] = {
+		"pk init [--encrypt] [--cmdkey] [--[no]-remember] [--force] \n"
+		"        [<options>]",
+		NULL,
+	};
+
 	parse_options(argc, argv, prefix, cmd_init_options,
 			cmd_init_usages, PARSER_ABORT_NON_OPTION);
 
-	exit(0);
 	make_file_avail(cred_db_path, force_create);
 
 	use_encryption |= use_cmdkey;
@@ -358,7 +358,7 @@ setup_database:;
 		sfree(keybuf, keylen);
 	}
 
-	xsqlite3_exec(db, init_table_sqlstr, NULL, NULL, NULL);
+	xsqlite3_exec(db, INIT_TABLE_SQLSTR, NULL, NULL, NULL);
 
 	sqlite3_close(db);
 

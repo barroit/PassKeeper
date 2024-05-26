@@ -29,30 +29,32 @@ enum option_type
 	OPTION_END,
 	OPTION_GROUP,
 	/* options with no arguments */
-	OPTION_SWITCH,
+	OPTION_INTEGER,
+	OPTION_COUNTUP,
 	/* options with arguments */
 	OPTION_STRING,
-	OPTION_UNSIGNED,
 	OPTION_FILENAME,
 };
 
 enum option_flag
 {
-	OPTION_OPTARG = 1 << 0,
-	OPTION_NOARG = 1 << 1,
-	OPTION_ALLONEG = 1 << 2,
+	OPTION_OPTARG   = 1 << 0,
+	OPTION_NOARG    = 1 << 1,
+	OPTION_ALLONEG  = 1 << 2,
 	OPTION_SHOWARGH = 1 << 3,
 	OPTION_REALPATH = 1 << 4,
+	OPTION_UNSIGNED = 1 << 5,
+	OPTION_CMDMODE  = 1 << 6,
 	/**
 	 * options with this flag will not shown in help messages
 	 * but parser will parse the value for this option
 	 */
-	OPTION_HIDDEN = 1 << 5,
+	OPTION_HIDDEN   = 1 << 7,
 	/**
 	 * options with this flag will be ignored by parser and
 	 * help messages get printed will not prefix with em dash
 	 */
-	OPTION_NOEMDASH = 1 << 6,
+	OPTION_NOEMDASH = 1 << 8,
 };
 
 struct option
@@ -80,6 +82,17 @@ enum command_parser_flag
 	PARSER_NO_SHORT_HELP    = 1 << 3, /* disable -h */
 };
 
+#define OPTION_END()					\
+{							\
+	.type = OPTION_END,				\
+}
+
+#define OPTION_GROUP(h)					\
+{							\
+	.type = OPTION_GROUP,				\
+	.help = (h),					\
+}
+
 #define OPTION_STRING_F(s, l, v, a, h, f)		\
 {							\
 	.type  = OPTION_STRING,				\
@@ -103,69 +116,105 @@ enum command_parser_flag
 	.flags  = OPTION_OPTARG | (f),			\
 }
 
-#define OPTION_FILENAME_F(s, l, v, h, a, f)		\
+#define OPTION_FILENAME_F(s, l, v, a, h, f)		\
 {							\
 	.type  = OPTION_FILENAME,			\
 	.alias = (s),					\
 	.name  = (l),					\
 	.value = (v),					\
-	.help  = (h),					\
 	.argh  = (a),					\
+	.help  = (h),					\
 	.flags = (f),					\
 }
 
-#define OPTION_END()					\
+#define OPTION_INTEGER_F(s, l, v, a, h, d, f)		\
 {							\
-	.type = OPTION_END,				\
+	.type   = OPTION_INTEGER,			\
+	.alias  = (s),					\
+	.name   = (l),					\
+	.value  = (v),					\
+	.argh   = (a),					\
+	.help   = (h),					\
+	.defval = (d),					\
+	.flags  = (f),					\
 }
-
-#define OPTION_GROUP(h)					\
-{							\
-	.type = OPTION_GROUP,				\
-	.help = (h),					\
-}
-
-#define OPTION_SWITCH_TRUE 1
 
 #define OPTION_SWITCH_F(s, l, v, h, f)			\
 {							\
-	.type   = OPTION_SWITCH,			\
+	.type   = OPTION_INTEGER,			\
 	.alias  = (s),					\
 	.name   = (l),					\
 	.value  = (v),					\
 	.help   = (h),					\
-	.defval = OPTION_SWITCH_TRUE,			\
+	.defval = 1,					\
 	.flags  = OPTION_NOARG | OPTION_ALLONEG | (f),	\
 }
 
-#define OPTION_UNSIGNED_F(s, l, v, a, h, f)		\
+#define OPTION_COUNTUP_F(s, l, v, h, f)			\
 {							\
-	.type  = OPTION_UNSIGNED,			\
-	.alias = (s),					\
-	.name  = (l),					\
-	.value = (v),					\
-	.argh  = (a),					\
-	.help  = (h),					\
-	.flags = (f),					\
+	.type   = OPTION_INTEGER,			\
+	.alias  = (s),					\
+	.name   = (l),					\
+	.value  = (v),					\
+	.help   = (h),					\
+	.defval = 0,					\
+	.flags  = OPTION_NOARG | (f),			\
 }
 
-#define OPTION_STRING(s, l, v, h) OPTION_STRING_F((s), (l), (v), 0, (h), 0)
-#define OPTION_STRING_H(s, l, v) OPTION_STRING_F((s), (l), (v), 0, 0, OPTION_HIDDEN)
+#define OPTION_UNSIGNED_F(s, l, v, h, f)		\
+{							\
+	.type   = OPTION_INTEGER,			\
+	.alias  = (s),					\
+	.name   = (l),					\
+	.value  = (v),					\
+	.help   = (h),					\
+	.defval = 0,					\
+	.flags  = OPTION_UNSIGNED | (f),		\
+}
 
-#define OPTION_SWITCH(s, l, v, h) OPTION_SWITCH_F((s), (l), (v), (h), 0)
-#define OPTION_SWITCH_H(s, l, v, h) OPTION_SWITCH_F((s), (l), (v), 0, OPTION_HIDDEN)
+#define OPTION_CMDMODE_F(s, l, v, h, d, f)		\
+{							\
+	.type   = OPTION_INTEGER,			\
+	.alias  = (s),					\
+	.name   = (l),					\
+	.value  = (v),					\
+	.help   = (h),					\
+	.defval = (d),					\
+	.flags  = OPTION_CMDMODE | OPTION_NOARG | (f),	\
+}
 
-#define OPTION_UNSIGNED(s, l, v, h) OPTION_UNSIGNED_F((s), (l), (v), 0, (h), 0)
+#define OPTION_STRING(s, l, v, h)\
+	OPTION_STRING_F((s), (l), (v), 0, (h), 0)
 
-#define OPTION_FILENAME(s, l, v, h) OPTION_FILENAME_F((s), (l), (v), (h), "path", OPTION_SHOWARGH)
-#define OPTION_FILENAME_H(s, l, v) OPTION_FILENAME_F((s), (l), (v), 0, 0, OPTION_HIDDEN)
+#define OPTION_SWITCH(s, l, v, h)\
+	OPTION_SWITCH_F((s), (l), (v), (h), 0)
 
-#define OPTION_PATHNAME(s, l, v, h) OPTION_FILENAME_F((s), (l), (v), (h), "file", OPTION_REALPATH | OPTION_SHOWARGH)
+#define OPTION_COUNTUP(s, l, v, h)\
+	OPTION_COUNTUP_F((s), (l), (v), (h), 0)
 
-#define OPTION_OPTARG(s, l, v, d, a, h) OPTION_OPTARG_F((s), (l), (v), (d), (a), (h), OPTION_SHOWARGH)
-#define OPTION_OPTARG_HN(s, l, v, d) OPTION_OPTARG_F((s), (l), (v), (d), 0, 0, OPTION_HIDDEN | OPTION_ALLONEG)
+#define OPTION_UNSIGNED(s, l, v, h)\
+	OPTION_UNSIGNED_F((s), (l), (v), (h), 0)
 
-#define OPTION_COMMAND(l, h) OPTION_STRING_F(0, (l), 0, 0, (h), OPTION_NOARG | OPTION_NOEMDASH)
+#define OPTION_CMDMODE(s, l, v, h, d)\
+	OPTION_CMDMODE_F((s), (l), (v), (h), (d), 0)
+
+#define OPTION_FILENAME(s, l, v, h)\
+	OPTION_FILENAME_F((s), (l), (v), "path", (h), OPTION_SHOWARGH)
+
+#define OPTION_PATHNAME(s, l, v, h)\
+	OPTION_FILENAME_F((s), (l), (v), "file", (h), OPTION_REALPATH | OPTION_SHOWARGH)
+
+#define OPTION_OPTARG(s, l, v, d, a, h)\
+	OPTION_OPTARG_F((s), (l), (v), (d), (a), (h), OPTION_SHOWARGH)
+
+#define OPTION_COMMAND(l, h)\
+	OPTION_STRING_F(0, (l), 0, 0, (h), OPTION_NOARG | OPTION_NOEMDASH)
+
+#define OPTION_CMDMODE(s, l, v, h, d)\
+	OPTION_CMDMODE_F((s), (l), (v), (h), (d), 0)
+
+#define OPTION__NANO(val)\
+	OPTION_SWITCH('e', "nano", val, "use editor to edit records")
 
 #ifndef DEFAULT_OPTMSG_ALIGNMENT
 #define DEFAULT_OPTMSG_ALIGNMENT 23
