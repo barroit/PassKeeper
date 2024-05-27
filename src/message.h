@@ -78,7 +78,7 @@ void die_winerr(const char *format, ...)
 
 extern const char *msqlite3_pathname;
 
-int print_sqlite_error(void *sqlite3_fn, struct sqlite3 *db, ...);
+int report_sqlite_error(void *sqlite3_fn, struct sqlite3 *db, ...);
 
 /**
  * used for the file name printed by xio_die()
@@ -88,5 +88,13 @@ extern const char *xio_pathname;
 
 void xio_die(int fd, const char *prefix)
 	__attribute__((noreturn));
+
+int report_file_access_error_routine(const char *name, const char *file, int errnum);
+
+#define report_file_access_error(file, errnum)\
+	report_file_access_error_routine("file", file, errnum)
+
+#define report_cred_db_access_error(errnum)\
+	report_file_access_error_routine("db file", cred_db_path, errnum)
 
 #endif /* MESSAGE_H */

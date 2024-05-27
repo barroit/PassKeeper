@@ -67,7 +67,7 @@ static void make_file_avail(const char *path, bool force)
 			exit(error("file '%s' already exists", path));
 		}
 
-		EXIT_ON_FAILURE(make_fdir_avail(path), 0);
+		EXIT_ON_FAILURE(make_file_dir_avail(path), 0);
 	}
 	else
 	{
@@ -81,7 +81,7 @@ static void make_file_avail(const char *path, bool force)
 		}
 		else
 		{
-			EXIT_ON_FAILURE(make_fdir_avail(path), 0);
+			EXIT_ON_FAILURE(make_file_dir_avail(path), 0);
 		}
 	}
 }
@@ -191,8 +191,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	const struct option cmd_init_options[] = {
 		OPTION_COUNTUP('e', "encrypt", &use_encryption,
 				"encrypt database"),
-		OPTION_COUNTUP('k', "cmdkey", &use_cmdkey,
-				"input key from command line"),
+		OPTION__CMDKEY(&use_cmdkey),
 		OPTION_SWITCH(0, "remember", &remember_key,
 				"store key"),
 		OPTION_COUNTUP('f', "force", &force_create,

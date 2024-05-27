@@ -205,7 +205,7 @@ static inline off_t xlseek(int fd, off_t offset, int whence)
 	while (0)
 
 #define run_sqlite3(db__, fn__, ...)\
-	((fn__(__VA_ARGS__) != SQLITE_OK) ? print_sqlite_error(fn__, db__) : SQLITE_OK)
+	((fn__(__VA_ARGS__) != SQLITE_OK) ? report_sqlite_error(fn__, db__) : SQLITE_OK)
 
 static inline int msqlite3_open(const char *filename, struct sqlite3 **db)
 {
@@ -246,7 +246,7 @@ static inline FORCEINLINE int msqlite3_bind_blob(
 {
 	return sqlite3_bind_blob(stmt, idx, val, nr, des) == SQLITE_OK ?
 		SQLITE_OK :
-		print_sqlite_error(sqlite3_bind_blob, sqlite3_db_handle(stmt),
+		report_sqlite_error(sqlite3_bind_blob, sqlite3_db_handle(stmt),
 					val, nr);
 }
 
@@ -255,7 +255,7 @@ static inline FORCEINLINE int msqlite3_bind_int64(
 {
 	return sqlite3_bind_int64(stmt, idx, val) == SQLITE_OK ?
 		SQLITE_OK :
-		print_sqlite_error(sqlite3_bind_int64,
+		report_sqlite_error(sqlite3_bind_int64,
 					sqlite3_db_handle(stmt), val);
 }
 
@@ -272,7 +272,7 @@ static inline FORCEINLINE int msqlite3_bind_text(
 {
 	return sqlite3_bind_text(stmt, idx, val, nr, des) == SQLITE_OK ?
 		SQLITE_OK :
-		print_sqlite_error(sqlite3_bind_text, sqlite3_db_handle(stmt),
+		report_sqlite_error(sqlite3_bind_text, sqlite3_db_handle(stmt),
 					val, nr);
 }
 
@@ -280,7 +280,7 @@ static inline FORCEINLINE int msqlite3_step(struct sqlite3_stmt *stmt)
 {
 	return sqlite3_step(stmt) == SQLITE_DONE ?
 		SQLITE_DONE :
-		print_sqlite_error(sqlite3_step, sqlite3_db_handle(stmt));
+		report_sqlite_error(sqlite3_step, sqlite3_db_handle(stmt));
 }
 
 #define msqlite3_begin_transaction(db__)\

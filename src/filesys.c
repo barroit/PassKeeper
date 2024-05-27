@@ -95,7 +95,7 @@ char *prefix_filename(const char *prefix, const char *filename)
 #define MATCH_MODE(m1__, f1__, m2__, f2__)\
 	( ( (m1__) & (f1__) ) ? ( (m2__) & (f2__) ) : 1 )
 
-int test_file_permission_st(struct stat *st, int mode)
+int test_file_mode_st(struct stat *st, int mode)
 {
 	if (st->st_uid == geteuid()) /* euid matches owner id? */
 	{
@@ -129,7 +129,7 @@ int test_file_permission_st(struct stat *st, int mode)
 }
 #endif
 
-int make_fdir_avail(const char *filepath)
+int make_file_dir_avail(const char *filepath)
 {
 	char *pathcopy;
 	const char *dirpath;
@@ -164,4 +164,27 @@ void populate_file(const char *pathname, const char *buf, size_t buflen)
 	xwrite(fd, buf, buflen);
 
 	close(fd);
+}
+
+int access_regular_file_routine(const char *file, int mode)
+{
+	struct stat st;
+
+	if (stat(file, &st) != 0)
+	{
+		errno = ESTAT;
+		return 1;
+	}
+	else if (!S_ISREG(st.st_mode))
+	{
+		errno = ENOTREG;
+		return 1;
+	}
+	else if (test_file_mode(file, &st, mode) != 0)
+	{
+		errno = EACCES;
+		return 1;
+	}
+
+	return 0;
 }

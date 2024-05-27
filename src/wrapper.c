@@ -148,7 +148,7 @@ int msqlite3_exec(
 	rescode = SQLITE_OK;
 	if (sqlite3_exec(db, sql, callback, cbargv, &errmsg) != SQLITE_OK)
 	{
-		rescode = print_sqlite_error(sqlite3_exec, db, sql, errmsg);
+		rescode = report_sqlite_error(sqlite3_exec, db, sql, errmsg);
 	}
 
 	if (errmsg0 == NULL)

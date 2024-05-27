@@ -168,25 +168,14 @@ static void precheck_command(unsigned flags)
 {
 	if (flags & USE_RECFILE)
 	{
-		EXIT_ON_FAILURE(make_fdir_avail(tmp_rec_path), 0);
+		EXIT_ON_FAILURE(make_file_dir_avail(tmp_rec_path), 0);
 	}
 
 	if (flags & USE_CREDFILE)
 	{
-		struct stat st;
-
-		if (stat(cred_db_path, &st) != 0)
+		if (access_regular_file_m(cred_db_path, R_OK | W_OK) != 0)
 		{
-			die_errno("Couldn't access file '%s'", cred_db_path);
-		}
-		else if (!S_ISREG(st.st_mode))
-		{
-			die("File '%s' is not a regular file", cred_db_path);
-		}
-		else if (test_file_permission(cred_db_path, &st,
-						R_OK | W_OK) != 0)
-		{
-			die("Access denied by file '%s'", cred_db_path);
+			EXIT_ON_FAILURE(report_cred_db_access_error(errno), 0);
 		}
 	}
 }

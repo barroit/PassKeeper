@@ -216,6 +216,9 @@ enum command_parser_flag
 #define OPTION__NANO(val)\
 	OPTION_SWITCH('e', "nano", val, "use editor to edit records")
 
+#define OPTION__CMDKEY(val)\
+	OPTION_COUNTUP('k', "cmdkey", val, "input key from command line")
+
 #ifndef DEFAULT_OPTMSG_ALIGNMENT
 #define DEFAULT_OPTMSG_ALIGNMENT 23
 #endif

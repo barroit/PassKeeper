@@ -65,12 +65,6 @@
 		":comment"			\
 	");"
 
-enum key_type {
-	RK_CREDCC = 0,
-	RK_CMDKEY,
-	RK_NOENCR
-};
-
 static void rm_tmp_rec(void)
 {
 	unlink(tmp_rec_path);
@@ -78,18 +72,13 @@ static void rm_tmp_rec(void)
 
 int cmd_create(int argc, const char **argv, const char *prefix)
 {
-	struct record rec      = INIT_RECORD;
-	enum key_type rk_mode  = RK_CREDCC;
-	int use_editor         = -1;
+	struct record rec = INIT_RECORD;
+	int use_cmdkey    = 0;
+	int use_editor    = -1;
 
 	const struct option cmd_create_options[] = {
 		OPTION__NANO(&use_editor),
-		OPTION_CMDMODE(0, "credcc", &rk_mode,
-				"decrypt db by cc file", RK_CREDCC),
-		OPTION_CMDMODE(0, "cmdkey", &rk_mode,
-				"decrypt db by command line key", RK_CMDKEY),
-		OPTION_CMDMODE(0, "noencr", &rk_mode,
-				"no db decryption", RK_NOENCR),
+		OPTION__CMDKEY(&use_cmdkey),
 		OPTION_GROUP(""),
 		OPTION_STRING(0, "sitename", &rec.sitename,
 				"human readable name of a website"),
@@ -119,7 +108,6 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 
 	parse_options(argc, argv, prefix, cmd_create_options,
 			cmd_create_usages, PARSER_ABORT_NON_OPTION);
-	exit(0);
 
 	bool setup_editor;
 
@@ -175,10 +163,15 @@ setup_database:;
 
 	const char *cred_cc_realpath;
 
-	resolve_cred_cc_realpath(&cred_cc_realpath);
+	if ((cred_cc_realpath = resolve_cred_cc_realpath()) < 0)
+	{
+		note("Configuration disabled.");
+		cred_cc_realpath = NULL;
+	}
+
 	use_cipher_config = cred_cc_realpath != NULL;
 
-	if (!use_cipher_config && !true /* use_cmdkey */)
+	if (!use_cipher_config && !use_cmdkey)
 	{
 		goto insert_record;
 	}
@@ -190,7 +183,7 @@ setup_database:;
 	size_t keylen;
 
 	keystr = NULL;
-	if (true/* todo replace use_cmdkey */)
+	if (use_cmdkey)
 	{
 		if ((ck.len = read_cmdkey((char **)&ck.buf,
 				"[pk] key for decryption: ")) == 0)

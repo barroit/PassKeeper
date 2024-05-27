@@ -11,9 +11,9 @@
 			"intelliSenseMode": "linux-gcc-x64",
 			"compilerPath": "${env:HOME}/.local/bin/gcc",
 			"forcedInclude": [
+				"${workspaceFolder}/src/message.h",
 				"${workspaceFolder}/src/compat.h",
 				"${workspaceFolder}/src/wrapper.h",
-				"${workspaceFolder}/src/message.h",
 				"${workspaceFolder}/src/enval.h",
 				"${workspaceFolder}/project-config.h"
 			]
@@ -29,9 +29,9 @@
 				"SQLITE_HAS_CODEC"
 			],
 			"forcedInclude": [
+				"${workspaceFolder}/src/message.h",
 				"${workspaceFolder}/src/compat.h",
 				"${workspaceFolder}/src/wrapper.h",
-				"${workspaceFolder}/src/message.h",
 				"${workspaceFolder}/src/enval.h",
 				"${workspaceFolder}/project-config.h"
 			],

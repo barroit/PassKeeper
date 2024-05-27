@@ -223,33 +223,27 @@ void free_cipher_config(struct cipher_config *cc, struct cipher_key *ck)
 	sfree(ck->buf, ck->len);
 }
 
-void resolve_cred_cc_realpath(const char **realpath)
+const char *resolve_cred_cc_realpath(void)
 {
-	struct stat st;
-
-	if (stat(cred_cc_path, &st) != 0)
+	if (access_regular_file(cred_cc_path) == 0)
 	{
-		*realpath = NULL;
+		return cred_cc_path;
 	}
-	else if (!S_ISREG(st.st_mode))
+
+	switch (errno)
 	{
+	case ENOTREG:
 		warning("Config file at '%s' is not a regular file.",
 			  cred_cc_path);
-		note("Configuration disabled.");
-
-		*realpath = NULL;
-	}
-	else if (test_file_permission(realpath, &st, R_OK) != 0)
-	{
+		break;
+	case EACCES:
 		warning("Access was denied by config file '%s'", cred_cc_path);
-		note("Configuration disabled.");
+		break;
+	case ESTAT:
+		return NULL;
+	}
 
-		*realpath = NULL;
-	}
-	else
-	{
-		*realpath = cred_cc_path;
-	}
+	return (void *)-1;
 }
 
 void resolve_cipher_config_file(

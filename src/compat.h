@@ -168,12 +168,17 @@ char *pk_strndup(const char *s, size_t size);
 #define mkdir(path) mkdir((path), DIRCRT_BIT)
 #endif
 
+/**
+ * on linux, stat is used
+ * on windows, access() is used
+ */
 #ifdef LINUX
-int test_file_permission_st(struct stat *st, int mode);
-
-#define test_file_permission(f, s, m) test_file_permission_st(s, m)
+int test_file_mode_st(struct stat *st, int mode);
+#define test_file_mode(file, st, mode)\
+	test_file_mode_st(st, mode)
 #else
-#define test_file_permission(f, s, m) (access(f, m) == -1)
+#define test_file_mode(file, st, mode)\
+	( access(file, st) == -1 )
 #endif
 
 #ifdef LINUX
@@ -221,5 +226,9 @@ struct termios
 	console_mode;
 }
 #endif
+
+/* ext errno */
+#define ESTAT   50 /* stat() failed, and errno is set */
+#define ENOTREG 51 /* file is not regular file */
 
 #endif /* COMPACT_UTIL_H */

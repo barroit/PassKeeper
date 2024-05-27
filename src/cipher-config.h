@@ -125,7 +125,7 @@ void deserialize_cipher_config(struct cipher_config *config, struct cipher_key *
  */
 void free_cipher_config(struct cipher_config *config, struct cipher_key *key);
 
-void resolve_cred_cc_realpath(const char **realpath);
+const char *resolve_cred_cc_realpath(void);
 
 void resolve_cipher_config_file(const char *pathname, uint8_t **buf, off_t *outlen);
 

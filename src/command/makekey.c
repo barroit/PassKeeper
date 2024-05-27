@@ -54,7 +54,7 @@ int cmd_makekey(int argc, const char **argv, const char *prefix)
 
 	if (output_file != NULL)
 	{
-		EXIT_ON_FAILURE(make_fdir_avail(output_file), 0);
+		EXIT_ON_FAILURE(make_file_dir_avail(output_file), 0);
 
 		fd = xopen(output_file, O_WRONLY | O_CREAT | O_TRUNC,
 				FILCRT_BIT);

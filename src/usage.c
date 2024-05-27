@@ -217,12 +217,12 @@ static int handle_sqlite3_bind_text_error(struct sqlite3 *db, va_list ap)
 				 "'%s'", val, placeholder, msqlite3_pathname);
 }
 
-int print_sqlite_error(void *sqlite3_fn, struct sqlite3 *db, ...)
+int report_sqlite_error(void *sqlite3_fn, struct sqlite3 *db, ...)
 {
 	if (msqlite3_pathname == NULL)
 	{
 		bug("no value given to msqlite3_pathname "
-			"before print_sqlite_error()");
+			"before report_sqlite_error()");
 	}
 
 	int rescode;
@@ -318,4 +318,33 @@ void xio_die(int fd, const char *prefix)
 	{
 		die_errno("%s fd '%d'", prefix, fd);
 	}
+}
+
+int report_file_access_error_routine(
+	const char *name, const char *file, int errnum)
+{
+	switch (errnum)
+	{
+	case ESTAT:
+		error("Couldn't access %s '%s'.", name, file);
+	case ENOTREG:
+		char *buf;
+
+		buf = NULL;
+		if (!isupper(*name))
+		{
+			buf = xstrdup(name);
+			*buf = toupper(*name);
+		}
+
+		error("%s '%s' is not a regular file.", name, file);
+
+		free(buf);
+	case EACCES:
+		error("Access denied by %s '%s'.", name, file);
+	default:
+		bug("unknown errnum '%d'", errnum);
+	}
+
+	return -1;
 }
