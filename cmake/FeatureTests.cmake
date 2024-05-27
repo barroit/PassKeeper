@@ -40,3 +40,27 @@ check_symbol_exists(getline stdio.h have_getline)
 if(NOT have_getline)
 	add_compile_definitions(NO_GETLINE)
 endif()
+
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND
+    CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 3.1)
+	set(have_always_inline 1)
+elseif(CMAKE_C_COMPILER_ID STREQUAL "Clang" AND
+    CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 2.6)
+	set(have_always_inline 1)
+endif()
+
+if (NOT have_always_inline)
+	add_compile_definitions(NO_ALWAYS_INLINE)
+endif()
+
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND
+    CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 3.1)
+	set(have_unused 1)
+elseif(CMAKE_C_COMPILER_ID STREQUAL "Clang" AND
+    CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 2.6)
+	set(have_unused 1)
+endif()
+
+if (NOT have_unused)
+	add_compile_definitions(NO_UNUSED)
+endif()

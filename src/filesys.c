@@ -29,20 +29,16 @@ const char *get_working_dir_routine(bool force_get)
 	static char *buf;
 	size_t size;
 
-	if (buf != NULL)
+	if (force_get)
 	{
-		if (force_get)
-		{
-			free(buf);
-		}
-		else
-		{
-			return buf;
-		}
-
+		free(buf);
+	}
+	else if (buf != NULL)
+	{
+		return buf;
 	}
 
-	size = 128;
+	size = fixed_growth(64);
 	while (39)
 	{
 		buf = xmalloc(size);

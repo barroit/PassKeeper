@@ -193,8 +193,6 @@ static void precheck_command(unsigned flags)
 
 int main(int argc, const char **argv)
 {
-	write(STDOUT_FILENO, "test\n", 5);
-	exit(0);
 	const char *prefix;
 	struct command_info *command;
 
@@ -259,9 +257,4 @@ int main(int argc, const char **argv)
 
 	atexit(apply_atexit_chain);
 	exit(command->handle(argc, argv, prefix));
-}
-
-bool have_command(const char *cmdname)
-{
-	return !!find_command(cmdname);
 }

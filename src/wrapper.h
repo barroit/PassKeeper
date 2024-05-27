@@ -101,6 +101,18 @@ static inline size_t __attribute__((const)) st_mult(size_t x, size_t y)
 	return x * y;
 }
 
+static inline FORCEINLINE char *xstrdup(const char *s)
+{
+	char *buf;
+
+	if ((buf = strdup(s)) == NULL)
+	{
+		die("Out of memory, strdup() failed.");
+	}
+	
+	return buf;
+}
+
 #define fixed_growth(len)\
 	( st_mult(st_add((len), 16), 3) / 2 )
 

@@ -119,8 +119,17 @@
 #define FILCRT_BIT ((S_IRUSR | S_IWUSR) | (S_IRGRP | S_IWGRP) | (S_IROTH))
 #define DIRCRT_BIT ((S_IRWXU) | (S_IRWXG) | (S_IROTH | S_IXOTH))
 
-#define UNUSED __attribute__((unused))
+#ifdef NO_ALWAYS_INLINE
+#define FORCEINLINE
+#else
 #define FORCEINLINE __attribute__((always_inline))
+#endif
+
+#ifdef NO_UNUSED
+#define UNUSED
+#else
+#define UNUSED __attribute__((unused))
+#endif
 
 #ifdef NO_STRCHRNUL
 char *pk_strchrnul(const char *s, int c);
