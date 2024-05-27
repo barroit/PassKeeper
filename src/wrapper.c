@@ -47,7 +47,19 @@ static int handle_nonblock(int fd, short poll_events, int err)
 	return 1;
 }
 
-ssize_t iread(int fd, void *buf, size_t nbytes)
+/**
+ * read() and write() shall be the function provided by unistd
+ * not the pk_read() and pk_write() wrapped by read and write macro
+ */
+#ifdef read
+#undef read
+#endif
+
+#ifdef write
+#undef write
+#endif
+
+ssize_t pk_read(int fd, void *buf, size_t nbytes)
 {
 	ssize_t nr;
 
@@ -64,6 +76,7 @@ ssize_t iread(int fd, void *buf, size_t nbytes)
 			{
 				continue;
 			}
+
 			if (handle_nonblock(fd, POLLIN, errno))
 			{
 				continue;
@@ -74,7 +87,7 @@ ssize_t iread(int fd, void *buf, size_t nbytes)
 	}
 }
 
-ssize_t iwrite(int fd, const void *buf, size_t n)
+ssize_t pk_write(int fd, const void *buf, size_t n)
 {
 	ssize_t nr;
 

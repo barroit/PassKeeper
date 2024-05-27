@@ -63,7 +63,7 @@ void vreportf(const char *prefix, struct report_field *field)
 	*bufptr++ = '\n';
 
 	fflush(stderr);
-	iwrite(STDERR_FILENO, buffer0, bufptr - buffer0);
+	write(STDERR_FILENO, buffer0, bufptr - buffer0);
 }
 
 void note_routine(const char *format, ...)

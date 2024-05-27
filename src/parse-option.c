@@ -267,13 +267,13 @@ static enum parse_result get_arg(
 	enum option_category category)
 {
 	enum parse_result rescode;
-	struct command_mode *iter;
 
 	if ((rescode = get_arg_routine(ctx, opt, category)) != 0)
 	{
 		return rescode;
 	}
 
+	struct command_mode *iter;
 	list_for_each(iter, ctx->cmdmode)
 	{
 		if (*iter->valptr == iter->val)

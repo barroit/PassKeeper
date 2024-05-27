@@ -193,6 +193,8 @@ static void precheck_command(unsigned flags)
 
 int main(int argc, const char **argv)
 {
+	write(STDOUT_FILENO, "test\n", 5);
+	exit(0);
 	const char *prefix;
 	struct command_info *command;
 

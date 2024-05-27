@@ -46,7 +46,7 @@ static void child_die(enum child_errnum chlerr, const void *errext)
 		.errext = errext,
 	};
 
-	iwrite(errnot_fd, &errobj, sizeof(struct child_error));
+	write(errnot_fd, &errobj, sizeof(struct child_error));
 	_exit(EXIT_FAILURE);
 }
 
@@ -84,21 +84,21 @@ static void make_process_fildes(int *nulfd, int errnot_pipe[2])
 /**
  * this function should executed IN child process
  */
-static void redirect_stdio(unsigned fildes_flags, int nulfd)
+static void redirect_stdio(unsigned fildes_flags, int fd)
 {
 	if (fildes_flags & NO_STDIN)
 	{
-		idup2(nulfd, STDIN_FILENO);
+		idup2(fd, STDIN_FILENO);
 	}
 
 	if (fildes_flags & NO_STDOUT)
 	{
-		idup2(nulfd, STDOUT_FILENO);
+		idup2(fd, STDOUT_FILENO);
 	}
 
 	if (fildes_flags & NO_STDERR)
 	{
-		idup2(nulfd, STDERR_FILENO);
+		idup2(fd, STDERR_FILENO);
 	}
 }
 
@@ -131,7 +131,7 @@ static int check_child_died(struct process_info *ctx, int errnot_pipe[2])
 {
 	struct child_error errobj;
 
-	if (iread(errnot_pipe[0], &errobj,
+	if (read(errnot_pipe[0], &errobj,
 		sizeof(struct child_error)) == sizeof(struct child_error))
 	{
 		/* failure occurred between fork() and _exit() */

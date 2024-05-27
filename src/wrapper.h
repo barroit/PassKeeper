@@ -132,12 +132,15 @@ static inline size_t __attribute__((const)) st_mult(size_t x, size_t y)
 
 int xopen(const char *file, int oflag, ...);
 
-ssize_t iread(int fd, void *buf, size_t nbytes);
-
 /**
- * function prefixed by 'i' are safe to use in child process
+ * we wrap read() and write() by pk_read() and pk_write()
+ * these wrappers contain signal and fd blocking handling
  */
-ssize_t iwrite(int fd, const void *buf, size_t n);
+ssize_t pk_read(int fd, void *buf, size_t nbytes);
+#define read pk_read
+
+ssize_t pk_write(int fd, const void *buf, size_t n);
+#define write pk_write
 
 static inline ssize_t xwrite(int fd, const void *buf, size_t n)
 {
