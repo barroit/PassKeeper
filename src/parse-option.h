@@ -152,7 +152,7 @@ enum command_parser_flag
 
 #define OPTION_COUNTUP_F(s, l, v, h, f)			\
 {							\
-	.type   = OPTION_INTEGER,			\
+	.type   = OPTION_COUNTUP,			\
 	.alias  = (s),					\
 	.name   = (l),					\
 	.value  = (v),					\
@@ -219,11 +219,15 @@ enum command_parser_flag
 #define OPTION__CMDKEY(val)\
 	OPTION_COUNTUP('k', "cmdkey", val, "input key from command line")
 
-#ifndef DEFAULT_OPTMSG_ALIGNMENT
-#define DEFAULT_OPTMSG_ALIGNMENT 23
+#ifndef DEFAULT_OPT_ARGH_INDENT
+#define DEFAULT_OPT_ARGH_INDENT 23
 #endif
 
-extern int optmsg_alignment;
+extern int opt_argh_indent;
+
+#define set_opt_argh_indent(val) ( opt_argh_indent = (val) )
+
+#define reset_opt_argh_indent() ( opt_argh_indent = DEFAULT_OPT_ARGH_INDENT )
 
 int parse_options(int argc, const char **argv, const char *prefix, const struct option *options, const char *const *usages, enum command_parser_flag flags);
 

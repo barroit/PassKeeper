@@ -67,7 +67,7 @@ static void make_file_avail(const char *path, bool force)
 			exit(error("file '%s' already exists", path));
 		}
 
-		EXIT_ON_FAILURE(make_file_dir_avail(path), 0);
+		EOE(make_file_dir_avail(path));
 	}
 	else
 	{
@@ -81,7 +81,7 @@ static void make_file_avail(const char *path, bool force)
 		}
 		else
 		{
-			EXIT_ON_FAILURE(make_file_dir_avail(path), 0);
+			EOE(make_file_dir_avail(path));
 		}
 	}
 }
@@ -240,7 +240,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	{
 		uint8_t *binkey;
 
-		EXIT_ON_FAILURE(random_bytes(&binkey, BINKEY_LEN), 0);
+		EOE(random_bytes(&binkey, BINKEY_LEN));
 		keylen = bin2blob(&keybuf, binkey, BINKEY_LEN);
 	}
 

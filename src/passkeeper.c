@@ -46,58 +46,16 @@ struct command_info
 	unsigned precheck_flags;
 };
 
-static struct command_info commands[] = {
-	{ "count",    cmd_count,  USE_CREDFILE },
-	{ "create",   cmd_create, USE_CREDFILE | USE_RECFILE },
-	{ "delete",   cmd_delete, USE_CREDFILE },
-	{ "help",     cmd_help },
-	{ "init",     cmd_init },
-	{ "makekey",  cmd_makekey },
-	{ "read",     cmd_read, USE_CREDFILE },
-#ifdef PK_DEBUG
-	{ "reset",    cmd_reset, USE_CREDFILE },
-#endif
-	/* { "show",     cmd_show, USE_CREDFILE  }, */
-	{ "update",   cmd_update, USE_CREDFILE | USE_RECFILE },
-	{ "version",  cmd_version },
-	/* { "validate", cmd_validate, USE_CREDFILE  }, */
-	{ NULL },
-};
+#define OPTION_FILENAME_H(s, l, v)\
+	OPTION_FILENAME_F((s), (l), (v), 0, 0, OPTION_HIDDEN)
 
-static const char *const cmd_pk_usages[] = {
-	"pk [--cred-db <file>] [--cred-cc <file>] [--temp-rc <file>]\n"
-	"   [--editor <name>] [--[no]-spinner[=<style>]] <command>\n"
-	"   [<args>]",
-	NULL,
-};
+#define OPTION_STRING_H(s, l, v)\
+	OPTION_STRING_F((s), (l), (v), 0, 0, OPTION_HIDDEN)
 
-static const struct option cmd_pk_options[] = {
-	OPTION_FILENAME_F(0, "cred-db", &cred_db_path, 0, 0, OPTION_HIDDEN),
-	OPTION_FILENAME_F(0, "cred-cc", &cred_cc_path, 0, 0, OPTION_HIDDEN),
-	OPTION_FILENAME_F(0, "tmp-rec", &tmp_rec_path, 0, 0, OPTION_HIDDEN),
+#define OPTION_OPTARG_HF(s, l, v, f)\
+	OPTION_OPTARG_F((s), (l), (v), 0, 0, 0, OPTION_HIDDEN | (f))
 
-	OPTION_STRING_F(0, "editor",  &ext_editor,    0, 0, OPTION_HIDDEN),
-	OPTION_OPTARG_F(0, "spinner", &spinner_style, 0, 0, 0,
-				OPTION_HIDDEN | OPTION_ALLONEG),
-
-	OPTION_GROUP("database manipulation"),
-	OPTION_COMMAND("init",    "Initialize database files for "
-				  "storing credentials"),
-	OPTION_COMMAND("create",  "Create a record"),
-	OPTION_COMMAND("read",    "Read a record"),
-	OPTION_COMMAND("update",  "Update a record"),
-	OPTION_COMMAND("delete",  "Delete a record"),
-	OPTION_COMMAND("count",   "Count the number of records"),
-
-	OPTION_GROUP("utility"),
-	OPTION_COMMAND("makekey", "Generate random bytes using a CSPRNG"),
-
-	OPTION_GROUP("helper"),
-	OPTION_COMMAND("help",    "Display help information about PassKeeper"),
-	OPTION_COMMAND("version", "Display version information about "
-				  "PassKeeper"),
-	OPTION_END(),
-};
+int rescode;
 
 static void init_enval(void)
 {
@@ -137,14 +95,41 @@ static void init_enval(void)
 
 static struct command_info *find_command(const char *cmdname)
 {
-	struct command_info *cmditer;
-
-	cmditer = commands;
-	while (cmditer->name != NULL)
+	debug_run()
 	{
-		if (!strcmp(cmdname, cmditer++->name))
+		static int run_count;
+
+		if (++run_count > 1)
 		{
-			return cmditer - 1;
+			bug("is time to move command list to global variable");
+		}
+	}
+
+	struct command_info commands[] = {
+		{ "count",    cmd_count,  USE_CREDFILE },
+		{ "create",   cmd_create, USE_CREDFILE | USE_RECFILE },
+		{ "delete",   cmd_delete, USE_CREDFILE },
+		{ "help",     cmd_help },
+		{ "init",     cmd_init },
+		{ "makekey",  cmd_makekey },
+		{ "read",     cmd_read, USE_CREDFILE },
+		/* { "show",     cmd_show, USE_CREDFILE  }, */
+		{ "update",   cmd_update, USE_CREDFILE | USE_RECFILE },
+		{ "version",  cmd_version },
+		/* { "validate", cmd_validate, USE_CREDFILE  }, */
+
+	#ifdef PK_DEBUG
+		{ "reset",    cmd_reset, USE_CREDFILE },
+	#endif
+
+		{ NULL },
+	}, *iter;
+
+	for (iter = commands; iter->name != NULL; iter++)
+	{
+		if (!strcmp(cmdname, iter->name))
+		{
+			return iter;
 		}
 	}
 
@@ -164,20 +149,66 @@ static bool skip_precheck(int argc, const char *const *argv)
 	return false;
 }
 
-static void precheck_command(unsigned flags)
+static int precheck_command(unsigned flags)
 {
 	if (flags & USE_RECFILE)
 	{
-		EXIT_ON_FAILURE(make_file_dir_avail(tmp_rec_path), 0);
+		return make_file_dir_avail(tmp_rec_path);
 	}
 
 	if (flags & USE_CREDFILE)
 	{
-		if (access_regular_file_m(cred_db_path, R_OK | W_OK) != 0)
+		if (access_regfile(cred_db_path, R_OK | W_OK) != 0)
 		{
-			EXIT_ON_FAILURE(report_cred_db_access_error(errno), 0);
+			return report_cred_db_access_error(errno);
 		}
 	}
+
+	return 0;
+}
+
+void parse_main_option(int argc,  const char **argv, const char *prefix)
+{
+	const struct option options[] = {
+		OPTION_FILENAME_H(0, "cred-db", &cred_db_path),
+		OPTION_FILENAME_H(0, "cred-cc", &cred_cc_path),
+		OPTION_FILENAME_H(0, "tmp-rec", &tmp_rec_path),
+
+		OPTION_STRING_H (0, "editor",  &ext_editor),
+		OPTION_OPTARG_HF(0, "spinner", &spinner_style, OPTION_ALLONEG),
+
+		OPTION_GROUP("database manipulation"),
+		OPTION_COMMAND("init",    "Initialize database files for "
+					  "storing credentials"),
+		OPTION_COMMAND("create",  "Create a record"),
+		OPTION_COMMAND("read",    "Read a record"),
+		OPTION_COMMAND("update",  "Update a record"),
+		OPTION_COMMAND("delete",  "Delete a record"),
+		OPTION_COMMAND("count",   "Count the number of records"),
+
+		OPTION_GROUP("utility"),
+		OPTION_COMMAND("makekey", "Generate random bytes using "
+					  "a CSPRNG"),
+
+		OPTION_GROUP("helper"),
+		OPTION_COMMAND("help",    "Display help information "
+					  "about PassKeeper"),
+		OPTION_COMMAND("version", "Display version information "
+					  "about PassKeeper"),
+		OPTION_END(),
+	};
+
+	const char *const usages[] = {
+		"pk [--cred-db <file>] [--cred-cc <file>] [--temp-rc <file>]\n"
+		"   [--editor <name>] [--[no]-spinner[=<style>]] <command>\n"
+		"   [<args>]",
+		NULL,
+	};
+
+	set_opt_argh_indent(13);
+	argc = parse_options(argc, argv, prefix,
+				options, usages, PARSER_UNTIL_NON_OPTION);
+	reset_opt_argh_indent();
 }
 
 int main(int argc, const char **argv)
@@ -219,13 +250,7 @@ int main(int argc, const char **argv)
 		argv = fbcmd;
 	}
 
-	optmsg_alignment = 13;
-
-	argc = parse_options(argc, argv, prefix,
-				cmd_pk_options, cmd_pk_usages,
-					PARSER_UNTIL_NON_OPTION);
-
-	optmsg_alignment = DEFAULT_OPTMSG_ALIGNMENT;
+	parse_main_option(argc, argv, prefix);
 
 	init_enval();
 

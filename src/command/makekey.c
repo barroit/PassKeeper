@@ -54,7 +54,7 @@ int cmd_makekey(int argc, const char **argv, const char *prefix)
 
 	if (output_file != NULL)
 	{
-		EXIT_ON_FAILURE(make_file_dir_avail(output_file), 0);
+		EOE(make_file_dir_avail(output_file));
 
 		fd = xopen(output_file, O_WRONLY | O_CREAT | O_TRUNC,
 				FILCRT_BIT);
@@ -62,7 +62,7 @@ int cmd_makekey(int argc, const char **argv, const char *prefix)
 
 	uint8_t *binkey;
 
-	EXIT_ON_FAILURE(random_bytes(&binkey, BINKEY_LEN), 0);
+	EOE(random_bytes(&binkey, BINKEY_LEN));
 	bin2hex(&hexkey, binkey, key_size);
 
 	*buf++ = '0';

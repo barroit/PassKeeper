@@ -261,20 +261,14 @@ static void prefix_optname(
 	}
 }
 
-static enum parse_result get_arg(
-	struct parser_context *ctx,
+static int verify_cmdmode(
+	struct command_mode *head,
 	const struct option *opt,
 	enum option_category category)
 {
-	enum parse_result rescode;
-
-	if ((rescode = get_arg_routine(ctx, opt, category)) != 0)
-	{
-		return rescode;
-	}
-
 	struct command_mode *iter;
-	list_for_each(iter, ctx->cmdmode)
+
+	list_for_each(iter, head)
 	{
 		if (*iter->valptr == iter->val)
 		{
@@ -292,9 +286,9 @@ static enum parse_result get_arg(
 		iter->val = *iter->valptr;
 	}
 
-	if (!iter)
+	if (iter == NULL)
 	{
-		return rescode;
+		return 0;
 	}
 
 	char optname1[64], optname2[64];
@@ -304,6 +298,27 @@ static enum parse_result get_arg(
 
 	return error("options '%s' and '%s' cannot be used together",
 			optname1, optname2);
+}
+
+static enum parse_result get_arg(
+	struct parser_context *ctx,
+	const struct option *opt,
+	enum option_category category)
+{
+	enum parse_result rescode;
+
+	if ((rescode = get_arg_routine(ctx, opt, category)) != 0)
+	{
+		return rescode;
+	}
+
+	if (ctx->cmdmode != NULL &&
+	     verify_cmdmode(ctx->cmdmode, opt, category) != 0)
+	{
+		return PARSING_ERROR;
+	}
+
+	return 0;
 }
 
 static enum parse_result parse_long_option(
@@ -602,18 +617,18 @@ finish:
 
 #define INDENT_STRING "    "
 
-int optmsg_alignment = DEFAULT_OPTMSG_ALIGNMENT;
+int opt_argh_indent = DEFAULT_OPT_ARGH_INDENT;
 
 #define pad_usage(stream, pos)								\
 	do										\
 	{										\
-		if (pos < optmsg_alignment)						\
+		if (pos < opt_argh_indent)						\
 		{									\
-			fprintf(stream, "%*s", optmsg_alignment - (int)pos, "");	\
+			fprintf(stream, "%*s", opt_argh_indent - (int)pos, "");	\
 		}									\
 		else									\
 		{									\
-			fprintf(stream, "\n%*s", optmsg_alignment, "");			\
+			fprintf(stream, "\n%*s", opt_argh_indent, "");			\
 		}									\
 	}										\
 	while (0)

@@ -53,12 +53,6 @@ int make_file_dir_avail(const char *filepath);
 
 void populate_file(const char *name, const char *buf, size_t buflen);
 
-int access_regular_file_routine(const char *file, int exmode);
-
-#define access_regular_file(file)\
-	access_regular_file_routine(file, R_OK)
-
-#define access_regular_file_m(file, mode)\
-	access_regular_file_routine(file, mode)
+int access_regfile(const char *name, int type);
 
 #endif /* FILESYS_H */

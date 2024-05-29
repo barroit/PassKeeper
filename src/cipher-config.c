@@ -225,7 +225,7 @@ void free_cipher_config(struct cipher_config *cc, struct cipher_key *ck)
 
 const char *resolve_cred_cc_realpath(void)
 {
-	if (access_regular_file(cred_cc_path) == 0)
+	if (access_regfile(cred_cc_path, R_OK) == 0)
 	{
 		return cred_cc_path;
 	}
@@ -239,7 +239,7 @@ const char *resolve_cred_cc_realpath(void)
 	case EACCES:
 		warning("Access was denied by config file '%s'", cred_cc_path);
 		break;
-	case ESTAT:
+	case ENOSTAT:
 		return NULL;
 	}
 

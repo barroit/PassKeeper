@@ -135,7 +135,7 @@ int make_file_dir_avail(const char *filepath)
 	const char *dirpath;
 	int rescode;
 
-	pathcopy = strdup(filepath);
+	pathcopy = xstrdup(filepath);
 	dirpath = dirname(pathcopy);
 
 	rescode = 0;
@@ -143,12 +143,14 @@ int make_file_dir_avail(const char *filepath)
 	{
 		if (errno != EEXIST)
 		{
-			rescode = error_errno("Unable to create directory at "
-						"'%s'", dirpath);
+			error_errno("Unable to create directory at "
+					"'%s'", dirpath);
+			rescode = -1;
 		}
 		else if (access(dirpath, W_OK) != 0)
 		{
-			rescode = error("Access denied by '%s'", dirpath);
+			error("Access denied by '%s'", dirpath);
+			rescode = -1;
 		}
 	}
 
@@ -166,13 +168,19 @@ void populate_file(const char *pathname, const char *buf, size_t buflen)
 	close(fd);
 }
 
-int access_regular_file_routine(const char *file, int mode)
+int access_regfile(const char *name, int type)
 {
 	struct stat st;
 
-	if (stat(file, &st) != 0)
+	if (stat(name, &st) != 0)
 	{
-		errno = ESTAT;
+		if (errno != ENOENT)
+		{
+			warning_errno("unexcepted error occurred while "
+					"access file '%s'", name);
+		}
+
+		errno = ENOSTAT;
 		return 1;
 	}
 	else if (!S_ISREG(st.st_mode))
@@ -180,7 +188,7 @@ int access_regular_file_routine(const char *file, int mode)
 		errno = ENOTREG;
 		return 1;
 	}
-	else if (test_file_mode(file, &st, mode) != 0)
+	else if (test_file_mode(name, &st, type) != 0)
 	{
 		errno = EACCES;
 		return 1;

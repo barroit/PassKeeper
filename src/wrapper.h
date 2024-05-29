@@ -23,24 +23,7 @@
 #ifndef WRAPPER_H
 #define WRAPPER_H
 
-#define FLEX_ARRAY
-
-#define is_pow2(x__)\
-	( (x__) != 0 && ( (x__) & ( (x__) - 1 ) ) == 0 )
-
-/**
- * check if `x__` is in range `r1` and `r2` exclusive
- */
-#define in_range_e(x__, r1__, r2__)\
-	( (x__) > (r1__) && (x__) < (r2__) )
-
-/**
- * check if `x__` is in range `r1` and `r2` inclusive
- */
-#define in_range_i(x__, r1__, r2__)\
-	( (x__) >= (r1__) && (x__) <= (r2__) )
-
-static inline void *xmalloc(size_t size)
+static inline FORCEINLINE void *xmalloc(size_t size)
 {
 	void *mem;
 
@@ -53,7 +36,7 @@ static inline void *xmalloc(size_t size)
 	return mem;
 }
 
-static inline void *xcalloc(size_t nmemb, size_t size)
+static inline FORCEINLINE void *xcalloc(size_t nmemb, size_t size)
 {
 	void *mem;
 
@@ -66,7 +49,7 @@ static inline void *xcalloc(size_t nmemb, size_t size)
 	return mem;
 }
 
-static inline void *xrealloc(void *ptr, size_t size)
+static inline FORCEINLINE void *xrealloc(void *ptr, size_t size)
 {
 	if ((ptr = realloc(ptr, size)) == NULL)
 	{
@@ -77,29 +60,7 @@ static inline void *xrealloc(void *ptr, size_t size)
 	return ptr;
 }
 
-#define xmemdup(p__, l__) memcpy(xmalloc(l__), (p__), (l__))
-
-static inline size_t __attribute__((const)) st_add(size_t x, size_t y)
-{
-	if ((SIZE_MAX - x) < y)
-	{
-		die("size_t overflow (%"PRIuMAX" + %"PRIuMAX")", x, y);
-	}
-
-	return x + y;
-}
-
-#define st_add3(a__, b__, c__) st_add(st_add((a__), (b__)), (c__))
-
-static inline size_t __attribute__((const)) st_mult(size_t x, size_t y)
-{
-	if ((SIZE_MAX / x) < y)
-	{
-		die("size_t overflow (%"PRIuMAX" * %"PRIuMAX")", x, y);
-	}
-
-	return x * y;
-}
+#define xmemdup(ptr, size) memcpy(xmalloc(size), ptr, size)
 
 static inline FORCEINLINE char *xstrdup(const char *s)
 {
@@ -112,35 +73,6 @@ static inline FORCEINLINE char *xstrdup(const char *s)
 	
 	return buf;
 }
-
-#define fixed_growth(len)\
-	( st_mult(st_add((len), 16), 3) / 2 )
-
-#define MOVE_ARRAY(dest, src, size)\
-	memmove((dest), (src), st_mult(sizeof(*src), size))
-
-#define REALLOC_ARRAY(ptr, size)\
-	xrealloc((ptr), st_mult(sizeof(*ptr), size))
-
-#define FLEX_ALLOC_ARRAY(obj__, field__, buf__, len__)			\
-	do								\
-	{								\
-		(obj__) = xmalloc(st_add3(sizeof(*(obj__)), len__, 1));	\
-		memcpy((obj__)->field__, (buf__), len__);		\
-	}								\
-	while (0)
-
-#define CAPACITY_GROW(ptr, size, cap)			\
-	do						\
-	{						\
-		if (size > cap)				\
-		{					\
-			cap = fixed_growth(cap);	\
-			cap = cap < size ? size : cap;	\
-			ptr = REALLOC_ARRAY(ptr, cap);	\
-		}					\
-	}						\
-	while (0)
 
 int xopen(const char *file, int oflag, ...);
 
@@ -194,20 +126,10 @@ static inline off_t xlseek(int fd, off_t offset, int whence)
 	return ns;
 }
 
-#define EXIT_ON_FAILURE(lc__, rc__)			\
-	do						\
-	{						\
-		if ((lc__) != (rc__))			\
-		{					\
-			exit(EXIT_FAILURE);		\
-		}					\
-	}						\
-	while (0)
+#define run_sqlite3(db, fn, ...)\
+	( (fn(__VA_ARGS__) != SQLITE_OK) ? report_sqlite_error(fn, db) : SQLITE_OK )
 
-#define run_sqlite3(db__, fn__, ...)\
-	((fn__(__VA_ARGS__) != SQLITE_OK) ? report_sqlite_error(fn__, db__) : SQLITE_OK)
-
-static inline int msqlite3_open(const char *filename, struct sqlite3 **db)
+static inline FORCEINLINE int msqlite3_open(const char *filename, struct sqlite3 **db)
 {
 	return run_sqlite3(db, sqlite3_open, filename, db);
 }
@@ -262,8 +184,8 @@ static inline FORCEINLINE int msqlite3_bind_int64(
 static inline FORCEINLINE int msqlite3_bind_null(
 	struct sqlite3_stmt *stmt, int idx)
 {
-	return run_sqlite3(sqlite3_db_handle(stmt),
-	sqlite3_bind_null, stmt, idx);
+	return run_sqlite3(sqlite3_db_handle(stmt), sqlite3_bind_null,
+				stmt, idx);
 }
 
 static inline FORCEINLINE int msqlite3_bind_text(
@@ -283,64 +205,63 @@ static inline FORCEINLINE int msqlite3_step(struct sqlite3_stmt *stmt)
 		report_sqlite_error(sqlite3_step, sqlite3_db_handle(stmt));
 }
 
-#define msqlite3_begin_transaction(db__)\
-	msqlite3_exec(db__, "BEGIN TRANSACTION;", NULL, NULL, NULL)
+#define msqlite3_begin_transaction(db)\
+	msqlite3_exec(db, "BEGIN TRANSACTION;", NULL, NULL, NULL)
 
-#define msqlite3_end_transaction(db__)\
-	msqlite3_exec(db__, "END TRANSACTION;", NULL, NULL, NULL)
+#define msqlite3_end_transaction(db)\
+	msqlite3_exec(db, "END TRANSACTION;", NULL, NULL, NULL)
 
-#define xsqlite3_open(filename__, db__)\
-	EXIT_ON_FAILURE(msqlite3_open(filename__, db__), SQLITE_OK)
+#define xsqlite3_open(filename, db)\
+	require_success(msqlite3_open(filename, db), SQLITE_OK)
 
-#define xsqlite3_open_v2(filename__, db__, flags__, vfs__)\
-	EXIT_ON_FAILURE(msqlite3_open_v2(filename__, db__, flags__, vfs__), SQLITE_OK)
+#define xsqlite3_open_v2(filename, db, flags, vfs)\
+	require_success(msqlite3_open_v2(filename, db, flags, vfs), SQLITE_OK)
 
-#define xsqlite3_key(db__, key__, sz__)\
-	EXIT_ON_FAILURE(msqlite3_key(db__, key__, sz__), SQLITE_OK)
+#define xsqlite3_key(db, key, len)\
+	require_success(msqlite3_key(db, key, len), SQLITE_OK)
 
-#define xsqlite3_exec(db__, sql__, callback__, cbargv__, errmsg__)\
-	EXIT_ON_FAILURE(msqlite3_exec(db__, sql__, callback__, cbargv__, NULL), SQLITE_OK)
+#define xsqlite3_exec(db, sql, callback, cbargv, errmsg)\
+	require_success(msqlite3_exec(db, sql, callback, cbargv, NULL), SQLITE_OK)
 
-#define xsqlite3_avail(db__)\
-	EXIT_ON_FAILURE(msqlite3_avail(db__), SQLITE_OK)
+#define xsqlite3_avail(db)\
+	require_success(msqlite3_avail(db), SQLITE_OK)
 
-#define xsqlite3_prepare_v2(db__, sql__, nr__, stmt__, tail__)\
-	EXIT_ON_FAILURE(msqlite3_prepare_v2(db__, sql__, nr__, stmt__, tail__), SQLITE_OK)
+#define xsqlite3_prepare_v2(db, sql, nr, stmt, tail)\
+	require_success(msqlite3_prepare_v2(db, sql, nr, stmt, tail), SQLITE_OK)
 
-#define xsqlite3_bind_blob(stmt__, idx__, val__, nr__, des__)\
-	EXIT_ON_FAILURE(msqlite3_bind_blob(stmt__, idx__, val__, nr__, des__), SQLITE_OK)
+#define xsqlite3_bind_blob(stmt, idx, val, nr, des)\
+	require_success(msqlite3_bind_blob(stmt, idx, val, nr, des), SQLITE_OK)
 
-#define xsqlite3_bind_null(stmt__, idx__)\
-	EXIT_ON_FAILURE(msqlite3_bind_null(stmt__, idx__), SQLITE_OK)
+#define xsqlite3_bind_null(stmt, idx)\
+	require_success(msqlite3_bind_null(stmt, idx), SQLITE_OK)
 
-#define xsqlite3_bind_int64(stmt__, idx__, val__)\
-	EXIT_ON_FAILURE(msqlite3_bind_int64(stmt__, idx__, val__), SQLITE_OK)
+#define xsqlite3_bind_int64(stmt, idx, val)\
+	require_success(msqlite3_bind_int64(stmt, idx, val), SQLITE_OK)
 
-#define xsqlite3_bind_text(stmt__, idx__, val__, nr__, des__)\
-	EXIT_ON_FAILURE(msqlite3_bind_text(stmt__, idx__, val__, nr__, des__), SQLITE_OK)
+#define xsqlite3_bind_text(stmt, idx, val, nr, des)\
+	require_success(msqlite3_bind_text(stmt, idx, val, nr, des), SQLITE_OK)
 
-#define xsqlite3_step(stmt__)\
-	EXIT_ON_FAILURE(msqlite3_step(stmt__), SQLITE_DONE)
+#define xsqlite3_step(stmt)\
+	require_success(msqlite3_step(stmt), SQLITE_DONE)
 
-#define xsqlite3_begin_transaction(db__)\
-	EXIT_ON_FAILURE(msqlite3_begin_transaction(db__), SQLITE_OK)
+#define xsqlite3_begin_transaction(db)\
+	require_success(msqlite3_begin_transaction(db), SQLITE_OK)
 
-#define xsqlite3_end_transaction(db__)\
-	EXIT_ON_FAILURE(msqlite3_end_transaction(db__), SQLITE_OK)
+#define xsqlite3_end_transaction(db)\
+	require_success(msqlite3_end_transaction(db), SQLITE_OK)
 
-#define xsqlite3_bind_or_null(ftype__, stmt__, idx__, val__, nr__, des__)	\
-	do									\
-	{									\
-		if ((val__) == NULL)						\
-		{								\
-			xsqlite3_bind_null(stmt__, idx__);			\
-		}								\
-		else								\
-		{								\
-			xsqlite3_bind_##ftype__(stmt__, idx__, val__,		\
-						nr__, des__);			\
-		}								\
-	}									\
+#define xsqlite3_bind_or_null(ftype, stmt, idx, val, nr, des)		\
+	do								\
+	{								\
+		if ((val) == NULL)					\
+		{							\
+			xsqlite3_bind_null(stmt, idx);			\
+		}							\
+		else							\
+		{							\
+			xsqlite3_bind_##ftype(stmt, idx, val, nr, des);	\
+		}							\
+	}								\
 	while (0)
 
 #ifdef WINDOWS_NATIVE
@@ -383,11 +304,5 @@ WINBOOL xSetStdHandle(DWORD nStdHandle, HANDLE hHandle);
  * into stdout, and c will only be evaluated once
  */
 #define im_putchar(c) xwrite(STDOUT_FILENO, &(char){ (c) }, 1)
-
-#ifdef PK_DEBUG
-#define debug_run() if (1)
-#else
-#define debug_run() if (0)
-#endif
 
 #endif /* WRAPPER_H */

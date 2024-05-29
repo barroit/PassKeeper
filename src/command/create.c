@@ -150,9 +150,9 @@ int cmd_create(int argc, const char **argv, const char *prefix)
 
 	populate_record_file(tmp_rec_path, &rec);
 
-	EXIT_ON_FAILURE(edit_file(tmp_rec_path), 0);
+	EOE(edit_file(tmp_rec_path));
 
-	EXIT_ON_FAILURE(read_record_file(&rec, tmp_rec_path), 0);
+	EOE(read_record_file(&rec, tmp_rec_path));
 
 setup_database:;
 	struct sqlite3 *db;

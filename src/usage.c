@@ -325,7 +325,7 @@ int report_file_access_error_routine(
 {
 	switch (errnum)
 	{
-	case ESTAT:
+	case ENOSTAT:
 		error("Couldn't access %s '%s'.", name, file);
 	case ENOTREG:
 		char *buf;
