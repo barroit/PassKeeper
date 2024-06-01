@@ -24,27 +24,7 @@
 #include "strbuf.h"
 #include "filesys.h"
 #include "atexit-chain.h"
-
-int cmd_count  (int argc,  const char **argv, const char *prefix);
-int cmd_create (int argc,  const char **argv, const char *prefix);
-int cmd_delete (int argc,  const char **argv, const char *prefix);
-int cmd_help   (int argc,  const char **argv, const char *prefix);
-int cmd_init   (int argc,  const char **argv, const char *prefix);
-int cmd_makekey(int argc,  const char **argv, const char *prefix);
-int cmd_read   (int argc,  const char **argv, const char *prefix);
-int cmd_reset  (int argc,  const char **argv, const char *prefix);
-int cmd_update (int argc,  const char **argv, const char *prefix);
-int cmd_version(int argc,  const char **argv, const char *prefix);
-
-#define USE_CREDFILE (1 << 0)
-#define USE_RECFILE  (1 << 1)
-
-struct command_info
-{
-	const char *name;
-	int (*handle)(int argc, const char **argv, const char *prefix);
-	unsigned precheck_flags;
-};
+#include "command.h"
 
 #define OPTION_FILENAME_H(s, l, v)\
 	OPTION_FILENAME_F((s), (l), (v), 0, 0, OPTION_HIDDEN)
@@ -54,8 +34,6 @@ struct command_info
 
 #define OPTION_OPTARG_HF(s, l, v, f)\
 	OPTION_OPTARG_F((s), (l), (v), 0, 0, 0, OPTION_HIDDEN | (f))
-
-int rescode;
 
 static void init_enval(void)
 {
@@ -93,50 +71,7 @@ static void init_enval(void)
 	}
 }
 
-static struct command_info *find_command(const char *cmdname)
-{
-	debug_run()
-	{
-		static int run_count;
-
-		if (++run_count > 1)
-		{
-			bug("is time to move command list to global variable");
-		}
-	}
-
-	struct command_info commands[] = {
-		{ "count",    cmd_count,  USE_CREDFILE },
-		{ "create",   cmd_create, USE_CREDFILE | USE_RECFILE },
-		{ "delete",   cmd_delete, USE_CREDFILE },
-		{ "help",     cmd_help },
-		{ "init",     cmd_init },
-		{ "makekey",  cmd_makekey },
-		{ "read",     cmd_read, USE_CREDFILE },
-		/* { "show",     cmd_show, USE_CREDFILE  }, */
-		{ "update",   cmd_update, USE_CREDFILE | USE_RECFILE },
-		{ "version",  cmd_version },
-		/* { "validate", cmd_validate, USE_CREDFILE  }, */
-
-	#ifdef PK_DEBUG
-		{ "reset",    cmd_reset, USE_CREDFILE },
-	#endif
-
-		{ NULL },
-	}, *iter;
-
-	for (iter = commands; iter->name != NULL; iter++)
-	{
-		if (!strcmp(cmdname, iter->name))
-		{
-			return iter;
-		}
-	}
-
-	return NULL;
-}
-
-static bool skip_precheck(int argc, const char *const *argv)
+static bool is_skip_precheck(int argc, const char *const *argv)
 {
 	for ( ; argc > 0; argc--)
 	{
@@ -149,25 +84,23 @@ static bool skip_precheck(int argc, const char *const *argv)
 	return false;
 }
 
-static int precheck_command(unsigned flags)
+static void precheck_command(enum cmdreq reqs)
 {
-	if (flags & USE_RECFILE)
+	if (reqs & USE_RECFILE)
 	{
-		return make_file_dir_avail(tmp_rec_path);
+		EOE(make_file_dir_avail(tmp_rec_path));
 	}
 
-	if (flags & USE_CREDFILE)
+	if (reqs & USE_CREDDB)
 	{
 		if (access_regfile(cred_db_path, R_OK | W_OK) != 0)
 		{
-			return report_cred_db_access_error(errno);
+			exit(report_cred_db_access_error(errno));
 		}
 	}
-
-	return 0;
 }
 
-void parse_main_option(int argc,  const char **argv, const char *prefix)
+static int parse_main_option(int argc, const char **argv, const char *prefix)
 {
 	const struct option options[] = {
 		OPTION_FILENAME_H(0, "cred-db", &cred_db_path),
@@ -207,19 +140,51 @@ void parse_main_option(int argc,  const char **argv, const char *prefix)
 
 	set_opt_argh_indent(13);
 	argc = parse_options(argc, argv, prefix,
-				options, usages, PARSER_UNTIL_NON_OPTION);
+				 options, usages, PARSER_UNTIL_NON_OPTION);
 	reset_opt_argh_indent();
+
+	return argc;
+}
+
+static void help_unknown_command(const char *cmd)
+{
+	char **commands, **iter;
+
+	error("'%s' is not a pk command, see 'pk help pk'.", cmd);
+
+	if ((commands = get_approximate_command(cmd)) == NULL)
+	{
+		goto finish;
+	}
+
+	if (commands[0] != NULL && commands[1] != NULL)
+	{
+		fputs("\nThe most similar command are\n", stderr);
+	}
+	else
+	{
+		fputs("\nThe most similar command is\n", stderr);
+	}
+
+	array_iterate_each(iter, commands)
+	{
+		fprintf(stderr, "\t%s\n", *iter);
+	}
+
+	// strarr_free(commands);
+
+finish:
+	exit(EXIT_FAILURE);
 }
 
 int main(int argc, const char **argv)
 {
 	const char *prefix;
-	struct command_info *command;
+	const struct cmdinfo *command;
 
-	argv++;
-	argc--;
+	ARGV_MOVE_FRONT(argc, argv);
 
-	prefix = get_working_dir();
+	get_working_dir(&prefix);
 
 	/**
 	 * turn "pk cmd --help" to "pk help cmd"
@@ -234,39 +199,36 @@ int main(int argc, const char **argv)
 	 */
 	else if (argc == 1 && !strcmp(argv[0], "--help"))
 	{
-		static const char *fbcmd[] = { "help", "pk" };
+		ARGV_MOVE_BACK(argc, argv);
 
-		argc = 2;
-		argv = fbcmd;
+		argv[0] = "help";
+		argv[1] = "pk";
 	}
 	/**
 	 * turn "pk" to "pk -h"
 	 */
 	else if (argc == 0)
 	{
-		static const char *fbcmd[] = { "-h" };
+		ARGV_MOVE_BACK(argc, argv);
 
-		argc = 1;
-		argv = fbcmd;
+		argv[0] = "-h";
 	}
 
-	parse_main_option(argc, argv, prefix);
+	argc = parse_main_option(argc, argv, prefix);
 
 	init_enval();
 
 	if ((command = find_command(argv[0])) == NULL)
 	{
-		exit(error("'%s' is not a command, see 'pk help pk'.",
-				argv[0]));
+		help_unknown_command(argv[0]);
 	}
 
-	/* skip command */
-	argc--;
-	argv++;
+	/* skip 'command' */
+	ARGV_MOVE_FRONT(argc, argv);
 
-	if (!skip_precheck(argc, argv))
+	if (!is_skip_precheck(argc, argv))
 	{
-		precheck_command(command->precheck_flags);
+		precheck_command(command->reqs);
 	}
 
 	atexit(apply_atexit_chain);

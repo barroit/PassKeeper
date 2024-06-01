@@ -20,53 +20,17 @@
 **
 ****************************************************************************/
 
-#include "atexit-chain.h"
+#ifndef ALGORITHM_H
+#define ALGORITHM_H
 
-struct atexit_node
-{
-	void (*fn)(void);
-	struct atexit_node *next;
-};
+size_t levenshtein_w(const char *s, const char *t, int iw, int dw, int sw, int tw);
 
-static struct atexit_node *atexit_func;
+#define levenshtein(s, t)\
+	levenshtein_w(s, t, 1, 1, 1, 1)
 
-void atexit_chain_push(void (*fn)(void))
-{
-	struct atexit_node *head;
+void merge_sort(void *array, size_t nmemb, size_t size, int (*compar)(const void *, const void *));
 
-	head = xmalloc(sizeof(struct atexit_node));
+#define MSORT(array, nmemb, compar)\
+	merge_sort(array, nmemb, sizeof(*(array)), compar)
 
-	head->fn = fn;
-	head->next = atexit_func;
-
-	atexit_func = head;
-}
-
-void (*atexit_chain_pop(void))(void)
-{
-	if (atexit_func == NULL)
-	{
-		return NULL;
-	}
-
-	struct atexit_node *prev;
-	void (*fn)(void);
-
-	prev = atexit_func;
-	fn = atexit_func->fn;
-
-	atexit_func = atexit_func->next;
-
-	free(prev);
-	return fn;
-}
-
-void apply_atexit_chain(void)
-{
-	void (*fn)(void);
-
-	while ((fn = atexit_chain_pop()) != NULL)
-	{
-		fn();
-	}
-}
+#endif /* ALGORITHM_H */

@@ -31,7 +31,7 @@ static void strlist_erase_at(struct strlist *sl, size_t idx, bool rmext)
 
 	if (rmext)
 	{
-		free(sl->elvec[idx].ext);
+		free((void *)sl->elvec[idx].ext);
 	}
 }
 
@@ -43,11 +43,12 @@ void strlist_destroy(struct strlist *sl, bool rmext)
 	}
 
 	free(sl->elvec);
+	sl->capacity = 0;
 }
 
 void strlist_trunc(struct strlist *sl, bool rmext)
 {
-	for ( ; sl->size > 0; sl->size--)
+	for (; sl->size > 0; sl->size--)
 	{
 		strlist_erase_at(sl, sl->size - 1, rmext);
 	}
@@ -61,7 +62,7 @@ static struct strlist_elem *strlist_push_nodup(struct strlist *sl, char *str)
 	el = &sl->elvec[sl->size++];
 
 	el->str = str;
-	el->ext = NULL;
+	el->ext = 0;
 
 	return el;
 }
@@ -117,21 +118,25 @@ size_t strlist_split(struct strlist *sl, const char *str, char delim, int maxspl
 	}
 }
 
-void strlist_filter(struct strlist *sl, strlist_filter_cb_t pass, bool free_ext)
+void strlist_filter(
+	struct strlist *sl,
+	bool (*compar)(struct strlist_elem *),
+	bool free_ext)
 {
 	size_t i, ii, iii;
 	size_t track[sl->size], tracksz;
 
 	tracksz = 0;
-	for (i = 0; i < sl->size; i++)
+	array_for_each(i, sl->size)
 	{
-		if (!pass(sl->elvec + i))
+		if (!compar(sl->elvec + i))
 		{
 			track[tracksz++] = i;
 		}
 	}
 
-	for (i = 0, iii = 0; i < tracksz; i++)
+	iii = 0;
+	array_for_each(i, tracksz)
 	{
 		strlist_erase_at(sl, track[i], free_ext);
 
@@ -150,7 +155,8 @@ void strlist_filter(struct strlist *sl, strlist_filter_cb_t pass, bool free_ext)
 }
 
 char *strlist_join(
-	struct strlist *sl, char *separator, enum strlist_join_ext_pos join_pos)
+	struct strlist *sl, const char *separator,
+	enum strlist_join_ext_pos join_pos)
 {
 	char *buf0, *buf;
 	size_t bufsz, bufcap, prevsz;
@@ -164,12 +170,13 @@ char *strlist_join(
 	buf = buf0;
 
 	struct strlist_elem *el;
-	strlist_foreach(sl, el)
+
+	for (el = sl->elvec; el - sl->elvec < sl->size; el++)
 	{
 		prevsz = bufsz;
 		strsz = strlen(el->str);
 		extsz = join_pos != EXT_JOIN_NONE &&
-			 el->ext != NULL ? strlen(el->ext) : 0;
+			 el->ext != 0 ? strlen((const char *)el->ext) : 0;
 		bufsz += strsz + extsz + sepsz;
 
 		CAPACITY_GROW(buf0, bufsz, bufcap);
@@ -178,14 +185,14 @@ char *strlist_join(
 		buf += prevsz;
 		if (join_pos == EXT_JOIN_HEAD)
 		{
-			memcpy(buf, el->ext, extsz);
+			memcpy(buf, (void *)el->ext, extsz);
 			buf += extsz;
 		}
 		memcpy(buf, el->str, strsz);
 		buf += strsz;
 		if (join_pos == EXT_JOIN_TAIL)
 		{
-			memcpy(buf, el->ext, extsz);
+			memcpy(buf, (void *)el->ext, extsz);
 			buf += extsz;
 		}
 		memcpy(buf, separator, sepsz);
@@ -196,13 +203,19 @@ char *strlist_join(
 	return buf0;
 }
 
-char **strlist_to_array(struct strlist *sl)
+char **strlist_to_array_routine(struct strlist *sl, size_t n)
 {
 	char **buf;
 	size_t i;
 
-	buf = xmalloc((sl->size + 1) * sizeof(char *));
-	for (i = 0; i < sl->size; i++)
+	if (n == 0 || n > sl->size)
+	{
+		n = sl->size;
+	}
+
+	buf = xmalloc(st_mult(n + 1, sizeof(char *)));
+
+	array_for_each(i, n)
 	{
 		buf[i] = strdup(sl->elvec[i].str);
 	}
@@ -212,14 +225,14 @@ char **strlist_to_array(struct strlist *sl)
 	return buf;
 }
 
-void free_string_array(char **arr)
+void strarr_free(char **array)
 {
-	char **arr0;
+	char **iter;
 
-	arr0 = arr;
-	while (*arr)
+	array_iterate_each(iter, array)
 	{
-		free(*arr++);
+		free(*iter);
 	}
-	free(arr0);
+
+	free(array);
 }

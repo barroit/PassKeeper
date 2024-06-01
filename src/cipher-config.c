@@ -25,6 +25,7 @@
 #include "strbuf.h"
 #include "strlist.h"
 #include "filesys.h"
+#include "pkerrno.h"
 
 enum field_type
 {

@@ -20,53 +20,12 @@
 **
 ****************************************************************************/
 
-#include "atexit-chain.h"
+#ifndef PKERRNO_H
+#define PKERRNO_H
 
-struct atexit_node
-{
-	void (*fn)(void);
-	struct atexit_node *next;
-};
+#define ERR_PTR(errnum) ((void *)(errnum))
 
-static struct atexit_node *atexit_func;
+#define ENOSTAT 50	/* stat() failed, and errno is set */
+#define ENOTREG 51	/* file is not regular file */
 
-void atexit_chain_push(void (*fn)(void))
-{
-	struct atexit_node *head;
-
-	head = xmalloc(sizeof(struct atexit_node));
-
-	head->fn = fn;
-	head->next = atexit_func;
-
-	atexit_func = head;
-}
-
-void (*atexit_chain_pop(void))(void)
-{
-	if (atexit_func == NULL)
-	{
-		return NULL;
-	}
-
-	struct atexit_node *prev;
-	void (*fn)(void);
-
-	prev = atexit_func;
-	fn = atexit_func->fn;
-
-	atexit_func = atexit_func->next;
-
-	free(prev);
-	return fn;
-}
-
-void apply_atexit_chain(void)
-{
-	void (*fn)(void);
-
-	while ((fn = atexit_chain_pop()) != NULL)
-	{
-		fn();
-	}
-}
+#endif /* PKERRNO_H */

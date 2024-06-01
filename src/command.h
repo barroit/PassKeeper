@@ -20,53 +20,24 @@
 **
 ****************************************************************************/
 
-#include "atexit-chain.h"
+#ifndef COMMAND_H
+#define COMMAND_H
 
-struct atexit_node
+enum cmdreq
 {
-	void (*fn)(void);
-	struct atexit_node *next;
+	USE_CREDDB  = 1 << 0,
+	USE_RECFILE = 1 << 1,
 };
 
-static struct atexit_node *atexit_func;
-
-void atexit_chain_push(void (*fn)(void))
+struct cmdinfo
 {
-	struct atexit_node *head;
+	const char *name;
+	int (*handle)(int argc, const char **argv, const char *prefix);
+	enum cmdreq reqs;
+};
 
-	head = xmalloc(sizeof(struct atexit_node));
+const struct cmdinfo *find_command(const char *cmd);
 
-	head->fn = fn;
-	head->next = atexit_func;
+char **get_approximate_command(const char *cmd);
 
-	atexit_func = head;
-}
-
-void (*atexit_chain_pop(void))(void)
-{
-	if (atexit_func == NULL)
-	{
-		return NULL;
-	}
-
-	struct atexit_node *prev;
-	void (*fn)(void);
-
-	prev = atexit_func;
-	fn = atexit_func->fn;
-
-	atexit_func = atexit_func->next;
-
-	free(prev);
-	return fn;
-}
-
-void apply_atexit_chain(void)
-{
-	void (*fn)(void);
-
-	while ((fn = atexit_chain_pop()) != NULL)
-	{
-		fn();
-	}
-}
+#endif /* COMMAND_H */

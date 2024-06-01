@@ -23,6 +23,22 @@
 #ifndef HELPER_H
 #define HELPER_H
 
+#define ARGV_MOVE_FRONT(argc, argv)	\
+	do				\
+	{				\
+		argv++;			\
+		argc--;			\
+	}				\
+	while (0)
+
+#define ARGV_MOVE_BACK(argc, argv)	\
+	do				\
+	{				\
+		argv--;			\
+		argc++;			\
+	}				\
+	while (0)
+
 #define is_pow2(x)\
 	( (x) != 0 && ( (x) & ( (x) - 1 ) ) == 0 )
 
@@ -65,30 +81,36 @@ static inline FORCEINLINE size_t st_mult(size_t x, size_t y)
 #define fixed_growth(len)\
 	( st_mult(st_add(len, 16), 3) / 2 )
 
+#define MALLOC_ARRAY(ptr, size)\
+	( ptr = xmalloc(st_mult(sizeof(*(ptr)), size)) )
+
+#define CALLOC_ARRAY(ptr, size)\
+	( ptr = xcalloc(size, sizeof(*(ptr))) )
+
+#define REALLOC_ARRAY(ptr, size)\
+	( ptr = xrealloc(ptr, st_mult(sizeof(*(ptr)), size)) )
+
 #define MOVE_ARRAY(dest, src, size)\
 	memmove(dest, src, st_mult(sizeof(*(src)), size))
 
-#define REALLOC_ARRAY(ptr, size)\
-	xrealloc(ptr, st_mult(sizeof(*(ptr)), size))
-
-#define FLEX_ALLOC_ARRAY(obj, field, data, len)				\
-	do								\
-	{								\
-		(obj) = xmalloc(st_add3(sizeof(*(obj)), len, 1));	\
-		memcpy((obj)->field, data, len);			\
-	}								\
+#define FLEX_ALLOC_ARRAY(obj, field, data, len)			\
+	do							\
+	{							\
+		obj = xmalloc(st_add3(sizeof(*(obj)), len, 1));	\
+		memcpy((obj)->field, data, len);		\
+	}							\
 	while (0)
 
-#define CAPACITY_GROW(ptr, size, cap)					\
-	do								\
-	{								\
-		if ((size) > (cap))					\
-		{							\
-			(cap) = fixed_growth(cap);			\
-			(cap) = (cap) < (size) ? (size) : (cap);	\
-			(ptr) = REALLOC_ARRAY(ptr, cap);		\
-		}							\
-	}								\
+#define CAPACITY_GROW(ptr, size, cap)				\
+	do							\
+	{							\
+		if ((size) > (cap))				\
+		{						\
+			cap = fixed_growth(cap);		\
+			cap = (cap) < (size) ? (size) : (cap);	\
+			REALLOC_ARRAY(ptr, cap);		\
+		}						\
+	}							\
 	while (0)
 
 #ifdef PK_DEBUG
@@ -107,6 +129,41 @@ static inline FORCEINLINE size_t st_mult(size_t x, size_t y)
 	}						\
 	while (0)
 
+/**
+ * exit on error
+ */
 #define EOE(rescode) require_success(rescode, 0)
+
+#define list_for_each(pos, head)\
+	for (pos = head; (pos)->next != NULL; pos = (pos)->next)
+
+#define array_for_each_idx(idx, midx)\
+	for (idx = 0; idx <= midx; (idx)++)
+
+#define array_for_each_elem(idx, nl)\
+	for (idx = 0; idx < nl; (idx)++)
+
+#define array_for_each array_for_each_elem
+
+#define array_iterate_each_until_null(iter, head, t)\
+	for (iter = head; (t) != NULL; (iter)++)
+
+#define array_iterate_each(iter, head)\
+	array_iterate_each_until_null(iter, head, *(iter))
+
+#define array_iterate_each_t array_iterate_each_until_null
+
+/**
+ * find `str` in `arr`, the last element of `arr` must be NULL
+ */
+static inline FORCEINLINE bool find_string(const char *str, const char *const *arr)
+{
+	while (*arr && strcmp(str, *arr))
+	{
+		arr++;
+	}
+
+	return *arr != NULL;
+}
 
 #endif /* HELPER_H */

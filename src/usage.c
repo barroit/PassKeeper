@@ -21,6 +21,7 @@
 ****************************************************************************/
 
 #include "security.h"
+#include "pkerrno.h"
 
 void vreportf(const char *prefix, struct report_field *field)
 {

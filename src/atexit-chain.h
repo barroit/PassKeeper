@@ -23,11 +23,9 @@
 #ifndef ATEXIT_CHAIN_H
 #define ATEXIT_CHAIN_H
 
-typedef void (*atexit_func_t)(void);
+void atexit_chain_push(void (*fn)(void));
 
-void atexit_chain_push(atexit_func_t func);
-
-atexit_func_t atexit_chain_pop(void);
+void (*atexit_chain_pop(void))(void);
 
 void apply_atexit_chain(void);
 

@@ -23,19 +23,19 @@
 #ifndef FILESYS_H
 #define FILESYS_H
 
-const char *get_working_dir_routine(bool force);
+void get_working_dir_routine(const char **out, bool force);
 
 /**
  * get the current working directory, this function
  * uses internal buffer to cache the result
  */
-#define get_working_dir() get_working_dir_routine(false)
+#define get_working_dir(out) get_working_dir_routine(out, false)
 
 /**
  * get the current working directory, this function
  * refresh the cache
  */
-#define force_get_working_dir() get_working_dir_routine(true)
+#define force_get_working_dir(out) get_working_dir_routine(out, true)
 
 #ifdef LINUX
 #define is_abs_path(p__) (*(p__) && *(p__) == '/')

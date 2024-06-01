@@ -227,8 +227,4 @@ struct termios
 }
 #endif
 
-/* ext errno */
-#define ENOSTAT 50 /* stat() failed, and errno is set */
-#define ENOTREG 51 /* file is not regular file */
-
 #endif /* COMPACT_UTIL_H */

@@ -23,8 +23,9 @@
 #include "filesys.h"
 #include "strbuf.h"
 #include "security.h"
+#include "pkerrno.h"
 
-const char *get_working_dir_routine(bool force_get)
+void get_working_dir_routine(const char **out, bool force_get)
 {
 	static char *buf;
 	size_t size;
@@ -35,7 +36,7 @@ const char *get_working_dir_routine(bool force_get)
 	}
 	else if (buf != NULL)
 	{
-		return buf;
+		goto finish;
 	}
 
 	size = fixed_growth(64);
@@ -45,7 +46,7 @@ const char *get_working_dir_routine(bool force_get)
 
 		if (getcwd(buf, size) == buf)
 		{
-			return buf;
+			goto finish;
 		}
 
 		if (errno == ERANGE)
@@ -58,7 +59,8 @@ const char *get_working_dir_routine(bool force_get)
 		die_errno("Unable to get the current working directory");
 	}
 
-	return buf;
+finish:
+	*out = buf;
 }
 
 char *prefix_filename(const char *prefix, const char *filename)
@@ -133,29 +135,25 @@ int make_file_dir_avail(const char *filepath)
 {
 	char *pathcopy;
 	const char *dirpath;
-	int rescode;
 
 	pathcopy = xstrdup(filepath);
 	dirpath = dirname(pathcopy);
 
-	rescode = 0;
 	if (mkdir(dirpath) != 0)
 	{
 		if (errno != EEXIST)
 		{
-			error_errno("Unable to create directory at "
-					"'%s'", dirpath);
-			rescode = -1;
+			return error_errno("Unable to create directory at "
+						"'%s'", dirpath);
 		}
 		else if (access(dirpath, W_OK) != 0)
 		{
-			error("Access denied by '%s'", dirpath);
-			rescode = -1;
+			return error("Access denied by '%s'", dirpath);
 		}
 	}
 
 	free(pathcopy);
-	return rescode;
+	return 0;
 }
 
 void populate_file(const char *pathname, const char *buf, size_t buflen)

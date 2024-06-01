@@ -63,7 +63,7 @@ int edit_file(const char *pathname)
 
 	show_spinner = spinner_style != NULL /* --no-spinner */ &&
 			/* graphical editor enable this by default */
-			 (string_in_array(ext_editor, graphical_editors) ||
+			 (find_string(ext_editor, graphical_editors) ||
 			  /* this case, user specified a value */
 			   spinner_style != (void *)-1);
 

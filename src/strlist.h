@@ -26,7 +26,7 @@
 struct strlist_elem
 {
 	char *str;
-	void *ext;
+	intptr_t ext;
 };
 
 struct strlist
@@ -44,8 +44,6 @@ enum strlist_join_ext_pos
 	EXT_JOIN_TAIL,
 };
 
-typedef bool (*strlist_filter_cb_t)(struct strlist_elem *);
-
 #define STRLIST_INIT_NODUP  { 0 }
 #define STRLIST_INIT_DUPSTR { .dupstr = true }
 #define STRLIST_INIT_PTR_NODUP  &(struct strlist)STRLIST_INIT_NODUP
@@ -61,44 +59,34 @@ struct strlist_elem *strlist_pop(struct strlist *sl);
 
 size_t strlist_split(struct strlist *sl, const char *str, char delim, int maxsplit);
 
-void strlist_filter(struct strlist *sl, strlist_filter_cb_t pass, bool rmext);
-
-char *strlist_join(struct strlist *sl, char *separator, enum strlist_join_ext_pos join_pos);
-
-#define strlist_foreach(list, iter)\
-	for (iter = list->elvec; iter - list->elvec < list->size; iter++)
-
-#define list_have_next(pos)\
-	( pos->next != NULL )
-
-#define list_for_each(pos, head)\
-	for (pos = (head)->next; list_have_next(pos); pos = pos->next)
+void strlist_filter(struct strlist *sl, bool (*compar)(struct strlist_elem *), bool rmext);
 
 /**
- * find `str` in `arr`, the last element of `arr` must be NULL
+ * join the string, the element in strlist is separated
+ * by separator
+ * 
+ * this function only works on the ext is string when
+ * join_pos is not EXT_JOIN_NONE
  */
-static inline bool string_in_array(const char *str, const char *const *arr)
-{
-	while (*arr && strcmp(str, *arr))
-	{
-		arr++;
-	}
+char *strlist_join(struct strlist *sl, const char *separator, enum strlist_join_ext_pos join_pos);
 
-	return *arr != NULL;
-}
+char **strlist_to_array_routine(struct strlist *sl, size_t n);
 
 /**
  * convert a strlist to an array, duplicate each string, terminated
  * with a NULL
  */
-char **strlist_to_array(struct strlist *sl);
+#define strlist_to_array(sl) strlist_to_array_routine(sl, 0)
+
+/**
+ * same as strlist_to_array expect it convert almost n size
+ * elements in elvec
+ */
+#define strlist_to_array_lim strlist_to_array_routine
 
 /**
  * free a NULL terminated array
  */
-void free_string_array(char **arr);
-
-#define list_foreach(iter, head)\
-	for (iter = head; iter->next != NULL; iter = iter->next)
+void strarr_free(char **arr);
 
 #endif /* STRLIST_H */

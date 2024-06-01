@@ -55,7 +55,10 @@
 		"cipher-config.h": "c",
 		"enval.h": "c",
 		"termios.h": "c",
-		"key": "c"
+		"key": "c",
+		"command.h": "c",
+		"algorithm.h": "c",
+		"pkerrno.h": "c"
 	},
 	"fileHeaderComment.parameter": {
 		"*": {

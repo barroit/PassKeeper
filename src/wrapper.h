@@ -86,7 +86,7 @@ ssize_t pk_read(int fd, void *buf, size_t nbytes);
 ssize_t pk_write(int fd, const void *buf, size_t n);
 #define write pk_write
 
-static inline ssize_t xwrite(int fd, const void *buf, size_t n)
+static inline FORCEINLINE ssize_t xwrite(int fd, const void *buf, size_t n)
 {
 	ssize_t nr;
 
@@ -102,7 +102,7 @@ static inline ssize_t xwrite(int fd, const void *buf, size_t n)
 	return nr;
 }
 
-static inline ssize_t xread(int fd, void *buf, size_t nbytes)
+static inline FORCEINLINE ssize_t xread(int fd, void *buf, size_t nbytes)
 {
 	ssize_t nr;
 
@@ -114,7 +114,7 @@ static inline ssize_t xread(int fd, void *buf, size_t nbytes)
 	return nr;
 }
 
-static inline off_t xlseek(int fd, off_t offset, int whence)
+static inline FORCEINLINE off_t xlseek(int fd, off_t offset, int whence)
 {
 	off_t ns;
 
@@ -276,7 +276,7 @@ WINBOOL xSetStdHandle(DWORD nStdHandle, HANDLE hHandle);
 #define sfree(ptr, len)			\
 	do				\
 	{				\
-		zeromem((ptr), (len));	\
+		zeromem(ptr, len);	\
 		free(ptr);		\
 	}				\
 	while (0)
@@ -289,7 +289,7 @@ WINBOOL xSetStdHandle(DWORD nStdHandle, HANDLE hHandle);
  *
  * NOTE: msg will be evaluated multiple times
  */
-#define im_fputs(str, stream) xwrite(fileno(stream), (str), strlen(str))
+#define im_fputs(str, stream) xwrite(fileno(stream), str, strlen(str))
 
 /**
  * print messages to stdout immediately (without buffer)
@@ -297,12 +297,12 @@ WINBOOL xSetStdHandle(DWORD nStdHandle, HANDLE hHandle);
  *
  * NOTE: msg will be evaluated multiple times
  */
-#define im_print(str) im_fputs((str), stdout)
+#define im_print(str) im_fputs(str, stdout)
 
 /**
  * same as im_print() but only one char will be written
  * into stdout, and c will only be evaluated once
  */
-#define im_putchar(c) xwrite(STDOUT_FILENO, &(char){ (c) }, 1)
+#define im_putchar(c) xwrite(STDOUT_FILENO, &(char){ c }, 1)
 
 #endif /* WRAPPER_H */
