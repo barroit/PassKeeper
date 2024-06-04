@@ -81,11 +81,14 @@ extern const char *msqlite3_pathname;
 int report_sqlite_error(void *sqlite3_fn, struct sqlite3 *db, ...);
 
 /**
- * used for the file name printed by xio_die()
- * fallback to fd if this variable is NULL
+ * xio_die() print this variable if it's not NULL, otherwise
+ * fallback to fd number
  */
-extern const char *xio_pathname;
+extern const char *xiopath;
 
+/**
+ * printed message will be '__PREFIX__ file/fd xxx'
+ */
 void xio_die(int fd, const char *prefix)
 	__attribute__((noreturn));
 

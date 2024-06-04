@@ -49,7 +49,11 @@ void get_working_dir_routine(const char **out, bool force);
  */
 char *prefix_filename(const char *prefix, const char *filename);
 
-int make_file_dir_avail(const char *filepath);
+int avail_dir(const char *path);
+
+int avail_file_dir(const char *path);
+
+#define avail_file_dir_st(path) EOE(avail_file_dir(path))
 
 void populate_file(const char *name, const char *buf, size_t buflen);
 

@@ -131,13 +131,13 @@ static inline FORCEINLINE off_t xlseek(int fd, off_t offset, int whence)
 
 static inline FORCEINLINE int msqlite3_open(const char *filename, struct sqlite3 **db)
 {
-	return run_sqlite3(db, sqlite3_open, filename, db);
+	return run_sqlite3(*db, sqlite3_open, filename, db);
 }
 
 static inline FORCEINLINE int msqlite3_open_v2(
 	const char *filename, struct sqlite3 **db, int flags, const char *vfs)
 {
-	return run_sqlite3(db, sqlite3_open_v2, filename, db, flags, vfs);
+	return run_sqlite3(*db, sqlite3_open_v2, filename, db, flags, vfs);
 }
 
 static inline FORCEINLINE int msqlite3_key(
@@ -150,7 +150,7 @@ int msqlite3_exec(struct sqlite3 *db, const char *sql, int (*callback)(void *, i
 
 int sqlite3_avail(struct sqlite3 *db);
 
-static inline FORCEINLINE msqlite3_avail(struct sqlite3 *db)
+static inline FORCEINLINE int msqlite3_avail(struct sqlite3 *db)
 {
 	return run_sqlite3(db, sqlite3_avail, db);
 }

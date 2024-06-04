@@ -301,8 +301,6 @@ int report_sqlite_error(void *sqlite3_fn, struct sqlite3 *db, ...)
 	return rescode;
 }
 
-const char *xio_pathname = NULL;
-
 void xio_die(int fd, const char *prefix)
 {
 	int errnum;
@@ -311,9 +309,9 @@ void xio_die(int fd, const char *prefix)
 	close(fd);
 	errno = errnum;
 
-	if (xio_pathname)
+	if (xiopath == NULL)
 	{
-		die_errno("%s file '%s'", prefix, xio_pathname);
+		die_errno("%s file '%s'", prefix, xiopath);
 	}
 	else
 	{

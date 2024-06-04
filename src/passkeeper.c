@@ -88,7 +88,7 @@ static void precheck_command(enum cmdreq reqs)
 {
 	if (reqs & USE_RECFILE)
 	{
-		EOE(make_file_dir_avail(tmp_rec_path));
+		avail_file_dir_st(tmp_rec_path);
 	}
 
 	if (reqs & USE_CREDDB)

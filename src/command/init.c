@@ -58,32 +58,21 @@
 			"ON DELETE CASCADE"				\
 	");"
 
-static void make_file_avail(const char *path, bool force)
+static void avail_file_path_st(const char *type, const char *path, bool force)
 {
-	if (!force)
+	if (access(path, F_OK) == 0)
 	{
-		if (access(path, F_OK) == 0)
+		if (!force)
 		{
-			exit(error("file '%s' already exists", path));
+			exit(error("%s '%s' already exists", type, path));
 		}
+		else if (unlink(path) != 0)
+		{
+			exit(error_errno("connot remove %s '%s'", type, path));
+		}
+	}
 
-		EOE(make_file_dir_avail(path));
-	}
-	else
-	{
-		if (access(path, F_OK) == 0)
-		{
-			if (unlink(path) != 0)
-			{
-				exit(error_errno("Unable to remove "
-						  "file '%s'", path));
-			}
-		}
-		else
-		{
-			EOE(make_file_dir_avail(path));
-		}
-	}
+	avail_file_dir_st(path);
 }
 
 static size_t request_cmdkey(char **key)
@@ -150,7 +139,7 @@ static void persist_cipher_config(
 
 	cc_size += CIPHER_DIGEST_LENGTH;
 
-	xio_pathname = cred_cc_path;
+	xiopath = cred_cc_path;
 	cc_fd = xopen(cred_cc_path, O_WRONLY | O_CREAT, FILCRT_BIT);
 
 	xwrite(cc_fd, cc_buf, cc_size);
@@ -221,7 +210,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	parse_options(argc, argv, prefix, cmd_init_options,
 			cmd_init_usages, PARSER_ABORT_NON_OPTION);
 
-	make_file_avail(cred_db_path, force_create);
+	avail_file_path_st("database", cred_db_path, force_create);
 
 	use_encryption |= use_cmdkey;
 	if (!use_encryption)
@@ -307,7 +296,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 		goto setup_database;
 	}
 
-	make_file_avail(cred_db_path, force_create);
+	avail_file_path_st("cipher config", cred_cc_path, force_create);
 
 	struct cipher_key ck = CK_INIT;
 

@@ -54,7 +54,7 @@ int cmd_makekey(int argc, const char **argv, const char *prefix)
 
 	if (output_file != NULL)
 	{
-		EOE(make_file_dir_avail(output_file));
+		avail_file_dir_st(output_file);
 
 		fd = xopen(output_file, O_WRONLY | O_CREAT | O_TRUNC,
 				FILCRT_BIT);

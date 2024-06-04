@@ -25,6 +25,8 @@
 #include "security.h"
 #include "pkerrno.h"
 
+const char *xiopath = NULL;
+
 void get_working_dir_routine(const char **out, bool force_get)
 {
 	static char *buf;
@@ -131,29 +133,39 @@ int test_file_mode_st(struct stat *st, int mode)
 }
 #endif
 
-int make_file_dir_avail(const char *filepath)
+int avail_dir(const char *path)
 {
-	char *pathcopy;
-	const char *dirpath;
-
-	pathcopy = xstrdup(filepath);
-	dirpath = dirname(pathcopy);
-
-	if (mkdir(dirpath) != 0)
+	if (mkdir(path) == 0)
 	{
-		if (errno != EEXIST)
-		{
-			return error_errno("Unable to create directory at "
-						"'%s'", dirpath);
-		}
-		else if (access(dirpath, W_OK) != 0)
-		{
-			return error("Access denied by '%s'", dirpath);
-		}
+		return 0;
 	}
 
-	free(pathcopy);
+	if (errno != EEXIST)
+	{
+		return error_errno("connot create directory ‘%s’", path);
+	}
+	else if (access(path, W_OK | X_OK) != 0)
+	{
+		return error("permission denied by ‘%s’", path);
+	}
+
 	return 0;
+}
+
+int avail_file_dir(const char *path)
+{
+	char *tmp;
+	const char *dir;
+	int res;
+
+	tmp = xstrdup(path);
+	dir = dirname(tmp);
+
+	res = avail_dir(dir);
+
+	free(tmp);
+
+	return res;
 }
 
 void populate_file(const char *pathname, const char *buf, size_t buflen)

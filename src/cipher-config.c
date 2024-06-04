@@ -254,7 +254,7 @@ void resolve_cipher_config_file(
 	uint8_t *cc_buf;
 	off_t cc_len;
 
-	xio_pathname = pathname;
+	xiopath = pathname;
 	cc_fd = xopen(pathname, O_RDONLY);
 
 	if ((cc_len = xlseek(cc_fd, 0, SEEK_END)) < CIPHER_DIGEST_LENGTH)

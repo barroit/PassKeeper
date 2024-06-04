@@ -2,7 +2,7 @@
 
 skip_matched_depstat 'openssl'
 
-prepare_extsrc 'openssl' 'git://git.openssl.org/openssl.git'
+prepare_extsrc 'openssl' 'https://github.com/openssl/openssl.git'
 
 source "$BRTOOL_SOURCE_PREFIX"/uihandle
 

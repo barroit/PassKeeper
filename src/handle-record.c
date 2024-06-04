@@ -249,7 +249,7 @@ int read_record_file(struct record *rec, const char *rec_path)
 	char *rec_buf;
 	off_t rec_bufsz;
 
-	xio_pathname = rec_path;
+	xiopath = rec_path;
 	rec_fd = xopen(rec_path, O_RDONLY);
 
 	if ((rec_bufsz = xlseek(rec_fd, 0, SEEK_END)) == 0)
@@ -350,7 +350,7 @@ void bind_record_security_column(
 	{
 		int memo_fd;
 
-		xio_pathname = rec->memo;
+		xiopath = rec->memo;
 		memo_fd = xopen(rec->memo, O_RDONLY);
 
 		if ((memo_bufsz = xlseek(memo_fd, 0, SEEK_END)) != 0)
