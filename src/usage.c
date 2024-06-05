@@ -22,122 +22,107 @@
 
 #include "security.h"
 
-void vreportf(const char *prefix, struct report_field *field)
+void vreportf(
+	const char *prefix,
+	const char *format, va_list ap,
+	const char *detail)
 {
-	char buffer0[4096], *buffer, *bufptr;
+	char buf0[4096], *buf1, *buf;
 	size_t bufaval;
 
-	buffer = buffer0 + strlen(prefix);
-	bufptr = buffer;
+	buf1 = buf0 + strlen(prefix);
+	buf = buf1;
 
-	memcpy(buffer0, prefix, buffer - buffer0);
-	bufaval = (buffer0 + sizeof(buffer0)) - buffer;
+	memcpy(buf0, prefix, buf1 - buf0);
+	bufaval = (buf0 + sizeof(buf0)) - buf1;
 
-	bufptr += vsnprintf(bufptr, bufaval, field->format, field->ap);
+	buf += vsnprintf(buf, bufaval, format, ap);
 
 	/* vsnprintf() failure */
-	if (bufptr < buffer)
+	if (buf < buf1)
 	{
 		/**
-		 * reset bufptr to buffer, skip the ap
+		 * reset buf to buf1, skip the ap
 		 * and prepare to write errmsg
 		 */
-		bufptr = buffer;
+		buf = buf1;
 	}
 	else
 	{
-		bufaval -= bufptr - buffer;
+		bufaval -= buf - buf1;
 	}
 
-	if (field->errmsg && bufaval > 0)
+	if (detail && bufaval > 0)
 	{
 		int nr;
-		if ((nr = snprintf(bufptr, bufaval, "; %s", field->errmsg)) < 0)
+		if ((nr = snprintf(buf, bufaval, "; %s", detail)) < 0)
 		{
 			nr = 0;
 		}
 
-		bufptr += nr;
+		buf += nr;
 	}
 
-	*bufptr++ = '\n';
+	*buf++ = '\n';
 
 	fflush(stderr);
-	write(STDERR_FILENO, buffer0, bufptr - buffer0);
+	write(STDERR_FILENO, buf0, buf - buf0);
 }
 
 void note_routine(const char *format, ...)
 {
-	struct report_field field = {
-		.format = format,
-	};
+	va_list ap;
 
-	va_start(field.ap, format);
-	vreportf("note: ", &field);
-	va_end(field.ap);
+	va_start(ap, format);
+	vreportf("note: ", format, ap, NULL);
+	va_end(ap);
 }
 
-void warning_routine(const char *syserr, const char *format, ...)
+void warning_routine(const char *detail, const char *format, ...)
 {
-	struct report_field field = {
-		.format = format,
-		.errmsg = syserr,
-	};
+	va_list ap;
 
-	va_start(field.ap, format);
-	vreportf("warning: ", &field);
-	va_end(field.ap);
+	va_start(ap, format);
+	vreportf("warning: ", format, ap, detail);
+	va_end(ap);
 }
 
-int error_routine(const char *syserr, const char *format, ...)
+int error_routine(const char *detail, const char *format, ...)
 {
-	struct report_field field = {
-		.format = format,
-		.errmsg = syserr,
-	};
+	va_list ap;
 
-	va_start(field.ap, format);
-	vreportf("error: ", &field);
-	va_end(field.ap);
+	va_start(ap, format);
+	vreportf("error: ", format, ap, detail);
+	va_end(ap);
 
 	return -1;
 }
 
-static bool is_dying(void)
+void die_routine(const char *detail, const char *format, ...)
 {
-	static int track;
+	va_list ap;
+	static int die_tracker;
 
-	return ++track > 1;
-}
-
-void die_routine(const char *syserr, const char *format, ...)
-{
-	if (is_dying())
+	if (++die_tracker > 1)
 	{
 		fputs("fatal: recursion detected in die handler\n", stderr);
 		exit(EXIT_FAILURE);
 	}
 
-	struct report_field field = {
-		.format = format,
-		.errmsg = syserr,
-	};
+	va_start(ap, format);
+	vreportf("fatal: ", format, ap, detail);
 
-	va_start(field.ap, format);
-	vreportf("fatal: ", &field);
 	exit(EXIT_FAILURE);
 }
 
 void bug_routine(const char *file, int line, const char *format, ...)
 {
+	va_list ap;
 	char prefix[256];
-	struct report_field field = {
-		.format = format,
-	};
 
-	va_start(field.ap, format);
+	va_start(ap, format);
 	snprintf(prefix, sizeof(prefix), "BUG: %s:%d: ", file, line);
-	vreportf(prefix, &field);
+	vreportf("fatal: ", format, ap, NULL);
 
 	exit(EXIT_FAILURE);
 }

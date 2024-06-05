@@ -35,48 +35,34 @@ static LPSTR get_winerr_str(LPSTR buf, DWORD bufsz)
 	return buf;
 }
 
-static void winerr_routine(const char *format, struct report_field *field, int *errnum)
+void warning_winerr(const char *format, ...)
 {
+	va_list ap;
+	DWORD errnum;
 	CHAR buf[2048];
 
 	get_winerr_str(buf, sizeof(buf) / sizeof(CHAR));
-	if (errnum != NULL)
-	{
-		*errnum = errno;
-	}
+	errnum = errno;
 
-	const struct report_field field0 = {
-		.format = format,
-		.errmsg = buf,
-	};
-
-	memcpy(field, &field0, sizeof(struct report_field));
-}
-
-void warning_winerr(const char *format, ...)
-{
-	struct report_field field;
-	int errnum;
-
-	winerr_routine(format, &field, &errnum);
-
-	va_start(field.ap, format);
-	vreportf("warn: ", &field);
-	va_end(field.ap);
+	va_start(ap, format);
+	vreportf("warn: ", format, ap, NULL);
+	va_end(ap);
 
 	errno = errnum;
 }
 
 int error_winerr(const char *format, ...)
 {
-	struct report_field field;
-	int errnum;
+	va_list ap;
+	DWORD errnum;
+	CHAR buf[2048];
 
-	winerr_routine(format, &field, &errnum);
+	get_winerr_str(buf, sizeof(buf) / sizeof(CHAR));
+	errnum = errno;
 
-	va_start(field.ap, format);
-	vreportf("error: ", &field);
-	va_end(field.ap);
+	va_start(ap, format);
+	vreportf("error: ", format, ap, buf);
+	va_end(ap);
 
 	errno = errnum;
 	return -1;
@@ -84,11 +70,12 @@ int error_winerr(const char *format, ...)
 
 void die_winerr(const char *format, ...)
 {
-	struct report_field field;
+	va_list ap;
+	CHAR buf[2048];
 
-	winerr_routine(format, &field, NULL);
+	get_winerr_str(buf, sizeof(buf) / sizeof(CHAR));
 
-	va_start(field.ap, format);
-	vreportf("fatal: ", &field);
+	va_start(ap, format);
+	vreportf("fatal: ", format, ap, buf);
 	exit(EXIT_FAILURE);
 }

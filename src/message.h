@@ -25,31 +25,24 @@
 
 #define ENOTREG -1	/* file is not regular file */
 
-struct report_field
-{
-	const char *format;
-	va_list ap;
-	const char *errmsg;
-};
-
-void vreportf(const char *prefix, struct report_field *field);
+void vreportf(const char *prefix, const char *format, va_list ap, const char *detail);
 
 void note_routine(const char *format, ...)
 	__attribute__((format(printf, 1, 2)));
 
-void warning_routine(const char *syserr, const char *format, ...)
+void warning_routine(const char *detail, const char *format, ...)
 	__attribute__((format(printf, 2, 3)));
 
-int error_routine(const char *syserr, const char *format, ...)
+int error_routine(const char *detail, const char *format, ...)
 	__attribute__((format(printf, 2, 3)));
 
-void die_routine(const char *syserr, const char *format, ...)
+void die_routine(const char *detail, const char *format, ...)
 	__attribute__((format(printf, 2, 3), noreturn));
 
 void bug_routine(const char *file, int line, const char *format, ...)
 	__attribute__((format(printf, 3, 4), noreturn));
 
-#define last_openssl_errstr	ERR_reason_error_string(ERR_get_error())
+#define last_openssl_err()	ERR_reason_error_string(ERR_get_error())
 
 #define note(...)		note_routine(__VA_ARGS__)
 
@@ -58,12 +51,12 @@ void bug_routine(const char *file, int line, const char *format, ...)
 
 #define error(...)		error_routine(NULL, __VA_ARGS__)
 #define error_errno(...)	error_routine(strerror(errno), __VA_ARGS__)
-#define error_sqlerr(db__, ...)	error_routine(sqlite3_errmsg(db__), __VA_ARGS__)
-#define error_openssl(...)	error_routine(last_openssl_errstr, __VA_ARGS__)
+#define error_sqlerr(db, ...)	error_routine(sqlite3_errmsg(db), __VA_ARGS__)
+#define error_openssl(...)	error_routine(last_openssl_err(), __VA_ARGS__)
 
 #define die(...)		die_routine(NULL, __VA_ARGS__)
 #define die_errno(...)		die_routine(strerror(errno), __VA_ARGS__)
-#define die_openssl(...)	die_routine(last_openssl_errstr, __VA_ARGS__)
+#define die_openssl(...)	die_routine(last_openssl_err(), __VA_ARGS__)
 
 #define bug(...) bug_routine(__FILE__, __LINE__, __VA_ARGS__)
 
