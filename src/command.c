@@ -24,7 +24,6 @@
 #include "strlist.h"
 #include "algorithm.h"
 #include "strbuf.h"
-#include "pkerrno.h"
 
 int cmd_count  (int argc,  const char **argv, const char *prefix);
 int cmd_create (int argc,  const char **argv, const char *prefix);

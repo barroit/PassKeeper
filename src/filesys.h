@@ -57,6 +57,6 @@ int avail_file_dir(const char *path);
 
 void populate_file(const char *name, const char *buf, size_t buflen);
 
-int access_regfile(const char *name, int type);
+int access_regular(const char *name, int type);
 
 #endif /* FILESYS_H */

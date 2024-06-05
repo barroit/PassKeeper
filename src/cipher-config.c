@@ -25,7 +25,6 @@
 #include "strbuf.h"
 #include "strlist.h"
 #include "filesys.h"
-#include "pkerrno.h"
 
 enum field_type
 {
@@ -226,23 +225,12 @@ void free_cipher_config(struct cipher_config *cc, struct cipher_key *ck)
 
 const char *resolve_cred_cc_realpath(void)
 {
-	if (access_regfile(cred_cc_path, R_OK) == 0)
+	if (access_regular(cred_cc_path, R_OK) == 0)
 	{
 		return cred_cc_path;
 	}
 
-	switch (errno)
-	{
-	case ENOTREG:
-		warning("Config file at '%s' is not a regular file.",
-			  cred_cc_path);
-		break;
-	case EACCES:
-		warning("Access was denied by config file '%s'", cred_cc_path);
-		break;
-	case ENOSTAT:
-		return NULL;
-	}
+	warning_errno("cannot access config file '%s'", cred_cc_path);
 
 	return (void *)-1;
 }

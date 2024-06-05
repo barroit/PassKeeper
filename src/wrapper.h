@@ -23,6 +23,12 @@
 #ifndef WRAPPER_H
 #define WRAPPER_H
 
+char *pk_strerror(int errnum);
+
+#define strerror pk_strerror
+
+#define exit(code) exit(code & 0xFF)
+
 static inline FORCEINLINE void *xmalloc(size_t size)
 {
 	void *mem;

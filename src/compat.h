@@ -164,6 +164,18 @@ char *pk_strndup(const char *s, size_t size);
 #define strndup pk_strndup
 #endif
 
+#ifdef NO_STRNLEN
+size_t pk_strnlen(const char *s, size_t maxlen);
+#define strnlen pk_strnlen
+#endif
+
+#ifdef NO_MEMPCPY
+static inline FORCEINLINE void *mempcpy(void *dest, const void *src, size_t n)
+{
+	return (uint8_t *)memcpy(dest, src, n) + n;
+}
+#endif
+
 #if defined(LINUX) || defined(PKTEST) /* for test */
 #define mkdir(path) mkdir((path), DIRCRT_BIT)
 #endif

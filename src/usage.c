@@ -21,7 +21,6 @@
 ****************************************************************************/
 
 #include "security.h"
-#include "pkerrno.h"
 
 void vreportf(const char *prefix, struct report_field *field)
 {
@@ -41,7 +40,7 @@ void vreportf(const char *prefix, struct report_field *field)
 	{
 		/**
 		 * reset bufptr to buffer, skip the ap
-		 * and prepare to write strerror
+		 * and prepare to write errmsg
 		 */
 		bufptr = buffer;
 	}
@@ -50,10 +49,10 @@ void vreportf(const char *prefix, struct report_field *field)
 		bufaval -= bufptr - buffer;
 	}
 
-	if (field->strerror && bufaval > 0)
+	if (field->errmsg && bufaval > 0)
 	{
 		int nr;
-		if ((nr = snprintf(bufptr, bufaval, "; %s", field->strerror)) < 0)
+		if ((nr = snprintf(bufptr, bufaval, "; %s", field->errmsg)) < 0)
 		{
 			nr = 0;
 		}
@@ -82,7 +81,7 @@ void warning_routine(const char *syserr, const char *format, ...)
 {
 	struct report_field field = {
 		.format = format,
-		.strerror = syserr,
+		.errmsg = syserr,
 	};
 
 	va_start(field.ap, format);
@@ -94,7 +93,7 @@ int error_routine(const char *syserr, const char *format, ...)
 {
 	struct report_field field = {
 		.format = format,
-		.strerror = syserr,
+		.errmsg = syserr,
 	};
 
 	va_start(field.ap, format);
@@ -121,7 +120,7 @@ void die_routine(const char *syserr, const char *format, ...)
 
 	struct report_field field = {
 		.format = format,
-		.strerror = syserr,
+		.errmsg = syserr,
 	};
 
 	va_start(field.ap, format);
@@ -317,33 +316,4 @@ void xio_die(int fd, const char *prefix)
 	{
 		die_errno("%s fd '%d'", prefix, fd);
 	}
-}
-
-int report_file_access_error_routine(
-	const char *name, const char *file, int errnum)
-{
-	switch (errnum)
-	{
-	case ENOSTAT:
-		error("Couldn't access %s '%s'.", name, file);
-	case ENOTREG:
-		char *buf;
-
-		buf = NULL;
-		if (!isupper(*name))
-		{
-			buf = xstrdup(name);
-			*buf = toupper(*name);
-		}
-
-		error("%s '%s' is not a regular file.", name, file);
-
-		free(buf);
-	case EACCES:
-		error("Access denied by %s '%s'.", name, file);
-	default:
-		bug("unknown errnum '%d'", errnum);
-	}
-
-	return -1;
 }

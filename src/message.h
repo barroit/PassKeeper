@@ -23,11 +23,13 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
+#define ENOTREG -1	/* file is not regular file */
+
 struct report_field
 {
 	const char *format;
 	va_list ap;
-	const char *strerror;
+	const char *errmsg;
 };
 
 void vreportf(const char *prefix, struct report_field *field);
@@ -91,13 +93,5 @@ extern const char *xiopath;
  */
 void xio_die(int fd, const char *prefix)
 	__attribute__((noreturn));
-
-int report_file_access_error_routine(const char *name, const char *file, int errnum);
-
-#define report_file_access_error(file, errnum)\
-	report_file_access_error_routine("file", file, errnum)
-
-#define report_cred_db_access_error(errnum)\
-	report_file_access_error_routine("db file", cred_db_path, errnum)
 
 #endif /* MESSAGE_H */

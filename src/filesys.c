@@ -23,7 +23,6 @@
 #include "filesys.h"
 #include "strbuf.h"
 #include "security.h"
-#include "pkerrno.h"
 
 const char *xiopath = NULL;
 
@@ -178,19 +177,12 @@ void populate_file(const char *pathname, const char *buf, size_t buflen)
 	close(fd);
 }
 
-int access_regfile(const char *name, int type)
+int access_regular(const char *name, int type)
 {
 	struct stat st;
 
 	if (stat(name, &st) != 0)
 	{
-		if (errno != ENOENT)
-		{
-			warning_errno("unexcepted error occurred while "
-					"access file '%s'", name);
-		}
-
-		errno = ENOSTAT;
 		return 1;
 	}
 	else if (!S_ISREG(st.st_mode))

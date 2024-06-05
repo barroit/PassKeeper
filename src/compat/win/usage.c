@@ -47,7 +47,7 @@ static void winerr_routine(const char *format, struct report_field *field, int *
 
 	const struct report_field field0 = {
 		.format = format,
-		.strerror = buf,
+		.errmsg = buf,
 	};
 
 	memcpy(field, &field0, sizeof(struct report_field));

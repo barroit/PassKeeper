@@ -41,6 +41,16 @@ if(NOT have_getline)
 	add_compile_definitions(NO_GETLINE)
 endif()
 
+check_symbol_exists(strnlen string.h have_strnlen)
+if(NOT have_strnlen)
+	add_compile_definitions(NO_STRNLEN)
+endif()
+
+check_symbol_exists(mempcpy string.h have_mempcpy)
+if(NOT have_mempcpy)
+	add_compile_definitions(NO_MEMPCPY)
+endif()
+
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND
     CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 3.1)
 	set(have_always_inline 1)

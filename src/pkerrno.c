@@ -20,12 +20,49 @@
 **
 ****************************************************************************/
 
-#ifndef PKERRNO_H
-#define PKERRNO_H
+#ifdef strerror
+#undef strerror
+#endif
 
-#define ERR_PTR(errnum) ((void *)(errnum))
+#define EBUF_SIZE 256
 
-#define ENOSTAT 50	/* stat() failed, and errno is set */
-#define ENOTREG 51	/* file is not regular file */
+static void strcpy_errmsg(char *buf, const char *msg)
+{
+	size_t len;
 
-#endif /* PKERRNO_H */
+	if ((len = strlen(msg) >= EBUF_SIZE))
+	{
+		bug("error message length(‘%"PRIuMAX"’) is more than %d "
+			"characters", len, EBUF_SIZE);
+	}
+
+	memcpy(buf, msg, len + 1);
+}
+
+char *pk_strerror(int errnum)
+{
+	static char buf[EBUF_SIZE];
+
+	if (errnum >= 0)
+	{
+		strcpy_errmsg(buf, strerror(errnum));
+
+		if (isupper(*buf))
+		{
+			buf[0] = tolower(*buf);
+		}
+
+		return buf;
+	}
+
+	switch (errnum)
+	{
+	case ENOTREG:
+		strcpy_errmsg(buf, "not a regular file");
+		break;
+	default:
+		bug("unknown errnum: ‘%d’", errnum);
+	}
+
+	return buf;
+}

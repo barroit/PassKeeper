@@ -93,9 +93,10 @@ static void precheck_command(enum cmdreq reqs)
 
 	if (reqs & USE_CREDDB)
 	{
-		if (access_regfile(cred_db_path, R_OK | W_OK) != 0)
+		if (access_regular(cred_db_path, R_OK | W_OK) != 0)
 		{
-			exit(report_cred_db_access_error(errno));
+			exit(error_errno("cannot access cred db ‘%s’",
+						cred_db_path));
 		}
 	}
 }
