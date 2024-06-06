@@ -88,16 +88,13 @@ static void precheck_command(enum cmdreq reqs)
 {
 	if (reqs & USE_RECFILE)
 	{
-		avail_file_dir_st(tmp_rec_path);
+		avail_file_dir_or_die(tmp_rec_path);
 	}
 
-	if (reqs & USE_CREDDB)
+	if (reqs & USE_CREDDB &&
+	     access_regular(cred_db_path, R_OK | W_OK) != 0)
 	{
-		if (access_regular(cred_db_path, R_OK | W_OK) != 0)
-		{
-			exit(error_errno("cannot access cred db ‘%s’",
-						cred_db_path));
-		}
+		exit(error_errno("cannot access cred db ‘%s’", cred_db_path));
 	}
 }
 

@@ -1,0 +1,10 @@
+Memo
+====
+
+filesys.c
+---------
+
+avail_ vs access_
+	Functions whose names start with ‘avail_’ will print an error
+	message upon returning. In contrast, functions that start with
+	‘access_’ will not.

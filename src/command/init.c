@@ -58,7 +58,8 @@
 			"ON DELETE CASCADE"				\
 	");"
 
-static void avail_file_path_st(const char *type, const char *path, bool force)
+static void avail_file_path_or_die(
+	const char *type, const char *path, bool force)
 {
 	if (access(path, F_OK) == 0)
 	{
@@ -72,7 +73,7 @@ static void avail_file_path_st(const char *type, const char *path, bool force)
 		}
 	}
 
-	avail_file_dir_st(path);
+	avail_file_dir_or_die(path);
 }
 
 static size_t request_cmdkey(char **key)
@@ -127,25 +128,19 @@ retry:
 static void persist_cipher_config(
 	const struct cipher_config *cc, const struct cipher_key *ck)
 {
-	uint8_t *cc_buf, *cc_digest;
-	size_t cc_size;
-	int cc_fd;
+	uint8_t *buf, *digest;
+	size_t len;
 
-	cc_buf = serialize_cipher_config(cc, ck, &cc_size);
-	cc_digest = digest_message_sha256(cc_buf, cc_size);
+	buf = serialize_cipher_config(cc, ck, &len);
+	digest = digest_message_sha256(buf, len);
 
-	memcpy(cc_buf + cc_size, cc_digest, CIPHER_DIGEST_LENGTH);
-	clean_digest(cc_digest);
+	memcpy(buf + len, digest, CIPHER_DIGEST_LENGTH);
+	clean_digest(digest);
 
-	cc_size += CIPHER_DIGEST_LENGTH;
+	len += CIPHER_DIGEST_LENGTH;
 
-	xiopath = cred_cc_path;
-	cc_fd = xopen(cred_cc_path, O_WRONLY | O_CREAT, FILCRT_BIT);
-
-	xwrite(cc_fd, cc_buf, cc_size);
-
-	close(cc_fd);
-	sfree(cc_buf, cc_size);
+	populate_file(cred_cc_path, buf, len);
+	sfree(buf, len);
 }
  
 static char **keybuf_ref;
@@ -210,7 +205,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	parse_options(argc, argv, prefix, cmd_init_options,
 			cmd_init_usages, PARSER_ABORT_NON_OPTION);
 
-	avail_file_path_st("database", cred_db_path, force_create);
+	avail_file_path_or_die("database", cred_db_path, force_create);
 
 	use_encryption |= use_cmdkey;
 	if (!use_encryption)
@@ -296,7 +291,7 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 		goto setup_database;
 	}
 
-	avail_file_path_st("cipher config", cred_cc_path, force_create);
+	avail_file_path_or_die("cipher config", cred_cc_path, force_create);
 
 	struct cipher_key ck = CK_INIT;
 

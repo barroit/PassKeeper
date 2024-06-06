@@ -141,6 +141,7 @@ int avail_dir(const char *path)
 
 	if (errno != EEXIST)
 	{
+		/* see src/MEMO */
 		return error_errno("connot create directory ‘%s’", path);
 	}
 	else if (access(path, W_OK | X_OK) != 0)
@@ -167,12 +168,14 @@ int avail_file_dir(const char *path)
 	return res;
 }
 
-void populate_file(const char *pathname, const char *buf, size_t buflen)
+void populate_file(const char *path, const void *buf, size_t len)
 {
 	int fd;
 
-	fd = xopen(pathname, O_WRONLY | O_CREAT | O_TRUNC, FILCRT_BIT);
-	xwrite(fd, buf, buflen);
+	xiopath = path;
+
+	fd = xopen(path, O_WRONLY | O_CREAT | O_TRUNC, FILCRT_BIT);
+	xwrite(fd, buf, len);
 
 	close(fd);
 }

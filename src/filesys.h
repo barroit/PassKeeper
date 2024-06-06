@@ -53,9 +53,13 @@ int avail_dir(const char *path);
 
 int avail_file_dir(const char *path);
 
-#define avail_file_dir_st(path) EOE(avail_file_dir(path))
+#define avail_file_dir_or_die(path) EOE(avail_file_dir(path))
 
-void populate_file(const char *name, const char *buf, size_t buflen);
+/**
+ * fill file with given content
+ * this function does set ‘xiopath’
+ */
+void populate_file(const char *path, const void *buf, size_t len);
 
 int access_regular(const char *name, int type);
 
