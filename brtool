@@ -35,7 +35,7 @@ command="${1:-build}"
 
 if [[ -z "${COMMANDS[$command]}" ]]
 then
-	die "command '$command' not found, see ./brtool help"
+	die "command ‘$command’ not found, see ./brtool help"
 fi
 
 bash "${COMMANDS[$command]}" ${*:2}

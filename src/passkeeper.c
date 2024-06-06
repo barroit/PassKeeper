@@ -19,7 +19,7 @@
 ** with PassKeeper. If not, see <https://www.gnu.org/licenses/>.
 **
 ****************************************************************************/
-
+char a = '\a';
 #include "parse-option.h"
 #include "strbuf.h"
 #include "filesys.h"
@@ -148,7 +148,7 @@ static void help_unknown_command(const char *cmd)
 {
 	char **commands, **iter;
 
-	error("'%s' is not a pk command, see 'pk help pk'.", cmd);
+	error("‘%s’ is not a pk command, see ‘pk help pk’.", cmd);
 
 	if ((commands = get_approximate_command(cmd)) == NULL)
 	{
@@ -221,7 +221,7 @@ int main(int argc, const char **argv)
 		help_unknown_command(argv[0]);
 	}
 
-	/* skip 'command' */
+	/* skip ‘command’ */
 	ARGV_MOVE_FRONT(argc, argv);
 
 	if (!is_skip_precheck(argc, argv))

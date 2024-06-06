@@ -57,7 +57,7 @@ int edit_file(const char *pathname)
 
 	if (mkprocl(&editor_ctx, ext_editor, ext_editor, pathname, NULL) != 0)
 	{
-		return error("unable to launch editor '%s'",
+		return error("unable to launch editor ‘%s’",
 				*ext_editor == 0 ? "(empty)" : ext_editor);
 	}
 

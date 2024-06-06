@@ -36,7 +36,7 @@
 		"siteurl  TEXT,"					\
 		"username TEXT,"					\
 		"password TEXT NOT NULL,"				\
-		"sqltime  DATETIME DEFAULT (datetime('now', 'utc')),"	\
+		"sqltime  DATETIME DEFAULT (datetime(‘now’, ‘utc’)),"	\
 		"modtime  DATETIME"					\
 	");"								\
 									\
@@ -65,11 +65,11 @@ static void avail_file_path_or_die(
 	{
 		if (!force)
 		{
-			exit(error("%s '%s' already exists", type, path));
+			exit(error("%s ‘%s’ already exists", type, path));
 		}
 		else if (unlink(path) != 0)
 		{
-			exit(error_errno("connot remove %s '%s'", type, path));
+			exit(error_errno("connot remove %s ‘%s’", type, path));
 		}
 	}
 

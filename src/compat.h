@@ -87,11 +87,11 @@
 #ifndef COMMON_RECORD_MESSAGE
 #define COMMON_RECORD_MESSAGE							\
 "# Please enter the information for your password record. Lines starting\n"	\
-"# with '#' will be ignored, and an empty record aborts the creation.\n"	\
-"# Certain symbols prefixing a line (such as '#' and ':') have special\n"	\
+"# with ‘#’ will be ignored, and an empty record aborts the creation.\n"	\
+"# Certain symbols prefixing a line (such as ‘#’ and ‘:’) have special\n"	\
 "# meanings for PassKeeper. To include such symbols in the text without\n"	\
-"# invoking their special meanings, start the line with '|'.\n"			\
-"# Run './pk example record' to see the example."
+"# invoking their special meanings, start the line with ‘|’.\n"			\
+"# Run ‘./pk example record’ to see the example."
 #endif
 
 #ifndef PK_CRED_DB_DEFPATH

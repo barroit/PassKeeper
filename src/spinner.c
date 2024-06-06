@@ -72,7 +72,7 @@ int run_spinner(struct process_info *ctx, const char *style)
 	{
 		if (strcmp(style, "default"))
 		{
-			note("Unknown spinner style '%s', "
+			note("Unknown spinner style ‘%s’, "
 				"fallback to default style.", style);
 		}
 

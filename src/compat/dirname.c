@@ -50,23 +50,23 @@ char *pk_dirname(char *path)
 	{
 		return ".";
 	}
-	/* path is '/' */
+	/* path is ‘.*’ */
 	else if (next_sep == path)
 	{
 		return DIRSEPSTR;
 	}
 	else
 	{
-		/* trailing '/' */
+		/* trailing ‘.*’ */
 		if (*(next_sep + 1) == 0)
 		{
-			/* path like 'usr/' */
+			/* path like ‘.*’ */
 			if (prev_sep == NULL)
 			{
 				return ".";
 			}
 
-			/* path like '/usr/' */
+			/* path like ‘.*’ */
 			if (prev_sep == path)
 			{
 				return DIRSEPSTR;
@@ -74,7 +74,7 @@ char *pk_dirname(char *path)
 
 			plen = prev_sep - path; 
 		}
-		/* path like '/usr/lib' or 'usr/lib' */
+		/* path like ‘.*’ */
 		else
 		{
 			plen = next_sep - path;

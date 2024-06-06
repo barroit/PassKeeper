@@ -230,7 +230,7 @@ const char *resolve_cred_cc_realpath(void)
 		return cred_cc_path;
 	}
 
-	warning_errno("cannot access config file '%s'", cred_cc_path);
+	warning_errno("cannot access config file ‘%s’", cred_cc_path);
 
 	return (void *)-1;
 }
@@ -247,7 +247,7 @@ void resolve_cipher_config_file(
 
 	if ((cc_len = xlseek(cc_fd, 0, SEEK_END)) < CIPHER_DIGEST_LENGTH)
 	{
-		die("Cipher config file at '%s' may be corrupted because it's "
+		die("Cipher config file at ‘%s’ may be corrupted because it's "
 			"too small.", pathname);
 	}
 
@@ -261,7 +261,7 @@ void resolve_cipher_config_file(
 	cc_len -= CIPHER_DIGEST_LENGTH;
 	if (verify_digest_sha256(cc_buf, cc_len, cc_buf + cc_len) != 0)
 	{
-		die("File at '%s' is not a valid cipher config file.",
+		die("File at ‘%s’ is not a valid cipher config file.",
 			pathname);
 	}
 

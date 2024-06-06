@@ -59,7 +59,7 @@ WINBOOL xDuplicateHandle(
 		CloseHandle(hSourceHandle);
 
 		SetLastError(errnum);
-		die_winerr("failed to duplicate handle '%p' to '%p'",
+		die_winerr("failed to duplicate handle ‘%p’ to ‘%p’",
 				*lpTargetHandle, hSourceHandle);
 	}
 
@@ -76,7 +76,7 @@ WINBOOL xSetStdHandle(DWORD nStdHandle, HANDLE hHandle)
 		CloseHandle(hHandle);
 
 		SetLastError(errnum);
-		die_winerr("failed to set standard handle '%d' to '%p'",
+		die_winerr("failed to set standard handle ‘%d’ to ‘%p’",
 				nStdHandle, hHandle);
 	}
 

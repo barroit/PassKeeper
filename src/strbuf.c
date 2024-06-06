@@ -271,10 +271,10 @@ char *u8substr(const char *iter, size_t start_index, size_t substr_length)
 		char_count++;
 
 		/*
-		 * skip to next char until the current 'character'
+		 * skip to next char until the current ‘character’
 		 * index reaches the start_index
 		 * due to the flow, we need char_count - 1 for
-		 * the current 'character' index
+		 * the current ‘character’ index
 		 */
 		if (char_count - 1 < start_index)
 		{

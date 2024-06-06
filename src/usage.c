@@ -136,7 +136,7 @@ static int handle_sqlite3_exec_error(struct sqlite3 *db, va_list ap)
 	sql = va_arg(ap, const char *);
 	errmsg = va_arg(ap, const char *);
 
-	return error("Failed to execute '%s' on db '%s'; %s",
+	return error("Failed to execute ‘%s’ on db ‘%s’; %s",
 			sql, msqlite3_pathname, errmsg);
 }
 
@@ -146,8 +146,8 @@ static int handle_sqlite3_prepare_v2_error(struct sqlite3 *db, va_list ap)
 
 	sql = va_arg(ap, const char *);
 
-	return error_sqlerr(db, "Failed to prepare statement '%s' on "
-				  "db '%s'", sql, msqlite3_pathname);
+	return error_sqlerr(db, "Failed to prepare statement ‘%s’ on "
+				  "db ‘%s’", sql, msqlite3_pathname);
 }
 
 static int handle_sqlite3_bind_blob_error(struct sqlite3 *db, va_list ap)
@@ -167,8 +167,8 @@ static int handle_sqlite3_bind_blob_error(struct sqlite3 *db, va_list ap)
 	}
 	bin2hex(&hex, xmemdup(bin, bin_len), bin_len);
 
-	rescode = error_sqlerr(db, "Unable to bind blob value '%s%s' on db "
-				"'%s'", hex, bin_len > 16 ? "..." : "",
+	rescode = error_sqlerr(db, "Unable to bind blob value ‘%s%s’ on db "
+				"‘%s’", hex, bin_len > 16 ? "..." : "",
 				 msqlite3_pathname);
 
 	free(hex);
@@ -181,8 +181,8 @@ static int handle_sqlite3_bind_int64_error(struct sqlite3 *db, va_list ap)
 
 	val = va_arg(ap, int64_t);
 
-	return error_sqlerr(db, "Unable to bind int64 value '%"PRId64"' on db "
-				 "'%s'", val, msqlite3_pathname);
+	return error_sqlerr(db, "Unable to bind int64 value ‘%"PRId64"’ on db "
+				 "‘%s’", val, msqlite3_pathname);
 }
 
 static int handle_sqlite3_bind_text_error(struct sqlite3 *db, va_list ap)
@@ -198,8 +198,8 @@ static int handle_sqlite3_bind_text_error(struct sqlite3 *db, va_list ap)
 		placeholder = "...";
 	}
 
-	return error_sqlerr(db, "Unable to bind text value '%.16s%s' on db "
-				 "'%s'", val, placeholder, msqlite3_pathname);
+	return error_sqlerr(db, "Unable to bind text value ‘%.16s%s’ on db "
+				 "‘%s’", val, placeholder, msqlite3_pathname);
 }
 
 int report_sqlite_error(void *sqlite3_fn, struct sqlite3 *db, ...)
@@ -214,12 +214,12 @@ int report_sqlite_error(void *sqlite3_fn, struct sqlite3 *db, ...)
 
 	if (sqlite3_fn == sqlite3_open || sqlite3_fn == sqlite3_open_v2)
 	{
-		rescode = error_sqlerr(db, "Unable to open db file '%s'",
+		rescode = error_sqlerr(db, "unable to open db file ‘%s’",
 					msqlite3_pathname);
 	}
 	else if (sqlite3_fn == sqlite3_key)
 	{
-		rescode = error("Couldn't apply the key to db '%s'",
+		rescode = error("cannot apply key to cred db ‘%s’",
 				  msqlite3_pathname);
 	}
 	else if (sqlite3_fn == sqlite3_exec)
@@ -232,7 +232,7 @@ int report_sqlite_error(void *sqlite3_fn, struct sqlite3 *db, ...)
 	}
 	else if (sqlite3_fn == sqlite3_avail)
 	{
-		rescode = error("Encryption key is incorrect or '%s' is not a "
+		rescode = error("Encryption key is incorrect or ‘%s’ is not a "
 				"valid db file.", msqlite3_pathname);
 	}
 	else if (sqlite3_fn == sqlite3_prepare_v2)
@@ -262,7 +262,7 @@ int report_sqlite_error(void *sqlite3_fn, struct sqlite3 *db, ...)
 	else if (sqlite3_fn == sqlite3_bind_null)
 	{
 		rescode = error_sqlerr(db, "Unable to bind null value on db "
-					"'%s'", msqlite3_pathname);
+					"‘%s’", msqlite3_pathname);
 	}
 	else if (sqlite3_fn == sqlite3_bind_text)
 	{
@@ -275,7 +275,7 @@ int report_sqlite_error(void *sqlite3_fn, struct sqlite3 *db, ...)
 	else if (sqlite3_fn == sqlite3_step)
 	{
 		rescode = error_sqlerr(db, "Failed to step statement on db "
-					"'%s'", msqlite3_pathname);
+					"‘%s’", msqlite3_pathname);
 	}
 	else
 	{
@@ -295,10 +295,10 @@ void xio_die(int fd, const char *prefix)
 
 	if (xiopath == NULL)
 	{
-		die_errno("%s file '%s'", prefix, xiopath);
+		die_errno("%s file ‘%s’", prefix, xiopath);
 	}
 	else
 	{
-		die_errno("%s fd '%d'", prefix, fd);
+		die_errno("%s fd ‘%d’", prefix, fd);
 	}
 }

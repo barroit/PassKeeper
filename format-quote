@@ -1,0 +1,26 @@
+#!/usr/bin/bash
+
+COPYRIGHT_NOTICE_LINE="1,21"
+
+REGEX="/\".*'.\+'.*\"/ { s/'\([^']*\)'/‘\1’/g }"
+
+while read file
+do
+	if [[ $file == *.c ]]
+	then
+		sed -e "${COPYRIGHT_NOTICE_LINE}b" \
+			-e ':a' -e "$REGEX" -e 'n;ba' \
+			"$file" > "$file.tmp"
+	else
+		sed "$REGEX" "$file" > "$file.tmp"
+	fi
+
+	diff "$file" "$file.tmp" > "$file.diff"
+
+	rm "$file.tmp"
+
+	patch "$file" < "$file.diff"
+
+	rm "$file.diff"
+
+done <<< $(find src/ -type f)

@@ -82,7 +82,7 @@ int report_sqlite_error(void *sqlite3_fn, struct sqlite3 *db, ...);
 extern const char *xiopath;
 
 /**
- * printed message will be '__PREFIX__ file/fd xxx'
+ * printed message will be ‘__PREFIX__ file/fd xxx’
  */
 void xio_die(int fd, const char *prefix)
 	__attribute__((noreturn));

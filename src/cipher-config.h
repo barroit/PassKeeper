@@ -70,7 +70,7 @@ struct cipher_key
 		     strcmp("PBKDF2_HMAC_SHA256", (algo)) &&			\
 		      strcmp("PBKDF2_HMAC_SHA1", (algo)))			\
 		{								\
-			exit(error("'%s' is not found in KDF algorithm "	\
+			exit(error("‘%s’ is not found in KDF algorithm "	\
 					"list.", (algo)));			\
 		}								\
 	}									\
@@ -83,7 +83,7 @@ struct cipher_key
 		     strcmp("HMAC_SHA256", (algo)) &&				\
 		      strcmp("HMAC_SHA1", (algo)))				\
 		{								\
-			exit(error("'%s' is not found in HMAC algorithm "	\
+			exit(error("‘%s’ is not found in HMAC algorithm "	\
 					"list.", (algo)));			\
 		}								\
 	}									\
@@ -95,7 +95,7 @@ struct cipher_key
 		if (!in_range_i((ps), CPRMIN_PAGE_SIZE, CPRMAX_PAGE_SIZE) ||	\
 		     !is_pow2((ps)))						\
 		{								\
-			exit(error("Invalid page size '%u'.", (ps)));		\
+			exit(error("Invalid page size ‘%u’.", (ps)));		\
 		}								\
 	}									\
 	while (0)
@@ -106,7 +106,7 @@ struct cipher_key
 		if (!in_range_i((cap), CPRMIN_COMPATIBILITY,			\
 			CPRMAX_COMPATIBILITY))					\
 		{								\
-			exit(error("Invalid cipher compatibility '%u'.",	\
+			exit(error("Invalid cipher compatibility ‘%u’.",	\
 					(cap)));				\
 		}								\
 	}									\

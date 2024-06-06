@@ -17,3 +17,6 @@ ext/
 .pk-tmp-rec
 
 *.db
+
+src/**.tmp
+src/**.diff

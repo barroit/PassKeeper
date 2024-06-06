@@ -131,7 +131,7 @@ int xopen(const char *file, int oflag, ...)
 
 	if ((fd = open(file, oflag, mode)) == -1)
 	{
-		die_errno("Failed to open file at '%s'", file);
+		die_errno("Failed to open file at ‘%s’", file);
 	}
 
 	return fd;

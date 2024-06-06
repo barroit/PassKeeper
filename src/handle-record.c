@@ -234,7 +234,7 @@ char *format_missing_field(const struct record *rec)
 		strlist_push(message, *fmap);
 		break;
 	default:
-		bug("invalid field count '%d'", fcount);
+		bug("invalid field count ‘%d’", fcount);
 	}
 
 	buf = strlist_join(message, " ", EXT_JOIN_TAIL);
@@ -362,8 +362,8 @@ void bind_record_security_column(
 		}
 		else
 		{
-			warning("Memo file '%s' is empty.", rec->memo);
-			note("Skip column 'memo'.");
+			warning("Memo file ‘%s’ is empty.", rec->memo);
+			note("Skip column ‘memo’.");
 		}
 
 		close(memo_fd);

@@ -77,20 +77,20 @@ static void sem_optname(
 {
 	if (category & SHORT_OPTION)
 	{
-		snprintf(buf, size, "switch '%c'", opt->alias);
+		snprintf(buf, size, "switch ‘%c’", opt->alias);
 	}
 	else if (category & UNSET_OPTION)
 	{
-		snprintf(buf, size, "option 'no-%s'", opt->name);
+		snprintf(buf, size, "option ‘no-%s’", opt->name);
 	}
 	else if (category == LONG_OPTION)
 	{
-		snprintf(buf, size, "option '%s'", opt->name);
+		snprintf(buf, size, "option ‘%s’", opt->name);
 	}
 	else
 	{
 		bug("sem_optname() got unknown option category "
-			"'%d'", category);
+			"‘%d’", category);
 	}
 }
 
@@ -151,7 +151,7 @@ static enum parse_result get_arg_uint(
 	{
 		if (errno == ERANGE)
 		{
-			die("numerical value '%.9s%s' is too long",
+			die("numerical value ‘%.9s%s’ is too long",
 				arg, strlen(arg) > 9 ? "..." : "");
 		}
 		else
@@ -242,7 +242,7 @@ static enum parse_result get_arg_routine(
 
 		return 0;
 	default:
-		bug("opt->type shall not be '%d'", opt->type);
+		bug("opt->type shall not be ‘%d’", opt->type);
 	}
 }
 
@@ -296,7 +296,7 @@ static int verify_cmdmode(
 	prefix_optname(optname1, sizeof(optname1), opt, category);
 	prefix_optname(optname2, sizeof(optname2), iter->opt, iter->category);
 
-	return error("options '%s' and '%s' cannot be used together",
+	return error("options ‘%s’ and ‘%s’ cannot be used together",
 			optname1, optname2);
 }
 
@@ -496,12 +496,12 @@ static enum parse_result validate_parsed_value(const struct option *opt)
 		path = *(const char **)opt->value;
 		if (stat(path, &st))
 		{
-			return error("'%s' did not match any files", path);
+			return error("‘%s’ did not match any files", path);
 		}
 
 		if (S_ISDIR(st.st_mode))
 		{
-			return error("'%s' is not a regular file", path);
+			return error("‘%s’ is not a regular file", path);
 		}
 	}
 
@@ -575,7 +575,7 @@ static enum parse_result parse_option_next(
 				return rescode;
 			default:
 				bug("parse_short_option() shall not return "
-					"'%d'", rescode);
+					"‘%d’", rescode);
 			}
 		}
 
@@ -608,7 +608,7 @@ static enum parse_result parse_option_next(
 	case PARSING_UNKNOWN:
 		return rescode;
 	default:
-		bug("parse_long_option() shall not return '%d'", rescode);
+		bug("parse_long_option() shall not return ‘%d’", rescode);
 	}
 
 finish:
@@ -896,7 +896,7 @@ int parse_options(
 		case PARSING_COMPLETE:
 			goto finish;
 		case PARSING_NON_OPTION:
-			exit(error("unknown argument '%s'", *ctx.argv));
+			exit(error("unknown argument ‘%s’", *ctx.argv));
 		case PARSING_HELP:
 			usage_with_options(usages, options, false);
 			/* FALLTHRU */
@@ -905,16 +905,16 @@ int parse_options(
 		case PARSING_UNKNOWN:
 			if (ctx.argv[0][1] == '-')
 			{
-				error("unknown option '%s'", ctx.argv[0] + 2);
+				error("unknown option ‘%s’", ctx.argv[0] + 2);
 			}
 			else if (isascii(*ctx.optstr))
 			{
-				error("unknown switch '%c'", *ctx.optstr);
+				error("unknown switch ‘%c’", *ctx.optstr);
 			}
 			else
 			{
 				error("unknown non-ascii option in string: "
-					"'%s'", *ctx.argv);
+					"‘%s’", *ctx.argv);
 			}
 
 			usage_with_options(usages, options, true);
