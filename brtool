@@ -2,7 +2,7 @@
 
 export PROJECT_PREFIX=$(dirname $(realpath $0))
 
-export BRTOOL_SOURCE_PREFIX="$PROJECT_PREFIX"/brtool-src
+export BRTOOL_SOURCE_PREFIX="$PROJECT_PREFIX/tool"
 export BRTOOL_COMMAND_PREFIX="$BRTOOL_SOURCE_PREFIX"/command
 
 export BRTOOL_BUILD_PREFIX="$PROJECT_PREFIX"/build

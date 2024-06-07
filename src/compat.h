@@ -184,9 +184,10 @@ static inline FORCEINLINE void *mempcpy(void *dest, const void *src, size_t n)
  * on windows, access() is used
  */
 #ifdef LINUX
-int test_file_mode_stat(struct stat *st, int mode);
+int test_file_mode(struct stat *st, int mode);
+
 #define test_file_mode(file, st, mode)\
-	test_file_mode_stat(st, mode)
+	test_file_mode(st, mode)
 #else
 #define test_file_mode(file, st, mode)\
 	( access(file, mode) == -1 )
