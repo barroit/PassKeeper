@@ -179,20 +179,6 @@ static inline FORCEINLINE void *mempcpy(void *dest, const void *src, size_t n)
 #define mkdir(path) mkdir((path), DIRCRT_BIT)
 #endif
 
-/**
- * on linux, stat is used
- * on windows, access() is used
- */
-#ifdef LINUX
-int test_file_mode(struct stat *st, int mode);
-
-#define test_file_mode(file, st, mode)\
-	test_file_mode(st, mode)
-#else
-#define test_file_mode(file, st, mode)\
-	( access(file, mode) == -1 )
-#endif
-
 #ifdef LINUX
 #define is_dumb_term (getenv("TERM") == NULL)
 #else

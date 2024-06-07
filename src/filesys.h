@@ -56,6 +56,20 @@ int avail_file_dir(const char *path);
 #define avail_file_dir_or_die(path) EOE(avail_file_dir(path))
 
 /**
+ * on linux, stat is used
+ * on windows, access() is used
+ */
+#ifdef LINUX
+int test_file_mode(struct stat *st, int mode);
+
+#define test_file_mode(file, st, mode)\
+	test_file_mode(st, mode)
+#else
+#define test_file_mode(file, st, mode)\
+	( access(file, mode) == -1 )
+#endif
+
+/**
  * fill file with given content
  * this function does set ‘xiopath’
  */
