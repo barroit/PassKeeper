@@ -161,15 +161,13 @@ setup_database:;
 	msqlite3_pathname = cred_db_path;
 	xsqlite3_open_v2(cred_db_path, &db, SQLITE_OPEN_READWRITE, NULL);
 
-	const char *cred_cc_realpath;
-
-	if ((cred_cc_realpath = resolve_cred_cc_realpath()) < 0)
+	if (find_cipher_config(&cred_cc_path) != 0)
 	{
-		note("Configuration disabled.");
-		cred_cc_realpath = NULL;
+		exit(error_errno("failed to find cipher config "
+				  "‘%s’", cred_cc_path));
 	}
 
-	use_cipher_config = cred_cc_realpath != NULL;
+	use_cipher_config = cred_cc_path != NULL;
 
 	if (!use_cipher_config && !use_cmdkey)
 	{
@@ -200,14 +198,22 @@ setup_database:;
 		goto apply_key;
 	}
 
-	uint8_t *cc_buf;
-	off_t cc_size;
+	uint8_t *buf;
+	off_t len;
 
-	resolve_cipher_config_file(cred_cc_realpath, &cc_buf, &cc_size);
+	if (resolve_cipher_config(cred_cc_path, &buf, &len) != 0)
+	{
+		exit(error_errno("cannot resolve cipher config "
+				  "‘%s’", cred_cc_path));
+	}
 
-	deserialize_cipher_config(&cc, &ck, cc_buf, cc_size);
+	if (deserialize_cipher_config(&cc, &ck, buf, len) != 0)
+	{
+		exit(error_errno("cannot deserialize cipher config "
+				  "‘%s’", cred_cc_path));
+	}
 
-	free(cc_buf);
+	sfree(buf, len);
 
 	if (keystr != NULL)
 	{
@@ -217,7 +223,7 @@ setup_database:;
 	if (ck.buf == NULL)
 	{
 		warning("Cipher config file at ‘%s’ affects nothing "
-			 "without a key.", cred_cc_realpath);
+			 "without a key.", cred_cc_path);
 
 		free_cipher_config(&cc, &ck);
 		goto insert_record;

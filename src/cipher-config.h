@@ -63,54 +63,17 @@ struct cipher_key
 
 #define CK_INIT { 0 }
 
-#define assert_valid_kdf_algorithm(algo)					\
-	do									\
-	{									\
-		if (strcmp(CPRDEF_KDF_ALGORITHM, (algo)) &&			\
-		     strcmp("PBKDF2_HMAC_SHA256", (algo)) &&			\
-		      strcmp("PBKDF2_HMAC_SHA1", (algo)))			\
-		{								\
-			exit(error("‘%s’ is not found in KDF algorithm "	\
-					"list.", (algo)));			\
-		}								\
-	}									\
-	while (0)
+#define is_cc_kdf_algorithm(algo)\
+	findstr(algo, TMPARR(CPRDEF_KDF_ALGORITHM, "PBKDF2_HMAC_SHA256", "PBKDF2_HMAC_SHA1"))
 
-#define assert_valid_hmac_algorithm(algo)					\
-	do									\
-	{									\
-		if (strcmp(CPRDEF_HMAC_ALGORITHM, (algo)) &&			\
-		     strcmp("HMAC_SHA256", (algo)) &&				\
-		      strcmp("HMAC_SHA1", (algo)))				\
-		{								\
-			exit(error("‘%s’ is not found in HMAC algorithm "	\
-					"list.", (algo)));			\
-		}								\
-	}									\
-	while (0)
+#define is_cc_hmac_algorithm(algo)\
+	findstr(algo, TMPARR(CPRDEF_HMAC_ALGORITHM, "HMAC_SHA256", "HMAC_SHA1"))
 
-#define assert_valid_page_size(ps)						\
-	do									\
-	{									\
-		if (!in_range_i((ps), CPRMIN_PAGE_SIZE, CPRMAX_PAGE_SIZE) ||	\
-		     !is_pow2((ps)))						\
-		{								\
-			exit(error("Invalid page size ‘%u’.", (ps)));		\
-		}								\
-	}									\
-	while (0)
+#define is_cc_page_size(sz)\
+	( in_range_i(sz, CPRMIN_PAGE_SIZE, CPRMAX_PAGE_SIZE) || !is_pow2(sz) )
 
-#define assert_valid_compatibility(cap)						\
-	do									\
-	{									\
-		if (!in_range_i((cap), CPRMIN_COMPATIBILITY,			\
-			CPRMAX_COMPATIBILITY))					\
-		{								\
-			exit(error("Invalid cipher compatibility ‘%u’.",	\
-					(cap)));				\
-		}								\
-	}									\
-	while (0)
+#define is_cc_compatibility(cap)\
+	in_range_i(cap, CPRMIN_COMPATIBILITY, CPRMAX_COMPATIBILITY)
 
 /**
  * this function guarantees the returned buffer
@@ -118,16 +81,21 @@ struct cipher_key
  */
 uint8_t *serialize_cipher_config(const struct cipher_config *config, const struct cipher_key *key, size_t *outlen);
 
-void deserialize_cipher_config(struct cipher_config *config, struct cipher_key *key, const uint8_t *buf, size_t buflen);
+int deserialize_cipher_config(struct cipher_config *config, struct cipher_key *key, const uint8_t *buf, size_t buflen);
 
 /**
- * only use this function on config/key created by deserialize_cipher_config()
+ * only use this function on config/key created by
+ * deserialize_cipher_config()
  */
 void free_cipher_config(struct cipher_config *config, struct cipher_key *key);
 
-const char *resolve_cred_cc_realpath(void);
+/**
+ * find cipher config by path, this function does set
+ * ‘path’ to NULL if there’s no config found
+ */
+int find_cipher_config(const char **path);
 
-void resolve_cipher_config_file(const char *pathname, uint8_t **buf, off_t *outlen);
+int resolve_cipher_config(const char *pathname, uint8_t **buf, off_t *len);
 
 char *format_apply_cc_sqlstr(struct cipher_config *cc);
 

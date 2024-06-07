@@ -51,6 +51,11 @@ if(NOT have_mempcpy)
 	add_compile_definitions(NO_MEMPCPY)
 endif()
 
+check_symbol_exists(memset_s string.h have_memset_s)
+if(NOT have_memset_s)
+	add_compile_definitions(NO_MEMSET_S)
+endif()
+
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND
     CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 3.1)
 	set(have_always_inline 1)

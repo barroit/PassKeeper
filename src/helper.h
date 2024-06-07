@@ -156,7 +156,7 @@ static inline FORCEINLINE size_t st_mult(size_t x, size_t y)
 /**
  * find `str` in `arr`, the last element of `arr` must be NULL
  */
-static inline FORCEINLINE bool find_string(const char *str, const char *const *arr)
+static inline bool findstr(const char *str, const char *const *arr)
 {
 	while (*arr && strcmp(str, *arr))
 	{
@@ -165,5 +165,7 @@ static inline FORCEINLINE bool find_string(const char *str, const char *const *a
 
 	return *arr != NULL;
 }
+
+#define TMPARR(...) ( (const char * const[]){ __VA_ARGS__ } )
 
 #endif /* HELPER_H */

@@ -55,7 +55,7 @@
 #include <winbase.h>
 #include <io.h>
 #include <stringapiset.h>
-#include <wingdi.h> /* required by wincon.h */
+#include <wingdi.h>
 #include <wincon.h>
 #endif
 
@@ -180,9 +180,9 @@ static inline FORCEINLINE void *mempcpy(void *dest, const void *src, size_t n)
 #endif
 
 #ifdef LINUX
-#define is_dumb_term (getenv("TERM") == NULL)
+#define is_dumb_term ( getenv("TERM") == NULL )
 #else
-#define is_dumb_term (false)
+#define is_dumb_term ( false )
 #endif
 
 #ifdef LINUX
@@ -201,12 +201,12 @@ static inline FORCEINLINE void *mempcpy(void *dest, const void *src, size_t n)
 #define SIGQUIT 3
 #endif
 
-#ifdef __STDC_LIB_EXT1__
-#define zeromem(p__, l__) memset_s((p__), (l__), 0, (l__))
-#else
+#ifdef NO_MEMSET_S
 void pk_zeromem(void *ptr, size_t len);
 
 #define zeromem pk_zeromem
+#else
+#define zeromem(s, n) memset_s(s, c, 0, n)
 #endif
 
 #ifdef NO_GETLINE

@@ -128,7 +128,7 @@ uint8_t *serialize_cipher_config(
 	return blob->buf;
 }
 
-#define ST_INC(buf0__, len0__, buf__, len__)			\
+#define ST_BUF_INC(buf0__, len0__, buf__, len__)		\
 	do							\
 	{							\
 		if (buf__ + len__ > buf0__ + len0__)		\
@@ -141,11 +141,11 @@ uint8_t *serialize_cipher_config(
 	}							\
 	while (0)
 
-void deserialize_cipher_config(
+int deserialize_cipher_config(
 	struct cipher_config *config, struct cipher_key *key,
-	const uint8_t *buf, size_t buflen)
+	const uint8_t *buf, size_t len)
 {
-	const uint8_t *buf_head, *buf_tail;
+	const uint8_t *buf0, *buf9;
 	void *fmap[] = {
 		&config->kdf_algorithm,
 		&config->hmac_algorithm,
@@ -155,65 +155,71 @@ void deserialize_cipher_config(
 		&key->buf,
 	};
 
-	buf_head = buf;
-	buf_tail = buf + buflen;
+	buf0 = buf;
+	buf9 = buf + len;
 
 	while (39)
 	{
+/* START LOOP */
 
 	enum field_type type;
-	size_t dlen;
+	size_t dtlen;
 
 	type = *buf;
 	if (!in_range_e(type, field_type_start, field_type_end))
 	{
-		bug("field type value shall not be %d", type);
+		errno = EINCPHR;
+		return 1;
 	}
-	ST_INC(buf_head, buflen, buf, TYPE_SIZE);
+	ST_BUF_INC(buf0, len, buf, TYPE_SIZE);
 
-	memcpy(&dlen, buf, DLEN_SIZE);
-	ST_INC(buf_head, buflen, buf, DLEN_SIZE);
+	memcpy(&dtlen, buf, DLEN_SIZE);
+	ST_BUF_INC(buf0, len, buf, DLEN_SIZE);
 
 	switch (type)
 	{
 	case FIELD_KDF_ALGORITHM:
 	case FIELD_HMAC_ALGORITHM:
-		*(char **)fmap[type] = xmalloc(dlen);
+		*(char **)fmap[type] = xmalloc(dtlen);
 
-		memcpy(*(char **)fmap[type], buf, dlen);
+		memcpy(*(char **)fmap[type], buf, dtlen);
 
 		break;
 	case FIELD_COMPATIBILITY:
 	case FIELD_PAGE_SIZE:
 	case FIELD_KDF_ITER:
-		memcpy(fmap[type], buf, dlen);
+		memcpy(fmap[type], buf, dtlen);
 
 		break;
 	case FIELD_KEY_PASSPHRASE:
 	case FIELD_KEY_BINARY:
-		*(uint8_t **)fmap[FIELD_KEY] = xmalloc(dlen);
+		*(uint8_t **)fmap[FIELD_KEY] = xmalloc(dtlen);
 
-		memcpy(*(uint8_t **)fmap[FIELD_KEY], buf, dlen);
-		key->len = dlen;
+		memcpy(*(uint8_t **)fmap[FIELD_KEY], buf, dtlen);
+		key->len = dtlen;
 		key->is_binary = type == FIELD_KEY_BINARY;
 
 		break;
 	default:
 		bug("field type shall not be %d", type);
 	}
-	ST_INC(buf_head, buflen, buf, dlen);
+	ST_BUF_INC(buf0, len, buf, dtlen);
 
-	/* buf must be less than buf tail */
-	if (buf > buf_tail)
+	/* buf must <= buf tail */
+	if (buf > buf9)
 	{
-		bug("buf is beyond buf tail");
+		errno = EINCPHR;
+		return 1;
 	}
-	else if (buf == buf_tail)
+	else if (buf == buf9)
 	{
 		break;
 	}
 
+/* END LOOP */
 	}
+
+	return 0;
 }
 
 void free_cipher_config(struct cipher_config *cc, struct cipher_key *ck)
@@ -223,50 +229,59 @@ void free_cipher_config(struct cipher_config *cc, struct cipher_key *ck)
 	sfree(ck->buf, ck->len);
 }
 
-const char *resolve_cred_cc_realpath(void)
+int find_cipher_config(const char **path)
 {
-	if (access_regular(cred_cc_path, R_OK) == 0)
+	if (access_regular(*path, R_OK) != 0)
 	{
-		return cred_cc_path;
+		if (errno != ENOENT)
+		{
+			/* errno already set */
+			return 1;
+		}
+		else
+		{
+			*path = NULL;
+		}
 	}
 
-	warning_errno("cannot access config file ‘%s’", cred_cc_path);
-
-	return (void *)-1;
+	return 0;
 }
 
-void resolve_cipher_config_file(
-	const char *pathname, uint8_t **outbuf, off_t *outlen)
+int resolve_cipher_config(
+	const char *pathname, uint8_t **buf1, off_t *len1)
 {
-	int cc_fd;
-	uint8_t *cc_buf;
-	off_t cc_len;
+	int fd;
+	uint8_t *buf;
+	off_t len;
 
 	xiopath = pathname;
-	cc_fd = xopen(pathname, O_RDONLY);
+	fd = xopen(pathname, O_RDONLY);
 
-	if ((cc_len = xlseek(cc_fd, 0, SEEK_END)) < CIPHER_DIGEST_LENGTH)
+	if ((len = xlseek(fd, 0, SEEK_END)) < CIPHER_DIGEST_LENGTH)
 	{
-		die("Cipher config file at ‘%s’ may be corrupted because it's "
-			"too small.", pathname);
+		/* too small */
+		errno = EINCPHR;
+		return 1;
 	}
 
-	xlseek(cc_fd, 0, SEEK_SET);
+	xlseek(fd, 0, SEEK_SET);
 
-	cc_buf = xmalloc(cc_len);
-	xread(cc_fd, cc_buf, cc_len);
+	buf = xmalloc(len);
+	xread(fd, buf, len);
 
-	close(cc_fd);
+	close(fd);
 
-	cc_len -= CIPHER_DIGEST_LENGTH;
-	if (verify_digest_sha256(cc_buf, cc_len, cc_buf + cc_len) != 0)
+	len -= CIPHER_DIGEST_LENGTH;
+	if (verify_digest_sha256(buf, len, buf + len) != 0)
 	{
-		die("File at ‘%s’ is not a valid cipher config file.",
-			pathname);
+		errno = EINCPHR;
+		return 1;
 	}
 
-	*outbuf = cc_buf;
-	*outlen = cc_len;
+	*buf1 = buf;
+	*len1 = len;
+
+	return 0;
 }
 
 char *format_apply_cc_sqlstr(struct cipher_config *cc)

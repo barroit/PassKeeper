@@ -20,52 +20,12 @@
 **
 ****************************************************************************/
 
-#ifdef strerror
-#undef strerror
-#endif
+#ifndef PKERRNO_H
+#define PKERRNO_H
 
-#define EBUF_SIZE 256
+#define ENOTREG   -3    /* file is not regular file */
+#define EINCPHR   -10   /* invalid cipher config */
 
-static void strcpy_errmsg(char *buf, const char *msg)
-{
-	size_t len;
+#define ERR_PTR(errnum) ( (void *)errnum )
 
-	if ((len = strlen(msg) >= EBUF_SIZE))
-	{
-		bug("error message length(‘%"PRIuMAX"’) is more than %d "
-			"characters", len, EBUF_SIZE);
-	}
-
-	memcpy(buf, msg, len + 1);
-}
-
-char *pk_strerror(int errnum)
-{
-	static char buf[EBUF_SIZE];
-
-	if (errnum >= 0)
-	{
-		strcpy_errmsg(buf, strerror(errnum));
-
-		if (isupper(*buf))
-		{
-			buf[0] = tolower(*buf);
-		}
-
-		return buf;
-	}
-
-	switch (errnum)
-	{
-	case ENOTREG:
-		strcpy_errmsg(buf, "not a regular file");
-		break;
-	case EINCPHR:
-		strcpy_errmsg(buf, "invalid cipher config");
-		break;
-	default:
-		bug("unknown errnum: ‘%d’", errnum);
-	}
-
-	return buf;
-}
+#endif /* PKERRNO_H */

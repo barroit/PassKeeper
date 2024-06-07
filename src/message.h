@@ -24,7 +24,7 @@
 #define MESSAGE_H
 ; /* some thing went wrong while compiling with mingw gcc */
 
-#define ENOTREG -1	/* file is not regular file */
+#include "pkerrno.h"
 
 void vreportf(const char *prefix, const char *format, va_list ap, const char *detail);
 

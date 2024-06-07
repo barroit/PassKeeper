@@ -237,24 +237,39 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	use_passphrase = !is_blob_key(keybuf, keylen);
 
 	/* kdf algorithm */
-	if (cc.kdf_algorithm == NULL);
-	else if (!use_passphrase)
+	if (cc.kdf_algorithm != NULL)
+	{
+/* START IF */
+	if (!use_passphrase)
 	{
 		warning("Setting the KDF algorithm on a "
-			  "non-passphrase key has no effect.");
+			 "non-passphrase key has no effect.");
 		cc.kdf_algorithm = NULL;
+	}
+	else if (!is_cc_kdf_algorithm(cc.kdf_algorithm))
+	{
+		exit(error("invalid KDF algorithm ‘%s’", cc.kdf_algorithm));
 	}
 	else
 	{
-		assert_valid_kdf_algorithm(cc.kdf_algorithm);
 		use_cc |= strcmp(cc.kdf_algorithm, CPRDEF_KDF_ALGORITHM);
+	}
+/* END IF */
 	}
 
 	/* hmac algorithm */
 	if (cc.hmac_algorithm != NULL)
 	{
-		assert_valid_hmac_algorithm(cc.hmac_algorithm);
+/* START IF */
+	if (!is_cc_hmac_algorithm(cc.hmac_algorithm))
+	{
+		exit(error("invalid HMAC algorithm ‘%s’", cc.hmac_algorithm));
+	}
+	else
+	{
 		use_cc |= strcmp(cc.hmac_algorithm, CPRDEF_HMAC_ALGORITHM);
+	}
+/* END IF */
 	}
 
 	/* kdf iter */
@@ -271,11 +286,18 @@ int cmd_init(UNUSED int argc, const char **argv, const char *prefix)
 	}
 
 	/* page size */
-	assert_valid_page_size(cc.page_size);
+	if (!is_cc_page_size(cc.page_size))
+	{
+		exit(error("invalid page size ‘%u’", cc.page_size));
+	}
 	use_cc |= cc.page_size != CPRDEF_PAGE_SIZE;
 
 	/* compatibility */
-	assert_valid_compatibility(cc.compatibility);
+	if (!is_cc_compatibility(cc.compatibility))
+	{
+		exit(error("invalid cipher compatibility "
+			    "‘%u’", cc.compatibility));
+	}
 	use_cc |= cc.compatibility != CPRDEF_COMPATIBILITY;
 
 	/**
