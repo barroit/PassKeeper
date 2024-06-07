@@ -76,8 +76,8 @@ WINBOOL xSetStdHandle(DWORD nStdHandle, HANDLE hHandle)
 		CloseHandle(hHandle);
 
 		SetLastError(errnum);
-		die_winerr("failed to set standard handle ‘%d’ to ‘%p’",
-				nStdHandle, hHandle);
+		die_winerr("failed to set standard handle ‘%lx’ "
+				"to ‘%p’", nStdHandle, hHandle);
 	}
 
 	return TRUE;

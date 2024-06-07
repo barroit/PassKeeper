@@ -22,6 +22,7 @@
 
 #ifndef MESSAGE_H
 #define MESSAGE_H
+; /* some thing went wrong while compiling with mingw gcc */
 
 #define ENOTREG -1	/* file is not regular file */
 
@@ -61,6 +62,10 @@ void bug_routine(const char *file, int line, const char *format, ...)
 #define bug(...) bug_routine(__FILE__, __LINE__, __VA_ARGS__)
 
 #ifdef WINDOWS_NATIVE
+
+void warning_winerr(const char *format, ...)
+	__attribute__((format(printf, 1, 2)));
+
 /**
  * same as error_errno except this function set errno to GetLastError()
  */

@@ -55,9 +55,8 @@
 #include <winbase.h>
 #include <io.h>
 #include <stringapiset.h>
-#include <handleapi.h>
-#include <errhandlingapi.h>
-#include <processthreadsapi.h>
+#include <wingdi.h> /* required by wincon.h */
+#include <wincon.h>
 #endif
 
 #ifdef LINUX
@@ -185,12 +184,12 @@ static inline FORCEINLINE void *mempcpy(void *dest, const void *src, size_t n)
  * on windows, access() is used
  */
 #ifdef LINUX
-int test_file_mode_st(struct stat *st, int mode);
+int test_file_mode_stat(struct stat *st, int mode);
 #define test_file_mode(file, st, mode)\
-	test_file_mode_st(st, mode)
+	test_file_mode_stat(st, mode)
 #else
 #define test_file_mode(file, st, mode)\
-	( access(file, st) == -1 )
+	( access(file, mode) == -1 )
 #endif
 
 #ifdef LINUX
@@ -234,8 +233,8 @@ ssize_t pk_getline(char **restrict lineptr, size_t *restrict n, FILE *restrict s
 #else
 struct termios
 {
-	stdin_handle;
-	console_mode;
+	HANDLE stdin_handle;
+	DWORD  console_mode;
 }
 #endif
 

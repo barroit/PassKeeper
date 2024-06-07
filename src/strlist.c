@@ -155,7 +155,8 @@ void strlist_filter(
 }
 
 char *strlist_join(
-	struct strlist *sl, const char *separator,
+	const struct strlist *sl,
+	const char *separator,
 	enum strlist_join_ext_pos join_pos)
 {
 	char *buf0, *buf;

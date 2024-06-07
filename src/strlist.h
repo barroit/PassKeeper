@@ -68,7 +68,7 @@ void strlist_filter(struct strlist *sl, bool (*compar)(struct strlist_elem *), b
  * this function only works on the ext is string when
  * join_pos is not EXT_JOIN_NONE
  */
-char *strlist_join(struct strlist *sl, const char *separator, enum strlist_join_ext_pos join_pos);
+char *strlist_join(const struct strlist *sl, const char *separator, enum strlist_join_ext_pos join_pos);
 
 char **strlist_to_array_routine(struct strlist *sl, size_t n);
 

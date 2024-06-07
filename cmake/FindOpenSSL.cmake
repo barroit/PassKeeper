@@ -2,7 +2,7 @@ find_package(PkgConfig REQUIRED)
 
 set(OPENSSL_USE_STATIC_LIBS TRUE)
 
-pkg_check_modules(OPENSSL REQUIRED openssl)
+pkg_check_modules(OPENSSL REQUIRED openssl>=3.2.1)
 
 list(REMOVE_ITEM OPENSSL_LIBRARIES ssl)
 

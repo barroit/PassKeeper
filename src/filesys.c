@@ -98,7 +98,7 @@ char *prefix_filename(const char *prefix, const char *filename)
 #define MATCH_MODE(m1__, f1__, m2__, f2__)\
 	( ( (m1__) & (f1__) ) ? ( (m2__) & (f2__) ) : 1 )
 
-int test_file_mode_st(struct stat *st, int mode)
+int test_file_mode_stat(struct stat *st, int mode)
 {
 	if (st->st_uid == geteuid()) /* euid matches owner id? */
 	{
