@@ -23,6 +23,7 @@
 #include "filesys.h"
 #include "strbuf.h"
 #include "security.h"
+#include "pkerrno.h"
 
 const char *xiopath = NULL;
 

@@ -19,12 +19,19 @@
 ** with PassKeeper. If not, see <https://www.gnu.org/licenses/>.
 **
 ****************************************************************************/
-char a = '\a';
+
 #include "parse-option.h"
 #include "strbuf.h"
 #include "filesys.h"
 #include "atexit-chain.h"
 #include "command.h"
+
+struct passkeeper_context
+{
+	struct sqlite3 *db;
+} *this = {
+	0
+};
 
 #define OPTION_FILENAME_H(s, l, v)\
 	OPTION_FILENAME_F((s), (l), (v), 0, 0, OPTION_HIDDEN)
@@ -71,7 +78,7 @@ static void init_enval(void)
 	}
 }
 
-static bool is_skip_precheck(int argc, const char *const *argv)
+static bool skip_precheck(int argc, const char *const *argv)
 {
 	for ( ; argc > 0; argc--)
 	{
@@ -224,7 +231,7 @@ int main(int argc, const char **argv)
 	/* skip ‘command’ */
 	ARGV_MOVE_FRONT(argc, argv);
 
-	if (!is_skip_precheck(argc, argv))
+	if (!skip_precheck(argc, argv))
 	{
 		precheck_command(command->reqs);
 	}

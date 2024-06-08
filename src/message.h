@@ -22,9 +22,6 @@
 
 #ifndef MESSAGE_H
 #define MESSAGE_H
-; /* some thing went wrong while compiling with mingw gcc */
-
-#include "pkerrno.h"
 
 void vreportf(const char *prefix, const char *format, va_list ap, const char *detail);
 

@@ -121,7 +121,7 @@ static void error_chlerr(struct child_error *errobj)
 		warning_errno("failed to execute command ‘%s’", program);
 		break;
 	default:
-		bug("child errnum should not be the value of ‘%d’", errobj->chlerr);
+		bug("unknown child errnum ‘%d’", errobj->chlerr);
 	}
 
 	errno = errobj->syserr;
@@ -261,7 +261,7 @@ int finish_process(struct process_info *ctx, bool raised)
 
 	do
 	{
-
+/* START LOOP */
 	wpid = waitpid(ctx->pid, &status, 0);
 
 	if (wpid < 0)
@@ -293,7 +293,7 @@ int finish_process(struct process_info *ctx, bool raised)
 	{
 		bug("unexpected status of %s (0x%x)", ctx->program, status);
 	}
-
+/* END LOOP */
 	}
 	while (!WIFEXITED(status) && !WIFSIGNALED(status));
 

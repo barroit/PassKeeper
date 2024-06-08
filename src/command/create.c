@@ -222,7 +222,7 @@ setup_database:;
 
 	if (ck.buf == NULL)
 	{
-		warning("Cipher config file at ‘%s’ affects nothing "
+		warning("cipher config file at ‘%s’ affects nothing "
 			 "without a key.", cred_cc_path);
 
 		free_cipher_config(&cc, &ck);

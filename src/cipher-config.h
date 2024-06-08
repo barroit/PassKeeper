@@ -63,11 +63,17 @@ struct cipher_key
 
 #define CK_INIT { 0 }
 
+#define cc_kdf_algorithm_list\
+	TMP_STRARR(CPRDEF_KDF_ALGORITHM, "PBKDF2_HMAC_SHA256", "PBKDF2_HMAC_SHA1", NULL)
+
+#define cc_hmac_algorithm_list\
+	TMP_STRARR(CPRDEF_HMAC_ALGORITHM, "HMAC_SHA256", "HMAC_SHA1", NULL)
+
 #define is_cc_kdf_algorithm(algo)\
-	findstr(algo, TMPARR(CPRDEF_KDF_ALGORITHM, "PBKDF2_HMAC_SHA256", "PBKDF2_HMAC_SHA1"))
+	findstr(algo, cc_kdf_algorithm_list)
 
 #define is_cc_hmac_algorithm(algo)\
-	findstr(algo, TMPARR(CPRDEF_HMAC_ALGORITHM, "HMAC_SHA256", "HMAC_SHA1"))
+	findstr(algo, cc_hmac_algorithm_list)
 
 #define is_cc_page_size(sz)\
 	( in_range_i(sz, CPRMIN_PAGE_SIZE, CPRMAX_PAGE_SIZE) || !is_pow2(sz) )

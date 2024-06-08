@@ -20,6 +20,8 @@
 **
 ****************************************************************************/
 
+#include "pkerrno.h"
+
 #ifdef strerror
 #undef strerror
 #endif

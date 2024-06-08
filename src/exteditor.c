@@ -24,15 +24,17 @@
 #include "message.h"
 #include "strlist.h"
 
-static const char *graphical_editors[] = {
-	"gedit",     /* gedit */
-	"kate",      /* kate */
-	"code",      /* vscode */
-	"notepad",   /* notepad */
-	"notepad++", /* notepad++ */
-	"subl",      /* sublime text */
-	NULL,
-};
+#define graphical_editor_list		\
+	TMP_STRARR(			\
+		"gedit",		\
+		"gnome-text-editor",	\
+		"kate",			\
+		"code",			\
+		"notepad",		\
+		"notepad++",		\
+		"subl",			\
+		NULL,			\
+	)
 
 int edit_file(const char *pathname)
 {
@@ -40,7 +42,7 @@ int edit_file(const char *pathname)
 
 	if (ext_editor == NULL)
 	{
-		return error("Unable to find an editor; Make sure VISUAL, "
+		return error("unable to find an editor; make sure VISUAL, "
 				"EDITOR or PK_EDITOR is set in env");
 	}
 
@@ -63,13 +65,13 @@ int edit_file(const char *pathname)
 
 	show_spinner = spinner_style != NULL /* --no-spinner */ &&
 			/* graphical editor enable this by default */
-			 (findstr(ext_editor, graphical_editors) ||
+			 (findstr(ext_editor, graphical_editor_list) ||
 			  /* this case, user specified a value */
 			   spinner_style != (void *)-1);
 
 	if (show_spinner && run_spinner(&spinner_ctx, spinner_style) != 0)
 	{
-		note("Something terrible happened, but it's harmless, "
+		note("something terrible happened, but it's harmless, "
 			"and the program will continue");
 
 		show_spinner = false;

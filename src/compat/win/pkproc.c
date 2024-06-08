@@ -154,7 +154,7 @@ int kill_process(struct process_info *ctx, int sig)
 		}
 		break;
 	case PROC_EXITED:
-		bug("ctx should not be the type of ‘exited’");
+		bug("ctx shall not be the type of ‘exited’");
 	default:
 		bug("unknown proctype: %d", ctx->type);
 	}

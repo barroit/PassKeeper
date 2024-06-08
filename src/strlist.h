@@ -89,4 +89,9 @@ char **strlist_to_array_routine(struct strlist *sl, size_t n);
  */
 void strarr_free(char **arr);
 
+/**
+ * find `str` in `arr`, the last element of `arr` must be NULL
+ */
+bool findstr(const char *str, const char *const *arr);
+
 #endif /* STRLIST_H */

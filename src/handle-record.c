@@ -306,7 +306,7 @@ int read_record_file(struct record *rec, const char *rec_path)
 
 cancelled:
 	strlist_destroy(rec_line, false);
-	puts("Creation is aborted due to empty record.");
+	puts("creation is aborted due to empty record.");
 	return 1;
 }
 

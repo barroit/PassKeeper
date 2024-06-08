@@ -23,6 +23,8 @@
 #ifndef HELPER_H
 #define HELPER_H
 
+extern struct passkeeper_context *this;
+
 #define ARGV_MOVE_FRONT(argc, argv)	\
 	do				\
 	{				\
@@ -153,19 +155,6 @@ static inline FORCEINLINE size_t st_mult(size_t x, size_t y)
 
 #define array_iterate_each_t array_iterate_each_until_null
 
-/**
- * find `str` in `arr`, the last element of `arr` must be NULL
- */
-static inline bool findstr(const char *str, const char *const *arr)
-{
-	while (*arr && strcmp(str, *arr))
-	{
-		arr++;
-	}
-
-	return *arr != NULL;
-}
-
-#define TMPARR(...) ( (const char * const[]){ __VA_ARGS__ } )
+#define TMP_STRARR(...) ( (const char * const[]){ __VA_ARGS__ } )
 
 #endif /* HELPER_H */

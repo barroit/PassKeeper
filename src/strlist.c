@@ -237,3 +237,13 @@ void strarr_free(char **array)
 
 	free(array);
 }
+
+bool findstr(const char *str, const char *const *arr)
+{
+	while (*arr && strcmp(str, *arr))
+	{
+		arr++;
+	}
+
+	return *arr != NULL;
+}

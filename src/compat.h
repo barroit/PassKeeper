@@ -222,7 +222,7 @@ struct termios
 {
 	HANDLE stdin_handle;
 	DWORD  console_mode;
-}
+};
 #endif
 
 #endif /* COMPACT_UTIL_H */
